@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <vector>
 
-typedef MXi Eigen::MatrixXi;
+typedef Eigen::MatrixXi MXi;
 int hungarian(MXi costs, std::vector<int>& matchings);
 
 #endif
