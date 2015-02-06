@@ -5,6 +5,7 @@ class Timer{
 	public:
 		void start();
 		double stop();
+		double get();
 		void reset();
 	private:
 		std::chrono::time_point<std::chrono::high_resolution_clock> t0;

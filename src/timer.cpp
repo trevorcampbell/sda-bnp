@@ -9,6 +9,10 @@ double Timer::stop(){
 	return this->elapsed_s.count();
 }
 
+double Timer::get(){
+	return this->elapsed_s.count() + (std::chrono::high_resolution_clock::now() - this->t0);
+}
+
 void Timer::reset(){
 	this->elapsed_s = std::chrono::duration<double>();
 }

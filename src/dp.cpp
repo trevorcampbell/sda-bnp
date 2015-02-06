@@ -62,20 +62,41 @@ void initializeZeta(double * const zeta, double * const sumzeta, double * const 
 
 void VarDP::run(bool computeTestLL, double tol){
 
+	this->times.clear();
+	this->objs.clear();
+	this->testlls.clear();
+	//TODO this model clear
+
 	double diff = 10.0*tol + 1.0;
 	double obj = std::numeric_limits<double>::infinity();
 	double prevobj = std::numeric_limits<double>::infinity();
+	Timer cpuTime;
+	cpuTime.start();
 	while(diff > tol){
 		this->updateWeightDist();
 		this->updateParamDist();
 		this->updateLabelDist();
 		prevobj = obj;
+		this->times.push_back(cpuTime.get());
 		obj = this->computeObjective();
+		this->objs.push_back(obj);
 		diff = (obj - prevobj)/obj;
 		if (computeTestLL){
+			cpuTime.stop();
 			double testll = this->computeTestLL();
+			this->testlls.push_back(testll);
+			cpuTime.start();
 		}
 	}
+	return cpuTime.stop();
+}
+
+void VarDP::getResults(std::vector<double>& times, std::vector<double>& objs, std::vector<double>& testlls){
+	//TODO output model
+	times = this->times;
+	objs = this->objs;
+	testlls = this->testlls;
+	return;
 }
 
 
@@ -275,4 +296,85 @@ double cost = varBetaEntropy(a, b, K)
 			- priorBetaCrossEntropy(a, b, alpha, K);
     if(zeta != NULL)
       cost += varLabelEntropy(zeta, N, K);
+
+
+
+
+
+void updateLabelDist(double* const zeta,
+		const double * const stat, 
+		const double * const dlogh_deta, 
+		const double * const dlogh_dnu, 
+		const double * const psisum, 
+		const uint32_t M, 
+		const uint32_t K){
+
+	uint32_t j, k;
+
+	/*update the label distribution*/
+	/*compute the log of the weights, storing the maximum so far*/
+	double logpmax = -INFINITY;
+	for (k = 0; k < K; k++){
+		zeta[k] = psisum[k] - dlogh_dnu[k];
+		for (j = 0; j < M; j++){
+			zeta[k] -= stat[j]*dlogh_deta[k*M+j];
+		}
+		logpmax = (zeta[k] > logpmax ? zeta[k] : logpmax);
+	}
+	/*make numerically stable by subtracting max, take exp, sum them up*/
+	double psum = 0.0;
+	for (k = 0; k < K; k++){
+		zeta[k] -= logpmax;
+		zeta[k] = exp(zeta[k]);
+		psum += zeta[k];
+	}
+	/*normalize*/
+	for (k = 0; k < K; k++){
+		zeta[k] /= psum;
+	}
+
+	return;
+}
+
+void updateParamDist(double* const eta, double* const nu, 
+		const double* const eta0, 
+		const double nu0, 
+		const double sumzeta, 
+		const double* const sumzetaT, 
+		const uint32_t M){
+
+	uint32_t j;
+	/*Update the parameters*/
+	/*Note that eta[i*M+j] is indexing for a 2D array (K clusters, M components) stored as 1D*/
+	for (j = 0; j < M; j++){
+		eta[j] = eta0[j]+sumzetaT[j];
+	}
+	*nu = nu0 + sumzeta;
+	return;
+}
+
+void updateWeightDist(double* a, double* b, double* psisum,
+		const double* const sumzeta, 
+		const double alpha, 
+		const uint32_t K){
+	uint32_t k, j;
+	/*Update a, b, and psisum*/
+	double psibk = 0.0;
+	for (k = 0; k < K; k++){
+		a[k] = 1.0+sumzeta[k];
+		b[k] = alpha;
+		for (j = k+1; j < K; j++){
+			b[k] += sumzeta[j];
+		}
+    if(psisum!=NULL) 
+    {
+      double psiak = gsl_sf_psi(a[k]) - gsl_sf_psi(a[k]+b[k]);
+      psisum[k] = psiak + psibk;
+      psibk += gsl_sf_psi(b[k]) - gsl_sf_psi(a[k]+b[k]);
+    }
+	}
+
+	return;
+}
+
 
