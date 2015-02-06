@@ -4,12 +4,6 @@
 #include <vector>
 
 typedef MXi Eigen::MatrixXi;
-class HungarianMatching{
-	public:
-		HungarianMatching(MXi costs);
-		int run(std::vector<int>& matchings);
-	private:
-		MXi costs;
-};
+int hungarian(MXi costs, std::vector<int>& matchings);
 
 #endif

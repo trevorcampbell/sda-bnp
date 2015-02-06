@@ -6,12 +6,7 @@
 #include <limits.h>
 #include "matching.hpp"
 
-HungarianMatching::HungarianMatching(MXi costs){
-	this->costs = costs;
-}
-
-
-int HungarianMatching::run(std::vector<int>& matchings) {
+int hungarian(MXi costs, std::vector<int>& matchings) {
   int i, j, k, l, t, q, unmatched, s, cost;
 
   int* col_mate;
