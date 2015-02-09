@@ -3,32 +3,71 @@ double boost_lbeta(double a, double b){
 	return boost_lgamma(a)+boost_lgamma(b)-boost_lgamma(a+b);
 }
 
-VarDP::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Model& model, uint32_t K, std::string results_folder){
+VarDP::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Model& model, uint32_t K){
+	//copy in the model
+	this->model = model;
+	this->K = K;
+	this->M = model.getStatDimension();
+	this->N = train_data.size();
+	this->Nt = test_data.size();
 
+	//compute exponential family statistics once
+	this->train_stats = MXd::Zero(this->N, this->M);
+	this->test_stats = MXd::Zero(this->Nt, this->M);
+	for (uint32_t i = 0; i < this->N; i++){
+		this->train_stats.row(i) = model.getStat(train_data[i]).transpose();
+	}
+	for (uint32_t i = 0; i < this->Nt; i++){
+		this->test_stats.row(i) = model.getStat(test_data[i]).transpose();
+	}
+
+	//initialize the random device
+	std::random_device rd;
+	if (rd.entropy() == 0){
+		std::cout << "WARNING: ENTROPY 0, NOT SEEDING THE RANDOM GEN PROPERLY" << std::endl;
+	}
+	this->rng.seed(rd());
+
+	//initialize memory
+	this->a = this->b = this->psisum = this->nu = this->sumzeta = this->dlogh_dnu = this->logh = VXd::Zeros(this->K);
+	this->zeta = MXd::Zeros(this->N, this->K);
+	this->sumzetaT = this->dlogh_deta = this->eta = MXd::Zeros(this->K, this->M);
 }
 
 void VarDP::run(bool computeTestLL, double tol){
-
+	//clear any previously stored results
 	this->times.clear();
 	this->objs.clear();
 	this->testlls.clear();
-	//TODO this model clear
 
+	//create objective tracking vars
 	double diff = 10.0*tol + 1.0;
 	double obj = std::numeric_limits<double>::infinity();
 	double prevobj = std::numeric_limits<double>::infinity();
+
+	//start the timer
 	Timer cpuTime;
 	cpuTime.start();
+
+	//initialize the variables
 	this->initWeightsParams();
+	this->updateLabelDist();
+
+	//loop on variational updates
 	while(diff > tol){
 		this->updateWeightDist();
 		this->updateParamDist();
 		this->updateLabelDist();
 		prevobj = obj;
+		//store the current time
 		this->times.push_back(cpuTime.get());
+		//compute the objective
 		obj = this->computeObjective();
+		//save the objective
 		this->objs.push_back(obj);
+		//compute the obj diff
 		diff = (obj - prevobj)/obj;
+		//if test likelihoods were requested, compute those (but pause the timer first)
 		if (computeTestLL){
 			cpuTime.stop();
 			double testll = this->computeTestLL();
@@ -36,22 +75,23 @@ void VarDP::run(bool computeTestLL, double tol){
 			cpuTime.start();
 		}
 	}
-	return cpuTime.stop();
+	//done!
+	return;
 }
 
 void VarDP::initWeightsParams(){
 	//create random statistics from data collection
-	std::uniform_real_distribution unir;
+	std::uniform_int_distribution unii(0, this->N);
 	MXd random_sumzeta = 5.0*(1.0+MXd::Random(1, this->K))/2.0;
 	MXd random_sumzetaT = MXd::Zero(this->K, this->M);
 	for (uint32_t k = 0; k < this->K; k++){
-		random_sumzetaT.row(k) = some_stat*random_sumzeta(k);
+		random_sumzetaT.row(k) = this->train_stats.row(unii(this->rng))*random_sumzeta(k);
 	}
 
 	//get psi and eta from that
 	double psibk = 0.0;
 	for (uint32_t k = 0; k < this->K; k++){
-		//update
+		//update weights
 		this->a(k) = 1.0+random_sumzeta(k);
 		this->b(k) = model.getAlpha();
 		for (uint32_t j = k+1; j < this->K; j++){
@@ -60,12 +100,13 @@ void VarDP::initWeightsParams(){
     	double psiak = boost_psi(a(k)) - boost_psi(a(k)+b(k));
     	this->psisum(k) = psiak + psibk;
     	psibk += boost_psi(b(k)) - boost_psi(a(k)+b(k));
+
+	    //Update the parameters
+	    for (uint32_t j = 0; j < this->M; j++){
+	    	this->eta(k, j) = model.getEta0()(j)+random_sumzetaT(k, j);
+	    }
+		this->nu(k) = model.getNu0() + random_sumzeta(k);
 	}
-	//Update the parameters
-	for (uint32_t j = 0; j < M; j++){
-		this->eta(j) = model.getEta0()(j)+random_sumzetaT(j);
-	}
-	this->nu = model.getNu0() + sumzeta;
 	//update logh/etc
 	this->model.getLogH(this->eta, this->nu, this->logh, this->dlogh_deta, this->dlogh_dnu);
 	return;
@@ -73,7 +114,7 @@ void VarDP::initWeightsParams(){
 }
 
 void VarDP::updateWeightDist(){
-	/*Update a, b, and psisum*/
+	//Update a, b, and psisum
 	double psibk = 0.0;
 	for (uint32_t k = 0; k < this->K; k++){
 		this->a(k) = 1.0+this->sumzeta(k);
@@ -90,10 +131,12 @@ void VarDP::updateWeightDist(){
 
 void VarDP::updateParamDist(){
 	//Update the parameters
-	for (uint32_t j = 0; j < M; j++){
-		this->eta(j) = model.getEta0()(j)+sumzetaT(j);
+	for (uint32_t k = 0; k < this->K; k++){
+	    for (uint32_t j = 0; j < this->M; j++){
+	    	this->eta(k, j) = model.getEta0()(j)+sumzetaT(k, j);
+	    }
+	    this->nu(k) = model.getNu0() + sumzeta(k);
 	}
-	this->nu = model.getNu0() + sumzeta;
 	//update logh/etc
 	this->model.getLogH(this->eta, this->nu, this->logh, this->dlogh_deta, this->dlogh_dnu);
 	return;
@@ -101,27 +144,28 @@ void VarDP::updateParamDist(){
 
 void VarDP::updateLabelDist(){
 	//update the label distribution
-	//compute the log of the weights, storing the maximum so far
-	double logpmax = -std::numeric_limits<double>::infinity();
-	for (uint32_t k = 0; k < this->K; k++){
-		this->zeta(k) = this->psisum(k) - this->dlogh_dnu(k);
-		for (uint32_t j = 0; j < M; j++){
-			this->zeta(k) -= stat(j)*dlogh_deta(k, j);
+	for (uint32_t i = 0; i < this->N; i++){
+		//compute the log of the weights, storing the maximum so far
+		double logpmax = -std::numeric_limits<double>::infinity();
+		for (uint32_t k = 0; k < this->K; k++){
+			this->zeta(i, k) = this->psisum(k) - this->dlogh_dnu(k);
+			for (uint32_t j = 0; j < this->M; j++){
+				this->zeta(i, k) -= this->train_stats(i, j)*dlogh_deta(k, j);
+			}
+			logpmax = (zeta(i, k) > logpmax ? zeta(i, k) : logpmax);
 		}
-		logpmax = (zeta(k) > logpmax ? zeta(k) : logpmax);
+		//make numerically stable by subtracting max, take exp, sum them up
+		double psum = 0.0;
+		for (uint32_t k = 0; k < this->K; k++){
+			zeta(i, k) -= logpmax;
+			zeta(i, k) = exp(zeta(i, k));
+			psum += zeta(i, k);
+		}
+		/*normalize*/
+		for (uint32_t k = 0; k < this->K; k++){
+			zeta(i, k) /= psum;
+		}
 	}
-	//make numerically stable by subtracting max, take exp, sum them up
-	double psum = 0.0;
-	for (k = 0; k < K; k++){
-		zeta(k) -= logpmax;
-		zeta(k) = exp(zeta(k));
-		psum += zeta(k);
-	}
-	/*normalize*/
-	for (k = 0; k < K; k++){
-		zeta(k) /= psum;
-	}
-
 	return;
 }
 
