@@ -7,29 +7,17 @@
 #include "matching.hpp"
 
 int hungarian(MXi costs, std::vector<int>& matchings) {
-  int i, j, k, l, t, q, unmatched, s, cost;
-
-  int* col_mate;
-  int* row_mate;
-  int* parent_row;
-  int* unchosen_row;
-  int s, cost;
-  int* row_dec;
-  int* col_inc;
-  int* slack;
-  int* slack_row;
-
-  cost=0;
+  int i, j, k, l, t, q, unmatched, s, cost = 0;
 
   //init memory to 0
-  col_mate = (int*)calloc(n, sizeof(int));
-  unchosen_row = (int*)calloc(n, sizeof(int));
-  row_dec  = (int*)calloc(n, sizeof(int));
-  slack_row  = (int*)calloc(n, sizeof(int));
-  row_mate = (int*)calloc(n, sizeof(int));
-  parent_row = (int*)calloc(n, sizeof(int));
-  col_inc = (int*)calloc(n, sizeof(int));
-  slack = (int*)calloc(n, sizeof(int));
+  int* col_mate = (int*)calloc(n, sizeof(int));
+  int* unchosen_row = (int*)calloc(n, sizeof(int));
+  int* row_dec  = (int*)calloc(n, sizeof(int));
+  int* slack_row  = (int*)calloc(n, sizeof(int));
+  int* row_mate = (int*)calloc(n, sizeof(int));
+  int* parent_row = (int*)calloc(n, sizeof(int));
+  int* col_inc = (int*)calloc(n, sizeof(int));
+  int* slack = (int*)calloc(n, sizeof(int));
 
 
   // Begin subtract column minima in order to start with lots of zeroes 12
