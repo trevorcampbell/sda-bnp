@@ -1,7 +1,5 @@
 #ifndef __DP_IMPL_HPP
-double boost_lbeta(double a, double b){
-	return boost_lgamma(a)+boost_lgamma(b)-boost_lgamma(a+b);
-}
+
 
 VarDP::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Model& model, uint32_t K){
 	//copy in the model
@@ -252,6 +250,36 @@ double VarDP::computeObjective(){
 		 - priorExpXEntropy
 		 - priorLabelXEntropy
 		 - priorBetaXEntropy;
+}
+
+
+double boost_lbeta(double a, double b){
+	return boost_lgamma(a)+boost_lgamma(b)-boost_lgamma(a+b);
+}
+
+VarDPResults::save(std::string name){
+	std::ofstream out_z(name+"-zeta.log", std::ios_base::trunc);
+	out_z << zeta;
+	out_z.close();
+
+	std::ofstream out_e(name+"-eta.log", std::ios_base::trunc);
+	out_e << eta;
+	out_e.close();
+
+	std::ofstream out_ab(name+"-ab.log", std::ios_base::trunc);
+	out_ab << a << std::endl << b;
+	out_ab.close();
+
+	std::ofstream out_trc(name+"-trace.log", std::ios_base::trunc);
+	for (uint32_t i = 0; i < times.size(); i++){
+		out_trc << times[i] << " " << objs[i];
+		if (i < testlls.size()){
+			out_trc << " " << testlls[i] << std::endl;
+		} else {
+			out_trc << std::endl;
+		}
+	}
+	out_trc.close();
 }
 
 #define __DP_IMPL_HPP
