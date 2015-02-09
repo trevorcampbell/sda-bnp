@@ -2,9 +2,13 @@
 #include <vector>
 #include <string>
 #include <Eigen/Dense>
+#include <boost/math/special_functions/digamma.hpp>
+#include <boost/math/special_functions/gamma.hpp>
 
 typedef Eigen::VectorXd VXd;
 typedef Eigen::MatrixXd MXd;
+typedef boost::math::digamma boost_psi;
+typedef boost::math::lgamma boost_lgamma;
 
 template<class Model>
 class VarDP{
@@ -19,8 +23,9 @@ class VarDP{
 		double computeObjective();
 		double computeTestLL();
 
-		MXd zeta, sumzetaT, train_stats, test_stats;
-		MXd a, b;
+		double alpha;
+		MXd zeta, sumzeta, sumzetaT, train_stats, test_stats;
+		MXd a, b, psisum;
 		Model prior;
 		std::string results_folder;
 		std::vector<double> times, objs, testlls;

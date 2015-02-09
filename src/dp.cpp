@@ -1,65 +1,5 @@
 #include "dp.hpp"
 
-void initializeZeta(double * const zeta, double * const sumzeta, double * const sumzetaT,
-			const double * const T, 
-			void (*getStat)(double*, const double* const, const uint32_t),
-			const uint32_t N, 
-			const uint32_t M,
-			const uint32_t D,
-			const uint32_t K){
-	int i, j, k;
-	double ratioNK = (double)N/(double)K;
-	double * clusstats = (double*) malloc(sizeof(double)*M*K);
-	double * stat = (double*) malloc(sizeof(double)*M);
-
-	/*initialize sumzeta, sumzetaT to 0*/
-	for (k = 0; k < K; k++){
-		sumzeta[k] = 0.0;
-		for(j = 0; j < M; j++){
-			sumzetaT[k*M+j] = 0.0;
-		}
-	}
-
-	/*initialize in the cluster stats*/
-	for(k=0; k< K; k++){
-		int idxk = floor(k*ratioNK);
-		getStat(&(clusstats[M*k]), &(T[idxk*D]), D);
-	}
-
-	/*compute dist between cluster stats and data stats and use exp(-dist^2) as similarity*/
-	for(i = 0; i < N; i++){
-		getStat(stat, &(T[i*D]), D);
-		double rwsum = 0;
-    double minDistSq = INFINITY;
-		for(k=0; k< K; k++){
-			double distsq = 0.0;
-			for(j=0; j<M; j++){
-				distsq += (stat[j]-clusstats[k*M+j])*(stat[j]-clusstats[k*M+j]);
-			}
-			zeta[i*K+k] = distsq;
-      if (minDistSq > distsq) minDistSq = distsq;
-		}
-
-		for(k=0; k < K; k++){
-			zeta[i*K+k] = exp(-(zeta[i*K+k]-minDistSq));
-			rwsum += zeta[i*K+k];
-		}
-
-		for(k=0; k < K; k++){
-			zeta[i*K+k] /= rwsum;
-			sumzeta[k] += zeta[i*K+k];
-			for (j=0; j < M; j++){
-				sumzetaT[k*M+j] += zeta[i*K+k]*stat[j];
-			}
-		}
-	}
-
-	free(clusstats);
-	free(stat);
-	return;
-}
-
-
 void VarDP::run(bool computeTestLL, double tol){
 
 	this->times.clear();
@@ -89,6 +29,22 @@ void VarDP::run(bool computeTestLL, double tol){
 		}
 	}
 	return cpuTime.stop();
+}
+
+void VarDP::updateWeightDist(){
+	/*Update a, b, and psisum*/
+	double psibk = 0.0;
+	for (uint32_t k = 0; k < this->a.cols(); k++){
+		this->a(k) = 1.0+this->sumzeta(k);
+		this->b(k) = this->alpha;
+		for (uint32_t j = k+1; j < this->sumzeta.cols(); j++){
+			this->b(k) += this->sumzeta(j);
+		}
+    	double psiak = boost_psi(a(k)) - boost_psi(a(k)+b(k));
+    	psisum(k) = psiak + psibk;
+    	psibk += boost_psi(b(k)) - boost_psi(a(k)+b(k));
+	}
+	return;
 }
 
 void VarDP::getResults(std::vector<double>& times, std::vector<double>& objs, std::vector<double>& testlls){
@@ -153,6 +109,10 @@ void VarDP::getResults(std::vector<double>& times, std::vector<double>& objs, st
 	//update local params
 	//update global params
 }
+
+
+
+
 
 double VarDP::computeObjective(){
 
@@ -353,28 +313,63 @@ void updateParamDist(double* const eta, double* const nu,
 	return;
 }
 
-void updateWeightDist(double* a, double* b, double* psisum,
-		const double* const sumzeta, 
-		const double alpha, 
-		const uint32_t K){
-	uint32_t k, j;
-	/*Update a, b, and psisum*/
-	double psibk = 0.0;
+
+
+void initializeZeta(double * const zeta, double * const sumzeta, double * const sumzetaT,
+			const double * const T, 
+			void (*getStat)(double*, const double* const, const uint32_t),
+			const uint32_t N, 
+			const uint32_t M,
+			const uint32_t D,
+			const uint32_t K){
+	int i, j, k;
+	double ratioNK = (double)N/(double)K;
+	double * clusstats = (double*) malloc(sizeof(double)*M*K);
+	double * stat = (double*) malloc(sizeof(double)*M);
+
+	/*initialize sumzeta, sumzetaT to 0*/
 	for (k = 0; k < K; k++){
-		a[k] = 1.0+sumzeta[k];
-		b[k] = alpha;
-		for (j = k+1; j < K; j++){
-			b[k] += sumzeta[j];
+		sumzeta[k] = 0.0;
+		for(j = 0; j < M; j++){
+			sumzetaT[k*M+j] = 0.0;
 		}
-    if(psisum!=NULL) 
-    {
-      double psiak = gsl_sf_psi(a[k]) - gsl_sf_psi(a[k]+b[k]);
-      psisum[k] = psiak + psibk;
-      psibk += gsl_sf_psi(b[k]) - gsl_sf_psi(a[k]+b[k]);
-    }
 	}
 
+	/*initialize in the cluster stats*/
+	for(k=0; k< K; k++){
+		int idxk = floor(k*ratioNK);
+		getStat(&(clusstats[M*k]), &(T[idxk*D]), D);
+	}
+
+	/*compute dist between cluster stats and data stats and use exp(-dist^2) as similarity*/
+	for(i = 0; i < N; i++){
+		getStat(stat, &(T[i*D]), D);
+		double rwsum = 0;
+    double minDistSq = INFINITY;
+		for(k=0; k< K; k++){
+			double distsq = 0.0;
+			for(j=0; j<M; j++){
+				distsq += (stat[j]-clusstats[k*M+j])*(stat[j]-clusstats[k*M+j]);
+			}
+			zeta[i*K+k] = distsq;
+      if (minDistSq > distsq) minDistSq = distsq;
+		}
+
+		for(k=0; k < K; k++){
+			zeta[i*K+k] = exp(-(zeta[i*K+k]-minDistSq));
+			rwsum += zeta[i*K+k];
+		}
+
+		for(k=0; k < K; k++){
+			zeta[i*K+k] /= rwsum;
+			sumzeta[k] += zeta[i*K+k];
+			for (j=0; j < M; j++){
+				sumzetaT[k*M+j] += zeta[i*K+k]*stat[j];
+			}
+		}
+	}
+
+	free(clusstats);
+	free(stat);
 	return;
 }
-
-
