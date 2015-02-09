@@ -14,12 +14,19 @@ typedef boost::math::digamma boost_psi;
 typedef boost::math::lgamma boost_lgamma;
 double boost_lbeta(double a, double b);
 
+class VarDPResults{
+	public:
+		MXd zeta;
+		MXd a, b, eta;
+		std::vector<double> times, objs, testlls;
+};
+
 template<class Model>
 class VarDP{
 	public:
 		VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Model& model, uint32_t K);
 		void run(bool computeTestLL = false, double tol = 1e-6);
-		void getResults(std::vector<double>& times, std::vector<double>& objs, std::vector<double>& testlls);
+		VarDPResults getResults();
 	private:
 		void initWeightsParams();
 		void updateWeightDist();

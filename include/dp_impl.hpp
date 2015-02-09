@@ -169,11 +169,23 @@ void VarDP::updateLabelDist(){
 	return;
 }
 
-void VarDP::getResults(std::vector<double>& times, std::vector<double>& objs, std::vector<double>& testlls){
-	//TODO output model
-	times = this->times;
-	objs = this->objs;
-	testlls = this->testlls;
+VarDPResults VarDP::getResults(){
+	VarDPResults dpr;
+	dpr.zeta = this->zeta;
+	dpr.a = this->a;
+	dpr.b = this->b;
+	dpr.eta = this->eta;
+	dpr.times = this->times;
+	dpr.objs = this->objs;
+	dpr.testlls = this->testlls;
+	return dpr;
+}
+
+void VarDP::getModelResults(MXd& zeta, MXd& eta, VXd& a, VXd& b){
+	zeta = this->zeta;
+	eta = this->eta;
+	a = this->a;
+	b = this->b;
 	return;
 }
 
