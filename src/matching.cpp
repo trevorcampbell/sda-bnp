@@ -235,6 +235,7 @@ int hungarian(MXi costs, std::vector<int>& matchings) {
   {
     matchings[i] = col_mate[i];
   }
+  //the below code repairs the cost matrix, but we don't need it
   /*for (k=0;k<n;++k)
   {
     for (l=0;l<n;++l)
