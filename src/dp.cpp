@@ -17,6 +17,7 @@ void VarDP::run(bool computeTestLL, double tol){
 	double prevobj = std::numeric_limits<double>::infinity();
 	Timer cpuTime;
 	cpuTime.start();
+	this->initWeightsParams();
 	while(diff > tol){
 		this->updateWeightDist();
 		this->updateParamDist();
@@ -34,40 +35,39 @@ void VarDP::run(bool computeTestLL, double tol){
 		}
 	}
 	return cpuTime.stop();
+}
 
-        /*double computeObjective();
-        //Update the stick-breaking distribution and psisum
-		updateWeightDist(a, b, psisum, sumzeta, alpha, K);
-	
-		//Update the exponential family parameter distributions
-		//Compute the values of logh, derivatives
-		for (k=0; k< K; k++){
-			updateParamDist(&(eta[k*M]), &(nu[k]), eta0, nu0, sumzeta[k], &(sumzetaT[k*M]), M);
-			getLogH(&(logh[k]), &(dlogh_deta[M*k]), &(dlogh_dnu[k]), &(eta[M*k]), nu[k], D, true);
+void VarDP::initWeightsParams(){
+	//create random statistics from data collection
+	std::uniform_real_distribution unir;
+	MXd random_sumzeta = 5.0*(1.0+MXd::Random(1, this->K))/2.0;
+	MXd random_sumzetaT = MXd::Zero(this->K, this->M);
+	for (uint32_t k = 0; k < this->K; k++){
+		random_sumzetaT.row(k) = some_stat*random_sumzeta(k);
+	}
+
+	//get psi and eta from that
+	double psibk = 0.0;
+	for (uint32_t k = 0; k < this->K; k++){
+		//update
+		this->a(k) = 1.0+random_sumzeta(k);
+		this->b(k) = model.getAlpha();
+		for (uint32_t j = k+1; j < this->K; j++){
+			this->b(k) += random_sumzeta(k);
 		}
+    	double psiak = boost_psi(a(k)) - boost_psi(a(k)+b(k));
+    	this->psisum(k) = psiak + psibk;
+    	psibk += boost_psi(b(k)) - boost_psi(a(k)+b(k));
+	}
+	//Update the parameters
+	for (uint32_t j = 0; j < M; j++){
+		this->eta(j) = model.getEta0()(j)+random_sumzetaT(j);
+	}
+	this->nu = model.getNu0() + sumzeta;
+	//update logh/etc
+	this->model.getLogH(this->eta, this->nu, this->logh, this->dlogh_deta, this->dlogh_dnu);
+	return;
 
-		//Initialize sumzeta to 0
-		for(k = 0; k < K; k++){
-			sumzeta[k] = 0.0;
-			for (j = 0; j < M; j++){
-				sumzetaT[k*M+j] = 0.0;
-			}
-		}
-
-		//Update the label distributions
-		for (i=0; i < N; i++){
-			//Compute the statistic for datapoint
-			getStat(stat, &(T[i*D]), D);
-			//Get the new label distribution
-			updateLabelDist(&(zeta[i*K]), stat, dlogh_deta, dlogh_dnu, psisum, M,  K);
-			//Update sumzeta
-			for(k = 0; k < K; k++){
-				sumzeta[k] += zeta[i*K+k];
-				for (j = 0; j < M; j++){
-					sumzetaT[k*M+j] += zeta[i*K+k]*stat[j];
-				}
-			}
-		}*/
 }
 
 void VarDP::updateWeightDist(){
@@ -75,7 +75,7 @@ void VarDP::updateWeightDist(){
 	double psibk = 0.0;
 	for (uint32_t k = 0; k < this->K; k++){
 		this->a(k) = 1.0+this->sumzeta(k);
-		this->b(k) = this->alpha;
+		this->b(k) = model.getAlpha();
 		for (uint32_t j = k+1; j < this->K; j++){
 			this->b(k) += this->sumzeta(j);
 		}
@@ -86,17 +86,18 @@ void VarDP::updateWeightDist(){
 	return;
 }
 
-void updateParamDist(){
-	/*Update the parameters*/
-	/*Note that eta[i*M+j] is indexing for a 2D array (K clusters, M components) stored as 1D*/
+void VarDP::updateParamDist(){
+	//Update the parameters
 	for (uint32_t j = 0; j < M; j++){
-		this->eta(j) = eta0(j)+sumzetaT(j);
+		this->eta(j) = model.getEta0()(j)+sumzetaT(j);
 	}
-	this->nu = nu0 + sumzeta;
+	this->nu = model.getNu0() + sumzeta;
+	//update logh/etc
+	this->model.getLogH(this->eta, this->nu, this->logh, this->dlogh_deta, this->dlogh_dnu);
 	return;
 }
 
-void updateLabelDist(){
+void VarDP::updateLabelDist(){
 	//update the label distribution
 	//compute the log of the weights, storing the maximum so far
 	double logpmax = -std::numeric_limits<double>::infinity();
@@ -163,11 +164,11 @@ double VarDP::computeObjective(){
 	}
 
 	//get the prior exponential cross entropy
-    double priorExpXEntropy = K*logh0;
+    double priorExpXEntropy = K*model.getLogH0();
 	for (uint32_t k = 0; k < K; k++){
-		priorExpXEntropy -= nu0*dlogh_dnu(k);
+		priorExpXEntropy -= model.getNu0()*dlogh_dnu(k);
 	    for (uint32_t j=0; j < M; j++){
-	    	priorExpXEntropy -= eta0(j)*dlogh_deta(k, j);
+	    	priorExpXEntropy -= model.getEta0()(j)*dlogh_deta(k, j);
 	    }
 	}
 
@@ -181,9 +182,9 @@ double VarDP::computeObjective(){
 	}
 	
 	//get the prior beta cross entropy
-	double ent = -K*boost_lbeta(1.0, alpha);
+	double priorBetaXEntropy = -K*boost_lbeta(1.0, model.getAlpha());
 	for (uint32_t k = 0; k < K; k++){
-		ent += (alpha-1.0)*(boost_psi(b(k)) - boost_psi(a(k)+b(k)));
+		priorBetaXEntropy += (model.getAlpha()-1.0)*(boost_psi(b(k)) - boost_psi(a(k)+b(k)));
 	}
 
 	return labelEntropy 
@@ -194,63 +195,3 @@ double VarDP::computeObjective(){
 		 - priorLabelXEntropy
 		 - priorBetaXEntropy;
 }
-
-void initializeZeta(double * const zeta, double * const sumzeta, double * const sumzetaT,
-			const double * const T, 
-			void (*getStat)(double*, const double* const, const uint32_t),
-			const uint32_t N, 
-			const uint32_t M,
-			const uint32_t D,
-			const uint32_t K){
-	int i, j, k;
-	double ratioNK = (double)N/(double)K;
-	double * clusstats = (double*) malloc(sizeof(double)*M*K);
-	double * stat = (double*) malloc(sizeof(double)*M);
-
-	/*initialize sumzeta, sumzetaT to 0*/
-	for (k = 0; k < K; k++){
-		sumzeta[k] = 0.0;
-		for(j = 0; j < M; j++){
-			sumzetaT[k*M+j] = 0.0;
-		}
-	}
-
-	/*initialize in the cluster stats*/
-	for(k=0; k< K; k++){
-		int idxk = floor(k*ratioNK);
-		getStat(&(clusstats[M*k]), &(T[idxk*D]), D);
-	}
-
-	/*compute dist between cluster stats and data stats and use exp(-dist^2) as similarity*/
-	for(i = 0; i < N; i++){
-		getStat(stat, &(T[i*D]), D);
-		double rwsum = 0;
-    double minDistSq = INFINITY;
-		for(k=0; k< K; k++){
-			double distsq = 0.0;
-			for(j=0; j<M; j++){
-				distsq += (stat[j]-clusstats[k*M+j])*(stat[j]-clusstats[k*M+j]);
-			}
-			zeta[i*K+k] = distsq;
-      if (minDistSq > distsq) minDistSq = distsq;
-		}
-
-		for(k=0; k < K; k++){
-			zeta[i*K+k] = exp(-(zeta[i*K+k]-minDistSq));
-			rwsum += zeta[i*K+k];
-		}
-
-		for(k=0; k < K; k++){
-			zeta[i*K+k] /= rwsum;
-			sumzeta[k] += zeta[i*K+k];
-			for (j=0; j < M; j++){
-				sumzetaT[k*M+j] += zeta[i*K+k]*stat[j];
-			}
-		}
-	}
-
-	free(clusstats);
-	free(stat);
-	return;
-}
-
