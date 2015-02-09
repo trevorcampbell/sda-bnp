@@ -5,6 +5,10 @@ double boost_lbeta(double a, double b){
 	return boost_lgamma(a)+boost_lgamma(b)-boost_lgamma(a+b);
 }
 
+VarDP::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Model& model, uint32_t K, std::string results_folder){
+
+}
+
 void VarDP::run(bool computeTestLL, double tol){
 
 	this->times.clear();
