@@ -36,5 +36,7 @@ class VarDP{
 		std::vector<double> times, objs, testlls;
 };
 
+#include "dp_impl.hpp"
+
 #define __DP_HPP
 #endif /* __DP_HPP */
