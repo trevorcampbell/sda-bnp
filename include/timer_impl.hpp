@@ -1,4 +1,3 @@
-#include "timer.hpp"
 
 void Timer::start(){
 	this->t0 = std::chrono::high_resolution_clock::now();

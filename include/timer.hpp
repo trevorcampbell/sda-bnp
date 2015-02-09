@@ -12,5 +12,7 @@ class Timer{
 		std::chrono::duration<double> elapsed_s;
 		std::chrono::high_resolution_clock;
 };
+
+#include "timer_impl.hpp"
 #define __TIMER_HPP
 #endif /* __TIMER_HPP */

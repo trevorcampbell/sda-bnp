@@ -1,6 +1,4 @@
-#include "dp.hpp"
-
-
+#ifndef __DP_IMPL_HPP
 double boost_lbeta(double a, double b){
 	return boost_lgamma(a)+boost_lgamma(b)-boost_lgamma(a+b);
 }
@@ -199,3 +197,6 @@ double VarDP::computeObjective(){
 		 - priorLabelXEntropy
 		 - priorBetaXEntropy;
 }
+
+#define __DP_IMPL_HPP
+#endif /* __DP_HPP */
