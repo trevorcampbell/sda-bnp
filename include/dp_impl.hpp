@@ -6,18 +6,15 @@ VarDP::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_da
 	this->model = model;
 	this->K = K;
 	this->alpha = alpha;
+	this->test_data = test_data;
 	M = model.getStatDimension();
 	N = train_data.size();
 	Nt = test_data.size();
 
 	//compute exponential family statistics once
 	train_stats = MXd::Zero(N, M);
-	test_stats = MXd::Zero(Nt, M);
 	for (uint32_t i = 0; i < N; i++){
 		train_stats.row(i) = model.getStat(train_data[i]).transpose();
-	}
-	for (uint32_t i = 0; i < Nt; i++){
-		test_stats.row(i) = model.getStat(test_data[i]).transpose();
 	}
 
 	//initialize the random device
@@ -267,7 +264,7 @@ double VarDP::computeTestLogLikelihood(){
 	for(uint32_t i = 0; i < Nt; i++){
 		std::vector<double> loglikes;
 		for (uint32_t k = 0; k < K; k++){
-			loglikes.push_back(log(weights(k)) + model.getLogPosteriorPredictive(test_stats.row(i), eta.row(k), nu(k)));
+			loglikes.push_back(log(weights(k)) + model.getLogPosteriorPredictive(test_data[i], eta.row(k), nu(k)));
 		}
 		//numerically stable sum
 		//first sort in increasing order

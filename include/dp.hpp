@@ -42,9 +42,10 @@ class VarDP{
 		double alpha;
 		uint32_t K, M, N, Nt; //K is the # components in the model, M is the dimension of the statistic
 		Model model;
-		MXd zeta, sumzetaT, dlogh_deta, eta, train_stats, test_stats;
+		MXd zeta, sumzetaT, dlogh_deta, eta, train_stats;
 		VXd a, b, psisum, nu, logh, dlogh_dnu, sumzeta;
 		std::vector<double> times, objs, testlls;
+		std;:vector<VXd> test_data;
 };
 
 #include "dp_impl.hpp"
