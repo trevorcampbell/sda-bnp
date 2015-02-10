@@ -4,7 +4,7 @@
 typedef Eigen::VectorXd VXd;
 typedef Eigen::MatrixXd MXd;
 
-class GaussianModel{
+class NIWModel{
 	public:
 		uint32_t getStatDimension();
 		VXd getStat(VXd& data);
@@ -12,7 +12,7 @@ class GaussianModel{
 		double getNu0();
 		void getLogH(MXd eta, VXd nu, VXd& logh, MXd& dlogh_deta, VXd& dlogh_dnu);
 		double getLogH0();
-		double getLogLikelihood(VXd stat, VXd etak);
+		double getLogPosteriorPredictive(VXd stat, VXd etak, double nuk);
 	private:
 };
 

@@ -267,7 +267,7 @@ double VarDP::computeTestLogLikelihood(){
 	for(uint32_t i = 0; i < Nt; i++){
 		std::vector<double> loglikes;
 		for (uint32_t k = 0; k < K; k++){
-			loglikes.push_back(log(weights(k)) + model.getLogLikelihood(test_stats.row(i), eta.row(k)));
+			loglikes.push_back(log(weights(k)) + model.getLogPosteriorPredictive(test_stats.row(i), eta.row(k), nu(k)));
 		}
 		//numerically stable sum
 		//first sort in increasing order
