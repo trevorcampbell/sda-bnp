@@ -39,7 +39,7 @@ double multivariateTLogLike(VXd x, VXd mu, MXd cov, double dof){
 
 class NIWModel{
 	public:
-		NIWModel(VXd mu0, MXd psi, double kappa0, double nu0); 
+		NIWModel(VXd mu0, double kappa0, MXd psi, double xi0); 
 		VXd getEta0();
 		double getNu0();
 		uint32_t getStatDimension();
