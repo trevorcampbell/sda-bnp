@@ -1,20 +1,15 @@
 #ifndef __DP_IMPL_HPP
 
-
-VarDP::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t K){
-	//copy in the model
-	this->model = model;
-	this->K = K;
-	this->alpha = alpha;
-	this->test_data = test_data;
-	M = model.getStatDimension();
+template<class Model>
+VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t K) : model(model), alpha(alpha), K(K){
+	M = this->model.getStatDimension();
 	N = train_data.size();
 	Nt = test_data.size();
 
 	//compute exponential family statistics once
 	train_stats = MXd::Zero(N, M);
 	for (uint32_t i = 0; i < N; i++){
-		train_stats.row(i) = model.getStat(train_data[i]).transpose();
+		train_stats.row(i) = this->model.getStat(train_data[i]).transpose();
 	}
 
 	//initialize the random device
@@ -25,12 +20,13 @@ VarDP::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_da
 	rng.seed(rd());
 
 	//initialize memory
-	a = b = psisum = nu = sumzeta = dlogh_dnu = logh = VXd::Zeros(K);
-	zeta = MXd::Zeros(N, K);
-	sumzetaT = dlogh_deta = eta = MXd::Zeros(K, M);
+	a = b = psisum = nu = sumzeta = dlogh_dnu = logh = VXd::Zero(K);
+	zeta = MXd::Zero(N, K);
+	sumzetaT = dlogh_deta = eta = MXd::Zero(K, M);
 }
 
-void VarDP::run(bool computeTestLL, double tol){
+template<class Model>
+void VarDP<Model>::run(bool computeTestLL, double tol){
 	//clear any previously stored results
 	times.clear();
 	objs.clear();
@@ -77,10 +73,14 @@ void VarDP::run(bool computeTestLL, double tol){
 
 
 
-void VarDP::initWeightsParams(){
+template<class Model>
+void VarDP<Model>::initWeightsParams(){
 	//create random statistics from data collection
-	std::uniform_int_distribution unii(0, N);
-	MXd random_sumzeta = 5.0*(1.0+MXd::Random(1, K))/2.0;
+	std::uniform_int_distribution<> unii(0, N);
+	MXd random_sumzeta = MXd::Random(1, K);
+	for (uint32_t k = 0; k < K; k++){
+		random_sumzeta(k) = 5.0*(1.0+random_sumzeta(k))/2.0;
+	}
 	MXd random_sumzetaT = MXd::Zero(K, M);
 	for (uint32_t k = 0; k < K; k++){
 		random_sumzetaT.row(k) = train_stats.row(unii(rng))*random_sumzeta(k);
@@ -95,9 +95,9 @@ void VarDP::initWeightsParams(){
 		for (uint32_t j = k+1; j < K; j++){
 			b(k) += random_sumzeta(k);
 		}
-    	double psiak = boost_psi(a(k)) - boost_psi(a(k)+b(k));
+    	double psiak = digamma(a(k)) - digamma(a(k)+b(k));
     	psisum(k) = psiak + psibk;
-    	psibk += boost_psi(b(k)) - boost_psi(a(k)+b(k));
+    	psibk += digamma(b(k)) - digamma(a(k)+b(k));
 
 	    //Update the parameters
 	    for (uint32_t j = 0; j < M; j++){
@@ -111,7 +111,8 @@ void VarDP::initWeightsParams(){
 
 }
 
-void VarDP::updateWeightDist(){
+template<class Model>
+void VarDP<Model>::updateWeightDist(){
 	//Update a, b, and psisum
 	double psibk = 0.0;
 	for (uint32_t k = 0; k < K; k++){
@@ -120,14 +121,15 @@ void VarDP::updateWeightDist(){
 		for (uint32_t j = k+1; j < K; j++){
 			b(k) += sumzeta(j);
 		}
-    	double psiak = boost_psi(a(k)) - boost_psi(a(k)+b(k));
+    	double psiak = digamma(a(k)) - digamma(a(k)+b(k));
     	psisum(k) = psiak + psibk;
-    	psibk += boost_psi(b(k)) - boost_psi(a(k)+b(k));
+    	psibk += digamma(b(k)) - digamma(a(k)+b(k));
 	}
 	return;
 }
 
-void VarDP::updateParamDist(){
+template<class Model>
+void VarDP<Model>::updateParamDist(){
 	//Update the parameters
 	for (uint32_t k = 0; k < K; k++){
 	    for (uint32_t j = 0; j < M; j++){
@@ -140,7 +142,8 @@ void VarDP::updateParamDist(){
 	return;
 }
 
-void VarDP::updateLabelDist(){
+template<class Model>
+void VarDP<Model>::updateLabelDist(){
 	//update the label distribution
 	for (uint32_t i = 0; i < N; i++){
 		//compute the log of the weights, storing the maximum so far
@@ -167,7 +170,8 @@ void VarDP::updateLabelDist(){
 	return;
 }
 
-VarDPResults VarDP::getResults(){
+template<class Model>
+VarDPResults VarDP<Model>::getResults(){
 	VarDPResults dpr;
 	dpr.zeta = this->zeta;
 	dpr.a = this->a;
@@ -180,17 +184,18 @@ VarDPResults VarDP::getResults(){
 }
 
 
-double VarDP::computeObjective(){
+template<class Model>
+double VarDP<Model>::computeObjective(){
 
 	//get the label entropy
-	MXd mzero = MatrixXd::Zero(zeta.rows(), zeta.cols());
+	MXd mzero = MXd::Zero(zeta.rows(), zeta.cols());
 	MXd zlogz = zeta.array()*zeta.array().log();
 	double labelEntropy = ((zeta.array() > 1.0e-16).select(zlogz, mzero)).sum();
 
 	//get the variational beta entropy
 	double betaEntropy = 0.0;
 	for (uint32_t k = 0; k < K; k++){
-        betaEntropy += -boost_lbeta(a(k), b(k)) + (a(k)-1.0)*boost_psi(a(k)) +(b(k)-1.0)*boost_psi(b(k))-(a(k)+b(k)-2.0)*boost_psi(a(k)+b(k));
+        betaEntropy += -boost_lbeta(a(k), b(k)) + (a(k)-1.0)*digamma(a(k)) +(b(k)-1.0)*digamma(b(k))-(a(k)+b(k)-2.0)*digamma(a(k)+b(k));
 	}
 
 	//get the variational exponential family entropy
@@ -224,15 +229,15 @@ double VarDP::computeObjective(){
 	double priorLabelXEntropy = 0.0;
 	double psibk = 0.0;
 	for (uint32_t k = 0; k < K; k++){
-		double psiak = boost_psi(a(k)) - boost_psi(a(k)+b(k));
+		double psiak = digamma(a(k)) - digamma(a(k)+b(k));
 		priorLabelXEntropy += sumzeta(k)*(psiak + psibk);
-		psibk += boost_psi(b(k)) - boost_psi(a(k)+b(k));
+		psibk += digamma(b(k)) - digamma(a(k)+b(k));
 	}
 	
 	//get the prior beta cross entropy
 	double priorBetaXEntropy = -K*boost_lbeta(1.0, alpha);
 	for (uint32_t k = 0; k < K; k++){
-		priorBetaXEntropy += (alpha-1.0)*(boost_psi(b(k)) - boost_psi(a(k)+b(k)));
+		priorBetaXEntropy += (alpha-1.0)*(digamma(b(k)) - digamma(a(k)+b(k)));
 	}
 
 	return labelEntropy 
@@ -245,7 +250,8 @@ double VarDP::computeObjective(){
 }
 
 
-double VarDP::computeTestLogLikelihood(){
+template<class Model>
+double VarDP<Model>::computeTestLogLikelihood(){
 
 	if (Nt == 0){
 		std::cout << "WARNING: Test Log Likelihood = NaN since Nt = 0" << std::endl;
@@ -283,7 +289,7 @@ double VarDP::computeTestLogLikelihood(){
 
 
 double boost_lbeta(double a, double b){
-	return boost_lgamma(a)+boost_lgamma(b)-boost_lgamma(a+b);
+	return lgamma(a)+lgamma(b)-lgamma(a+b);
 }
 
 void VarDPResults::save(std::string name){

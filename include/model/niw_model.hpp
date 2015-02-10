@@ -5,14 +5,14 @@
 
 typedef Eigen::VectorXd VXd;
 typedef Eigen::MatrixXd MXd;
-typedef boost::math::lgamma boost_lgamma;
-typedef boost::math::digamma boost_psi;
+using boost::math::digamma;
+using boost::math::lgamma;
 
 double multivariateLnGamma(double x, uint32_t p){
 	double ret = p*(p-1)/4.0*log(M_PI);
 	uint32_t i = 0;
 	for (i = 0; i < p; i++){
-	    ret += boost_lgamma(x - i/2.0);
+	    ret += lgamma(x - i/2.0);
 	}
 	return ret;
 }
@@ -21,7 +21,7 @@ double multivariatePsi(double x, uint32_t p){
 	double ret = 0;
 	uint32_t i = 0;
 	for (i = 0; i < p; i++){
-	    ret += boost_psi( (x-p-i-2.0)/2.0 );
+	    ret += digamma( (x-p-i-2.0)/2.0 );
 	}
 	return ret;
 }
@@ -29,12 +29,12 @@ double multivariatePsi(double x, uint32_t p){
 double multivariateTLogLike(VXd x, VXd mu, MXd cov, double dof){
 	uint32_t D = cov.rows();
 	Eigen::LDLT<MXd, Eigen::Upper> ldlt(cov);
-	VectorXd diag = ldlt.vectorD();
+	VXd diag = ldlt.vectorD();
 	double ldet = 0.0;
 	for (uint32_t i = 0; i < D; i++){
 		ldet += log(diag(i));
 	}
-	return boost_lgamma( (dof+D)/2.0 ) - boost_lgamma( dof/2.0 ) - D/2.0*log(dof) - D/2*log(M_PI) - 0.5*ldet - (dof+D)/2.0*(1.0+1.0/dof*(x-mu).transpose()*ldlt.solve(x-mu));
+	return lgamma( (dof+D)/2.0 ) - lgamma( dof/2.0 ) - D/2.0*log(dof) - D/2*log(M_PI) - 0.5*ldet - (dof+D)/2.0*(1.0+1.0/dof*(x-mu).transpose()*ldlt.solve(x-mu));
 }
 
 class NIWModel{
@@ -72,7 +72,7 @@ NIWModel::NIWModel(VXd mu0, double kappa0, MXd psi, double xi0){
 	this->nu0 = kappa0;
 }
 
-uint32_t NIWModel::getstatDimension(){
+uint32_t NIWModel::getStatDimension(){
 	return D*D+D+1;
 }
 

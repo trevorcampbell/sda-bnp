@@ -32,7 +32,7 @@ int main(int argc, char** argv){
 		mus.push_back(10.0*VXd::Random(D));
 		MXd m = MXd::Random(D, D);
 		sigs.push_back(m.transpose()*m);
-		sigsqrts.push_back(Eigen::LLT<MXd, Eigen::Upper>(sig.back()).matrixL());
+		sigsqrts.push_back(Eigen::LLT<MXd, Eigen::Upper>(sigs.back()).matrixL());
 		pisv(k) += 1.0;
 		sumpisv += pisv(k);
 	}
@@ -43,8 +43,8 @@ int main(int argc, char** argv){
 
 	//sample from the model
 	std::vector<VXd> train_data, test_data;
-	std::normal_distribution nrm;
-	std::discrete_distribution disc(pis.begin(), pis.end());
+	std::normal_distribution<> nrm;
+	std::discrete_distribution<> disc(pis.begin(), pis.end());
 	for (uint32_t i = 0; i < N; i++){
 		VXd x = VXd::Zero(D);
 		for (uint32_t j = 0; j < D; j++){
@@ -69,7 +69,7 @@ int main(int argc, char** argv){
 	double xi0 = D+2;
 	NIWModel niw(mu0, kappa0, psi0, xi0);
 
-	VarDP dp(train_data, test_data, niw, 1.0, K);
+	VarDP<NIWModel> dp(train_data, test_data, niw, 1.0, K);
 	dp.run(true);
 	VarDPResults res = dp.getResults();
 

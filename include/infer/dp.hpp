@@ -3,17 +3,19 @@
 #include <algorithm>
 #include <string>
 #include <iostream>
+#include <fstream>
 #include <Eigen/Dense>
 #include <boost/filesystem.hpp>
 #include <boost/math/special_functions/digamma.hpp>
 #include <boost/math/special_functions/gamma.hpp>
 #include <random>
+#include <sdabnp/util/timer.hpp>
 
 typedef Eigen::VectorXd VXd;
 typedef Eigen::MatrixXd MXd;
-using boost_psi = boost::math::digamma;
-using boost_lgamma = boost::math::lgamma;
 double boost_lbeta(double a, double b);
+using boost::math::digamma;
+using boost::math::lgamma;
 
 class VarDPResults{
 	public:
@@ -45,7 +47,7 @@ class VarDP{
 		MXd zeta, sumzetaT, dlogh_deta, eta, train_stats;
 		VXd a, b, psisum, nu, logh, dlogh_dnu, sumzeta;
 		std::vector<double> times, objs, testlls;
-		std;:vector<VXd> test_data;
+		std::vector<VXd> test_data;
 };
 
 #include "dp_impl.hpp"

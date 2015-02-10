@@ -10,7 +10,6 @@ class Timer{
 	private:
 		std::chrono::time_point<std::chrono::high_resolution_clock> t0;
 		std::chrono::duration<double> elapsed_s;
-		std::chrono::high_resolution_clock;
 };
 
 #include "timer_impl.hpp"
