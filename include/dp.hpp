@@ -26,7 +26,7 @@ class VarDPResults{
 template<class Model>
 class VarDP{
 	public:
-		VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Model& model, uint32_t K);
+		VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t K);
 		void run(bool computeTestLL = false, double tol = 1e-6);
 		VarDPResults getResults();
 	private:
@@ -39,6 +39,7 @@ class VarDP{
 
 		std::mt19937 rng;
 
+		double alpha;
 		uint32_t K, M, N, Nt; //K is the # components in the model, M is the dimension of the statistic
 		Model model;
 		MXd zeta, sumzetaT, dlogh_deta, eta, train_stats, test_stats;

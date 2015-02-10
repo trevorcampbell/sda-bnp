@@ -1,10 +1,11 @@
 #ifndef __DP_IMPL_HPP
 
 
-VarDP::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Model& model, uint32_t K){
+VarDP::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t K){
 	//copy in the model
 	this->model = model;
 	this->K = K;
+	this->alpha = alpha;
 	M = model.getStatDimension();
 	N = train_data.size();
 	Nt = test_data.size();
@@ -93,7 +94,7 @@ void VarDP::initWeightsParams(){
 	for (uint32_t k = 0; k < K; k++){
 		//update weights
 		a(k) = 1.0+random_sumzeta(k);
-		b(k) = model.getAlpha();
+		b(k) = alpha;
 		for (uint32_t j = k+1; j < K; j++){
 			b(k) += random_sumzeta(k);
 		}
@@ -118,7 +119,7 @@ void VarDP::updateWeightDist(){
 	double psibk = 0.0;
 	for (uint32_t k = 0; k < K; k++){
 		a(k) = 1.0+sumzeta(k);
-		b(k) = model.getAlpha();
+		b(k) = alpha;
 		for (uint32_t j = k+1; j < K; j++){
 			b(k) += sumzeta(j);
 		}
@@ -232,9 +233,9 @@ double VarDP::computeObjective(){
 	}
 	
 	//get the prior beta cross entropy
-	double priorBetaXEntropy = -K*boost_lbeta(1.0, model.getAlpha());
+	double priorBetaXEntropy = -K*boost_lbeta(1.0, alpha);
 	for (uint32_t k = 0; k < K; k++){
-		priorBetaXEntropy += (model.getAlpha()-1.0)*(boost_psi(b(k)) - boost_psi(a(k)+b(k)));
+		priorBetaXEntropy += (alpha-1.0)*(boost_psi(b(k)) - boost_psi(a(k)+b(k)));
 	}
 
 	return labelEntropy 
