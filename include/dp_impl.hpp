@@ -248,6 +248,10 @@ double VarDP::computeObjective(){
 
 
 double VarDP::computeTestLogLikelihood(){
+
+	if (Nt == 0){
+		std::cout << "WARNING: Test Log Likelihood = NaN since Nt = 0" << std::endl;
+	}
 	//first get average weights
 	double stick = 1.0;
 	VXd weights = VXd::Zero(K);
