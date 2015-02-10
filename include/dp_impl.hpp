@@ -248,9 +248,6 @@ double VarDP::computeObjective(){
 
 
 double VarDP::computeTestLogLikelihood(){
-	if (Nt == 0){
-		return 0.0;
-	}
 	//first get average weights
 	double stick = 1.0;
 	VXd weights = VXd::Zero(K);
@@ -279,7 +276,7 @@ double VarDP::computeTestLogLikelihood(){
 		//now multiply by exp(max), take the log, and add to running loglike total
 		loglike += loglikes.back() + log(like);
 	}
-	return loglike/Nt;
+	return loglike/Nt; //should return NaN if Nt == 0
 }
 
 
