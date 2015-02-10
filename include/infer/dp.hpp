@@ -11,8 +11,8 @@
 
 typedef Eigen::VectorXd VXd;
 typedef Eigen::MatrixXd MXd;
-typedef boost::math::digamma boost_psi;
-typedef boost::math::lgamma boost_lgamma;
+using boost_psi = boost::math::digamma;
+using boost_lgamma = boost::math::lgamma;
 double boost_lbeta(double a, double b);
 
 class VarDPResults{
