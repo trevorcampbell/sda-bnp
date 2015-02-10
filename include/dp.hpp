@@ -1,5 +1,6 @@
 #ifndef __DP_HPP
 #include <vector>
+#include <algorithm>
 #include <string>
 #include <iostream>
 #include <Eigen/Dense>
@@ -34,14 +35,14 @@ class VarDP{
 		void updateLabelDist();
 		void updateParamDist();
 		double computeObjective();
-		double computeTestLL();
+		double computeTestLogLikelihood();
 
 		std::mt19937 rng;
 
 		uint32_t K, M, N, Nt; //K is the # components in the model, M is the dimension of the statistic
 		Model model;
-		MXd zeta, sumzeta, sumzetaT, train_stats, test_stats;
-		MXd a, b, psisum, dlogh_deta, dlogh_dnu, nu, logh, eta;
+		MXd zeta, sumzetaT, dlogh_deta, eta, train_stats, test_stats;
+		VXd a, b, psisum, nu, logh, dlogh_dnu, sumzeta;
 		std::vector<double> times, objs, testlls;
 };
 

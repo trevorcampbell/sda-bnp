@@ -68,7 +68,7 @@ void VarDP::run(bool computeTestLL, double tol){
 		//if test likelihoods were requested, compute those (but pause the timer first)
 		if (computeTestLL){
 			cpuTime.stop();
-			double testll = computeTestLL();
+			double testll = computeTestLogLikelihood();
 			testlls.push_back(testll);
 			cpuTime.start();
 		}
@@ -76,6 +76,8 @@ void VarDP::run(bool computeTestLL, double tol){
 	//done!
 	return;
 }
+
+
 
 void VarDP::initWeightsParams(){
 	//create random statistics from data collection
@@ -206,7 +208,7 @@ double VarDP::computeObjective(){
 	double likelihoodXEntropy = 0.0;
 	for (uint32_t k = 0; k < K; k++){
 		likelihoodXEntropy -= sumzeta(k)*dlogh_dnu(k);
-		for (j = 0; j < M; j++){
+		for (uint32_t j = 0; j < M; j++){
 			likelihoodXEntropy -= sumzetaT(k, j)*dlogh_deta(k, j);
 		}
 	}
@@ -225,7 +227,7 @@ double VarDP::computeObjective(){
 	double psibk = 0.0;
 	for (uint32_t k = 0; k < K; k++){
 		double psiak = boost_psi(a(k)) - boost_psi(a(k)+b(k));
-		ent += sumzeta(k)*(psiak + psibk);
+		priorLabelXEntropy += sumzeta(k)*(psiak + psibk);
 		psibk += boost_psi(b(k)) - boost_psi(a(k)+b(k));
 	}
 	
@@ -245,11 +247,47 @@ double VarDP::computeObjective(){
 }
 
 
+double VarDP::computeTestLogLikelihood(){
+	if (Nt == 0){
+		return 0.0;
+	}
+	//first get average weights
+	double stick = 1.0;
+	VXd weights = VXd::Zero(K);
+	for(uint32_t k = 0; k < K-1; k++){
+		weights(k) = stick*a(k)/(a(k)+b(k));
+		stick *= b(k)/(a(k)+b(k));
+	}
+	weights(K-1) = stick;
+
+	//now loop over all test data and get weighted avg likelihood
+	double loglike = 0.0;
+	for(uint32_t i = 0; i < Nt; i++){
+		std::vector<double> loglikes;
+		for (uint32_t k = 0; k < K; k++){
+			loglikes.push_back(log(weights(k)) + model.getLogLikelihood(test_stats.row(i), eta.row(k)));
+		}
+		//numerically stable sum
+		//first sort in increasing order
+		std::sort(loglikes.begin(), loglikes.end());
+		//then sum in increasing order
+		double like = 0.0;
+		for (uint32_t k = 0; k < K; k++){
+			//subtract off the max first
+			like += exp(loglikes[k] - loglikes.back());
+		}
+		//now multiply by exp(max), take the log, and add to running loglike total
+		loglike += loglikes.back() + log(like);
+	}
+	return loglike/Nt;
+}
+
+
 double boost_lbeta(double a, double b){
 	return boost_lgamma(a)+boost_lgamma(b)-boost_lgamma(a+b);
 }
 
-VarDPResults::save(std::string name){
+void VarDPResults::save(std::string name){
 	std::ofstream out_z(name+"-zeta.log", std::ios_base::trunc);
 	out_z << zeta;
 	out_z.close();
