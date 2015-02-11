@@ -44,11 +44,27 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 	initWeightsParams();
 	updateLabelDist();
 
+	std::cout << "Zeta: " << std::endl << zeta << std::endl;
+	
 	//loop on variational updates
 	while(diff > tol){
 		updateWeightDist();
 		updateParamDist();
 		updateLabelDist();
+
+		std::cout << "ITERATION " << std::endl;
+	    std::cout << "Eta: " << std::endl << eta << std::endl;
+	    std::cout << "nu: " << std::endl << nu.transpose() << std::endl;
+	    std::cout << "logh: " << std::endl << logh << std::endl;
+	    std::cout << "dlogh_deta: " << std::endl << dlogh_deta << std::endl;
+	    std::cout << "dlogh_dnu: " << std::endl << dlogh_dnu.transpose() << std::endl;
+	    std::cout << "psisum: " << std::endl << psisum.transpose() << std::endl;
+	    std::cout << "a: " << std::endl << a.transpose() << std::endl;
+	    std::cout << "b: " << std::endl << b.transpose() << std::endl;
+
+
+
+
 		prevobj = obj;
 		//store the current time
 		times.push_back(cpuTime.get());
@@ -108,6 +124,15 @@ void VarDP<Model>::initWeightsParams(){
 	}
 	//update logh/etc
 	model.getLogH(eta, nu, logh, dlogh_deta, dlogh_dnu);
+	std::cout << "INIT" << std::endl;
+	std::cout << "Eta: " << std::endl << eta << std::endl;
+	std::cout << "nu: " << std::endl << nu.transpose() << std::endl;
+	std::cout << "logh: " << std::endl << logh << std::endl;
+	std::cout << "dlogh_deta: " << std::endl << dlogh_deta << std::endl;
+	std::cout << "dlogh_dnu: " << std::endl << dlogh_dnu.transpose() << std::endl;
+	std::cout << "psisum: " << std::endl << psisum.transpose() << std::endl;
+	std::cout << "a: " << std::endl << a.transpose() << std::endl;
+	std::cout << "b: " << std::endl << b.transpose() << std::endl;
 	return;
 
 }
@@ -146,6 +171,8 @@ void VarDP<Model>::updateParamDist(){
 template<class Model>
 void VarDP<Model>::updateLabelDist(){
 	//update the label distribution
+	sumzeta = VXd::Zero(K);
+	sumzetaT = MXd::Zero(K, M);
 	for (uint32_t i = 0; i < N; i++){
 		//compute the log of the weights, storing the maximum so far
 		double logpmax = -std::numeric_limits<double>::infinity();
@@ -163,9 +190,14 @@ void VarDP<Model>::updateLabelDist(){
 			zeta(i, k) = exp(zeta(i, k));
 			psum += zeta(i, k);
 		}
-		/*normalize*/
+		//normalize
 		for (uint32_t k = 0; k < K; k++){
 			zeta(i, k) /= psum;
+		}
+		//update the sumzeta stats
+		sumzeta += zeta.row(i).transpose();
+		for(uint32_t k = 0; k < K; k++){
+			sumzetaT.row(k) += zeta(i, k)*train_stats.row(i);
 		}
 	}
 	return;
