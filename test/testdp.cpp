@@ -16,6 +16,7 @@ int main(int argc, char** argv){
 	std::mt19937 rng;
 	std::random_device rd;
 	rng.seed(rd());
+	std::uniform_real_distribution<> unir;
 
 
 	//setup the generating model
@@ -23,18 +24,23 @@ int main(int argc, char** argv){
 	std::vector<MXd> sigs;
 	std::vector<MXd> sigsqrts;
 	std::vector<double> pis;
-	VXd pisv = VXd::Random(K);
-	double sumpisv = 0;
+	double sumpis = 0.0;
 	for (uint32_t k = 0; k < K; k++){
-		mus.push_back(10.0*VXd::Random(D));
-		MXd m = MXd::Random(D, D);
-		sigs.push_back(m.transpose()*m);
+		mus.push_back(VXd::Zero(D));
+		sigs.push_back(MXd::Zero(D, D));
+		for(uint32_t d = 0; d < D; d++){
+			mus.back()(d) = 20.0*unir(rng)-10.0;
+			for(uint32_t f = 0; f < D; f++){
+				sigs.back()(d, f) = 5*unir(rng);
+			}
+		}
+		sigs.back() = (sigs.back().transpose()*sigs.back()).eval();//eval to stop aliasing
 		sigsqrts.push_back(Eigen::LLT<MXd, Eigen::Upper>(sigs.back()).matrixL());
-		pisv(k) += 1.0;
-		sumpisv += pisv(k);
+		pis.push_back(unir(rng));
+		sumpis += pis.back();
 	}
 	for (uint32_t k = 0; k < K; k++){
-		pis.push_back(pisv(k)/sumpisv);
+		pis[k] /= sumpis;
 	}
 
 
