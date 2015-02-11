@@ -39,7 +39,7 @@ int main(int argc, char** argv){
 		sigsqrts.push_back(Eigen::LLT<MXd, Eigen::Upper>(sigs.back()).matrixL());
 		pis.push_back(unir(rng));
 		sumpis += pis.back();
-		std::cout << "Mu: " << mus.back().transpose() << std::endl << "Sig: " << sigs.back() << std::endl << "Wt: " << pis.back() << std::endl;
+		//std::cout << "Mu: " << mus.back().transpose() << std::endl << "Sig: " << sigs.back() << std::endl << "Wt: " << pis.back() << std::endl;
 	}
 	for (uint32_t k = 0; k < K; k++){
 		pis[k] /= sumpis;
@@ -58,7 +58,7 @@ int main(int argc, char** argv){
 		}
 		uint32_t k = disc(rng);
 		train_data.push_back(mus[k] + sigsqrts[k]*x);
-		std::cout << train_data.back().transpose() << std::endl;
+		//std::cout << train_data.back().transpose() << std::endl;
 	}
 	for (uint32_t i = 0; i < Nt; i++){
 		VXd x = VXd::Zero(D);
@@ -67,7 +67,7 @@ int main(int argc, char** argv){
 		}
 		uint32_t k = disc(rng);
 		test_data.push_back(mus[k] + sigsqrts[k]*x);
-		std::cout << test_data.back().transpose() << std::endl;
+		//std::cout << test_data.back().transpose() << std::endl;
 	}
 
 
