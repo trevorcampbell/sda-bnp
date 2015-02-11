@@ -75,9 +75,10 @@ template<class Model>
 void VarDP<Model>::initWeightsParams(){
 	//create random statistics from data collection
 	std::uniform_int_distribution<> unii(0, N);
-	MXd random_sumzeta = MXd::Random(1, K);
+	std::uniform_real_distribution<> unir;
+	MXd random_sumzeta = MXd::Zeros(1, K);
 	for (uint32_t k = 0; k < K; k++){
-		random_sumzeta(k) = 5.0*(1.0+random_sumzeta(k))/2.0;
+		random_sumzeta(k) = 10.0*unir(rng);
 	}
 	MXd random_sumzetaT = MXd::Zero(K, M);
 	for (uint32_t k = 0; k < K; k++){
