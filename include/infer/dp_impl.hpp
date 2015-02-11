@@ -47,13 +47,9 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 	
 	//loop on variational updates
 	while(diff > tol){
-		std::cout << "Before weights: " << computeObjective() << std::endl;
 		updateWeightDist();
-		std::cout << "After weights, before params: " << computeObjective() << std::endl;
 		updateParamDist();
-		std::cout << "After params, before labels: " << computeObjective() << std::endl;
 		updateLabelDist();
-		std::cout << "After labels: " << computeObjective() << std::endl;
 
 		prevobj = obj;
 		//store the current time
