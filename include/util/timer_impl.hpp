@@ -1,17 +1,17 @@
 
+Timer::Timer(){
+	this->elapsed = std::chrono::duration<double>(0);
+}
+
 void Timer::start(){
-	this->t0 = std::chrono::high_resolution_clock::now();
+	t0 = std::chrono::high_resolution_clock::now();
 }
 
 double Timer::stop(){
-	this->elapsed_s += (std::chrono::high_resolution_clock::now() - this->t0);
-	return this->elapsed_s.count();
+	this->elapsed += (std::chrono::high_resolution_clock::now() - this->t0);
+	return std::chrono::duration_cast<std::chrono::duration<double> >(this->elapsed).count();
 }
 
 double Timer::get(){
-	return (this->elapsed_s + std::chrono::high_resolution_clock::now() - this->t0).count();
-}
-
-void Timer::reset(){
-	this->elapsed_s = std::chrono::duration<double>();
+	return std::chrono::duration_cast<std::chrono::duration<double> >(this->elapsed + (std::chrono::high_resolution_clock::now() - this->t0)).count();
 }

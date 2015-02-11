@@ -35,15 +35,18 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 	double prevobj = std::numeric_limits<double>::infinity();
 
 	//start the timer
-	Timer cpuTime;
+	Timer cpuTime, wallTime;
 	cpuTime.start();
+	wallTime.start();
 
 	//initialize the variables
 	initWeightsParams();
 	updateLabelDist();
 
 	//loop on variational updates
-	while(diff > tol){
+	int idx = 0;
+	while(diff > tol || idx < 1000000){
+		idx++;
 		updateWeightDist();
 		updateParamDist();
 		updateLabelDist();
@@ -264,9 +267,6 @@ double VarDP<Model>::computeTestLogLikelihood(){
 
 	//now loop over all test data and get weighted avg likelihood
 	double loglike = 0.0;
-	std::cout << eta.row(0) << std::endl;
-	std::cout << nu(0) << std::endl;
-	std::cout << weights(0) << std::endl;
 	for(uint32_t i = 0; i < Nt; i++){
 		std::vector<double> loglikes;
 		for (uint32_t k = 0; k < K; k++){
