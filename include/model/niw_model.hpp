@@ -51,6 +51,7 @@ class NIWModel{
 		uint32_t D;
 		VXd eta0;
 		double nu0;
+		double logh0;
 };
 
 NIWModel::NIWModel(VXd mu0, double kappa0, MXd psi, double xi0){
@@ -70,6 +71,25 @@ NIWModel::NIWModel(VXd mu0, double kappa0, MXd psi, double xi0){
 	this->eta0(D+D*D) = xi0+D+2;
 	//fourth to kappa
 	this->nu0 = kappa0;
+
+	//compute logh0 based on the prior
+	const double eta3frc = (this->eta0(D*D+D)-D-2.0)/2.0;
+	MXd n1n2n2T = MXd::Zero(D, D);
+    for (uint32_t i = 0; i < D; i++){
+      for(uint32_t j=i; j < D; j++){
+        n1n2n2T(i, j) = this->eta0(i*D+j) - 1.0/this->nu0*this->eta0(D*D+i)*this->eta0(D*D+j);
+      }
+    }
+
+	Eigen::LDLT<MXd, Eigen::Upper> ldlt(n1n2n2T);
+	VXd diag = ldlt.vectorD();
+	double ldet = 0;
+	for(uint32_t i =0; i < D; i++){
+		ldet += log(diag(i));
+	}
+
+	//compute logh
+	logh0 = -1.0*D/2.0*log(2.0*M_PI/this->nu0) +eta3frc*(ldet- 1.0*D*log(2.0))-multivariateLnGamma(eta3frc, D);
 }
 
 uint32_t NIWModel::getStatDimension(){
@@ -103,7 +123,7 @@ VXd NIWModel::getStat(VXd data){
 }
 
 double NIWModel::getLogH0(){
-
+	return logh0;
 }
 
 void NIWModel::getLogH(MXd eta, VXd nu, VXd& logh, MXd& dlogh_deta, VXd& dlogh_dnu){

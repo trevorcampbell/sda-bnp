@@ -47,9 +47,13 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 	
 	//loop on variational updates
 	while(diff > tol){
+		std::cout << "Before weights: " << computeObjective() << std::endl;
 		updateWeightDist();
+		std::cout << "After weights, before params: " << computeObjective() << std::endl;
 		updateParamDist();
+		std::cout << "After params, before labels: " << computeObjective() << std::endl;
 		updateLabelDist();
+		std::cout << "After labels: " << computeObjective() << std::endl;
 
 		prevobj = obj;
 		//store the current time
@@ -210,7 +214,7 @@ double VarDP<Model>::computeObjective(){
 	MXd mzero = MXd::Zero(zeta.rows(), zeta.cols());
 	MXd zlogz = zeta.array()*zeta.array().log();
 	double labelEntropy = ((zeta.array() > 1.0e-16).select(zlogz, mzero)).sum();
-
+	
 	//get the variational beta entropy
 	double betaEntropy = 0.0;
 	for (uint32_t k = 0; k < K; k++){
