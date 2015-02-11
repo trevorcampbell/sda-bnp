@@ -15,9 +15,6 @@ int main(int argc, char** argv){
 
 	std::mt19937 rng;
 	std::random_device rd;
-	if (rd.entropy() == 0){
-		std::cout << "WARNING: USING 0 ENTROPY RANDOM DEVICE FOR SEED..." << std::endl;
-	}
 	rng.seed(rd());
 
 

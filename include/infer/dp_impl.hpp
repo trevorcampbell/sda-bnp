@@ -14,9 +14,6 @@ VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& 
 
 	//initialize the random device
 	std::random_device rd;
-	if (rd.entropy() == 0){
-		std::cout << "WARNING: ENTROPY 0, NOT SEEDING THE RANDOM GEN PROPERLY" << std::endl;
-	}
 	rng.seed(rd());
 
 	//initialize memory
