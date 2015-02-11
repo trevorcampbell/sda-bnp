@@ -60,7 +60,7 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 		//save the objective
 		objs.push_back(obj);
 		//compute the obj diff
-		diff = (obj - prevobj)/obj;
+		diff = fabs((obj - prevobj)/obj);
 		//if test likelihoods were requested, compute those (but pause the timer first)
 		if (computeTestLL){
 			cpuTime.stop();
