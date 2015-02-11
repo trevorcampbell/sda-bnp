@@ -134,7 +134,8 @@ void NIWModel::getLogH(MXd eta, VXd nu, VXd& logh, MXd& dlogh_deta, VXd& dlogh_d
 		const double eta3frc = (eta(k, D*D+D)-D-2.0)/2.0;
 		MXd n1n2n2T = MXd::Zero(D, D);
         for (uint32_t i = 0; i < D; i++){
-          for(uint32_t j=i; j < D; j++){
+          //for(uint32_t j=i; j < D; j++){
+          for(uint32_t j=0; j < D; j++){
             n1n2n2T(i, j) = eta(k, i*D+j) - 1.0/nu(k)*eta(k, D*D+i)*eta(k, D*D+j);
           }
         }
