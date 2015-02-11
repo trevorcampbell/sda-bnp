@@ -44,9 +44,7 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 	updateLabelDist();
 
 	//loop on variational updates
-	int idx = 0;
-	while(diff > tol || idx < 1000000){
-		idx++;
+	while(diff > tol){
 		updateWeightDist();
 		updateParamDist();
 		updateLabelDist();
