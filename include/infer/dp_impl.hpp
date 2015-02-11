@@ -1,7 +1,7 @@
 #ifndef __DP_IMPL_HPP
 
 template<class Model>
-VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t K) : model(model), alpha(alpha), K(K){
+VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t K) : model(model), test_data(test_data), alpha(alpha), K(K){
 	M = this->model.getStatDimension();
 	N = train_data.size();
 	Nt = test_data.size();
@@ -264,6 +264,9 @@ double VarDP<Model>::computeTestLogLikelihood(){
 
 	//now loop over all test data and get weighted avg likelihood
 	double loglike = 0.0;
+	std::cout << eta.row(0) << std::endl;
+	std::cout << nu(0) << std::endl;
+	std::cout << weights(0) << std::endl;
 	for(uint32_t i = 0; i < Nt; i++){
 		std::vector<double> loglikes;
 		for (uint32_t k = 0; k < K; k++){
