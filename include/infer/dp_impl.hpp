@@ -6,6 +6,7 @@ VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& 
 	N = train_data.size();
 	Nt = test_data.size();
 
+
 	//compute exponential family statistics once
 	train_stats = MXd::Zero(N, M);
 	for (uint32_t i = 0; i < N; i++){
@@ -53,6 +54,7 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 		times.push_back(cpuTime.get());
 		//compute the objective
 		obj = computeObjective();
+		std::cout << "obj: " << obj << std::endl;
 		//save the objective
 		objs.push_back(obj);
 		//compute the obj diff
@@ -74,7 +76,7 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 template<class Model>
 void VarDP<Model>::initWeightsParams(){
 	//create random statistics from data collection
-	std::uniform_int_distribution<> unii(0, N);
+	std::uniform_int_distribution<> unii(0, N-1);
 	std::uniform_real_distribution<> unir;
 	MXd random_sumzeta = MXd::Zero(1, K);
 	for (uint32_t k = 0; k < K; k++){
