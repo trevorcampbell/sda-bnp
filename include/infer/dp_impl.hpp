@@ -56,7 +56,6 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 		times.push_back(cpuTime.get());
 		//compute the objective
 		obj = computeObjective();
-		std::cout << "obj: " << obj << std::endl;
 		//save the objective
 		objs.push_back(obj);
 		//compute the obj diff
@@ -67,6 +66,9 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 			double testll = computeTestLogLikelihood();
 			testlls.push_back(testll);
 			cpuTime.start();
+			std::cout << "obj: " << obj << " testll: " << testll << std::endl;
+		} else {
+			std::cout << "obj: " << obj << std::endl;
 		}
 	}
 	//done!
