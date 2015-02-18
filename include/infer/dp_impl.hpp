@@ -41,7 +41,7 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 	wallTime.start();
 
 	//initialize the variables
-	initWeightsParams();
+	init();
 	updateLabelDist();
 
 	
@@ -78,7 +78,7 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 
 
 template<class Model>
-void VarDP<Model>::initWeightsParams(){
+void VarDP<Model>::init(){
 	//create random statistics from data collection
 	std::uniform_int_distribution<> unii(0, N-1);
 	std::uniform_real_distribution<> unir;

@@ -27,27 +27,41 @@ class VarHDPResults{
 template<class Model>
 class VarHDP{
 	public:
-		VarHDP();
+		VarHDP(const std::vector< std::vector<VXd> >& train_data, const std::vector< std::vector<VXd> >& test_data, const Model& model, double gam, double alpha, double eta, uint32_t T, uint32_t K);
 		void run(bool computeTestLL = false, double tol = 1e-6);
 		VarHDPResults getResults();
 
 	private:
-		void initWeightsParams();
-		void updateWeightDist();
-		void updateLabelDist();
-		void updateParamDist();
-		double computeObjective();
+		void init();
+
+		//Local variational updates
+		void updateLocalDists(double tol);
+		void updateLocalWeightDist(uint32_t idx);
+		void updateLocalLabelDist(uint32_t idx);
+		void updateLocalCorrespondenceDist(uint32_t idx);
+
+		//global variational updates
+		void updateGlobalDist();
+		void updateGlobalWeightDist();
+		void updateGlobalParamDist();
+
+		double computeGlobalObjective();
+		double computeLocalObjective(uint32_t idx);
 		double computeTestLogLikelihood();
-
-
-
 
 		std::mt19937 rng;
 		double gam, alpha, eta; //gamma = global concentration, alpha = local concentration, eta = prior dirichlet topic
-		uint32_t N, T, K, W; // N is nubmer of docs, T is global truncation, K is local truncation, W is vocabulary size
-		MXd beta;//dirichlet variational parameters for topics
-		VXd u, v;//beta variational parameters for global sticks
+		uint32_t N, Nt, T, K, M; // N is number of observation collections, T is global truncation, K is local truncation, M is stat dimension
+		std::vector<uint32_t> Nl, Ntl; //local number of observations in each collection
 
+
+		MXd eta;//dirichlet variational parameters for topics
+		VXd u, v, nu;//eeta variational parameters for global sticks
+		MXd phiTsum;
+		VXd phisum;
+		std::vector<VXd> a, b, psiabsum, psiuvsum, zetasum, phiNsum;
+		std::vector<MXd> phi, zeta, train_stats, zetaTsum, phiEsum; 
+		std::vector<double> times, objs, testlls;
 
 		self.m_var_sticks_ss = np.zeros(T)
         self.m_var_logp0_ss = np.zeros(T)

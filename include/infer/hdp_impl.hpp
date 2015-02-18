@@ -1,25 +1,279 @@
 #ifndef __HDP_IMPL_HPP
 
-VarHDP::VarHDP(){
+template<class Model>
+VarHDP<Model>::VarHDP(const std::vector< std::vector<VXd> >& train_data, const std::vector< std::vector<VXd> >& test_data, const Model& model, double gam, double alpha, double eta, uint32_t T, uint32_t K) : model(model), test_data(test_data), gam(gam), alpha(alpha), eta(eta), T(T), K(K){
+	this->M = model.getStatDimension();
+	this->N = train_data.size();
+	this->Nt = test_data.size();
+
+	for (uint32_t i = 0; i < N; i++){
+		this->Nl.push_back(train_data[i].size());
+		train_stats.push_back(MXd::Zero(Nl.back(), M));
+		for (uint32_t j = 0; j < Nl.back(); j++){
+			train_stats.back().row(j) = this->model.getStat(train_data[i][j]).transpose();
+		}
+	}
+	for (uint32_t i = 0; i < Nt; i++){
+		this->Ntl.push_back(test_data[i].size());
+	}
+
 	//seed random gen
 	std::random_device rd;
 	rng.seed(rd());
 
+	//initialize memory
+	nu = VXd::Zero(T);
+	eta = MXd::Zero(T, M);
+	u = v = VXd::Zeros(T-1); 
+	for (uint32_t i = 0; i < N; i++){
+		a.push_back(VXd::Zeros(K-1));
+		b.push_back(VXd::Zeros(K-1));
+		zeta.push_back(MXd::Zero(Nl[i], K));
+		phi.push_back(MXd::Zero(K, T));
+	}
+
+}
+
+template<class Model>
+void VarHDP<Model>::init(){
 	//initialize topic word weights
-	beta = MXd::Zero(T, W);
-	std::gamma_distribution<> gamdist; //using alpha=1.0, beta =1.0
+	std::gamma_distribution<> gamdist; //using alpha=1.0, eta =1.0
 	for(uint32_t i = 0; i < T; i++){
-		for(uint32_t j =0; j < W; j++){
-			beta(i, j) = gamdist(rng)*D*100.0/(T*W);
+		for(uint32_t j =0; j < M; j++){
+			eta(i, j) = gamdist(rng)*D*100.0/(T*M);
 		}
 	}
 
-	//initialize topic sticks
 	u = VXd::Ones(T-1);
 	v = gam*VXd::Ones(T-1);
 
+	for(uint32_t i =0; i < N; i++){
+	}
 
 }
+
+
+template<class Model>
+void VarHDP<Model>::run(bool computeTestLL = false, double tol = 1e-6){
+	//clear any previously stored results
+	times.clear();
+	objs.clear();
+	testlls.clear();
+
+	//create objective tracking vars
+	double diff = 10.0*tol + 1.0;
+	double obj = std::numeric_limits<double>::infinity();
+	double prevobj = std::numeric_limits<double>::infinity();
+
+	//start the timer
+	Timer cpuTime, wallTime;
+	cpuTime.start();
+	wallTime.start();
+
+	//initialize the variables
+	init();
+
+	//loop on variational updates
+	while(diff > tol){
+		//update the local distributions
+		updateLocalDists(tol);
+		//update the global distribution
+		updateGlobalDist();
+
+		prevobj = obj;
+		//store the current time
+		times.push_back(cpuTime.get());
+		//compute the objective
+		for (uint32_t i =0; i < N; i++){
+			obj += computeLocalObjective(idx);
+		}
+		obj += computeGlobalObjective();
+		//save the objective
+		objs.push_back(obj);
+		//compute the obj diff
+		diff = fabs((obj - prevobj)/obj);
+		//if test likelihoods were requested, compute those (but pause the timer first)
+		if (computeTestLL){
+			cpuTime.stop();
+			double testll = computeTestLogLikelihood();
+			testlls.push_back(testll);
+			cpuTime.start();
+			std::cout << "obj: " << obj << " testll: " << testll << std::endl;
+		} else {
+			std::cout << "obj: " << obj << std::endl;
+		}
+	}
+	//done!
+	return;
+
+}
+
+template<class Model>
+void VarHDP<Model>::getResults(){
+}
+
+template<class Model>
+void VarHDP<Model>::updateLocalDists(double tol){
+	//zero out the sufficient stats
+//TODO		
+
+	//run variational updates on the local params
+	for (uint32_t i = 0; i < N; i++){
+		//create objective tracking vars
+		double diff = 10.0*tol + 1.0;
+		double obj = std::numeric_limits<double>::infinity();
+		double prevobj = std::numeric_limits<double>::infinity();
+
+		while(diff > tol){
+			updateLocalWeightDist(idx);
+			updateLocalLabelDist(idx);
+			updateLocalCorrespondenceDist(idx);
+			prevobj = obj;
+			obj = computeLocalObjective(idx);
+			//compute the obj diff
+			diff = fabs((obj - prevobj)/obj);
+		}
+	}
+}
+
+template<class Model>
+void VarHDP<Model>::updateLocalWeightDist(uint32_t idx){
+	//Update a, b, and psisum
+	psiabsum[idx] = VXd::Zero(K);
+	double psibk = 0.0;
+	for (uint32_t k = 0; k < K-1; k++){
+		a[idx](k) = 1.0+zetasum(k);
+		b[idx](k) = alpha;
+		for (uint32_t j = k+1; j < K; j++){
+			b[idx](k) += zetasum(j);
+		}
+    	double psiak = digamma(a(k)) - digamma(a(k)+b(k));
+    	psiabsum[idx](k) = psiak + psibk;
+    	psibk += digamma(b(k)) - digamma(a(k)+b(k));
+	}
+	psiabsum[idx](K-1) = psibk;
+}
+
+template<class Model>
+void VarHDP<Model>::updateLocalLabelDist(uint32_t idx){
+	//update the label distribution
+	zetasum[idx] = VXd::Zero(K);
+	zetaTsum[idx] = MXd::Zero(K, M);
+	for (uint32_t i = 0; i < Nl[idx]; i++){
+		//compute the log of the weights, storing the maximum so far
+		double logpmax = -std::numeric_limits<double>::infinity();
+		for (uint32_t k = 0; k < K; k++){
+			zeta[idx](i, k) = psiabsum[idx](k) - phiNsum[idx](k);
+			for (uint32_t j = 0; j < M; j++){
+				zeta[idx](i, k) -= train_stats[idx](i, j)*phiEsum[idx](k, j);
+			}
+			logpmax = (zeta[idx](i, k) > logpmax ? zeta[idx](i, k) : logpmax);
+		}
+		//make numerically stable by subtracting max, take exp, sum them up
+		double psum = 0.0;
+		for (uint32_t k = 0; k < K; k++){
+			zeta[idx](i, k) -= logpmax;
+			zeta[idx](i, k) = exp(zeta[idx](i, k));
+			psum += zeta[idx](i, k);
+		}
+		//normalize
+		for (uint32_t k = 0; k < K; k++){
+			zeta[idx](i, k) /= psum;
+		}
+		//update the zetasum stats
+		zetasum[idx] += zeta[idx].row(i).transpose();
+		for(uint32_t k = 0; k < K; k++){
+			zetaTsum[idx].row(k) += zeta[idx](i, k)*train_stats[idx].row(i);
+		}
+	}
+}
+
+template<class Model>
+void VarHDP<Model>::updateLocalCorrespondenceDist(uint32_t idx){
+	//update the correspondence distribution
+	phiNsum[idx] = VXd::Zero(K);
+	phiEsum[idx] = MXd::Zero(K, M);
+	for (uint32_t k = 0; k < K; k++){
+		//compute the log of the weights, storing the maximum so far
+		double logpmax = -std::numeric_limits<double>::infinity();
+		for (uint32_t t = 0; t < T; t++){
+			phi[idx](k, t) = psiuvsum[idx](t) - zetasum[idx](k)*dlogh_dnu(t);
+			for (uint32_t j = 0; j < M; j++){
+				phi[idx](k, t) -= zetaTsum[idx](k, j)*dlogh_deta(t, j);
+			}
+			logpmax = (phi[idx](k, t) > logpmax ? phi[idx](k, t) : logpmax);
+		}
+		//make numerically stable by subtracting max, take exp, sum them up
+		double psum = 0.0;
+		for (uint32_t t = 0; t < T; t++){
+			phi[idx](k, t) -= logpmax;
+			phi[idx](k, t) = exp(phi[idx](k, t));
+			psum += phi[idx](k, t);
+		}
+		//normalize
+		for (uint32_t t = 0; t < T; t++){
+			phi[idx](k, t) /= psum;
+		}
+		//update the phisum stats
+		for(uint32_t t = 0; t < T; t++){
+			phiNsum[idx](k) += phi[idx](k, t)*dlogh_dnu(t);
+			phiEsum[idx].row(k) += phi[idx](k, t)*dlogh_deta.row(t);
+		}
+	}
+}
+
+
+
+template<class Model>
+void VarHDP<Model>::updateGlobalDist(){
+	updateGlobalWeightDist();
+	updateGlobalParamDist();
+}
+
+template<class Model>
+void VarHDP<Model>::updateGlobalWeightDist(){
+	//Update u, v, and psisum
+	psiuvsum[idx] = VXd::Zero(T);
+	double psivk = 0.0;
+	for (uint32_t t = 0; t < T-1; t++){
+		u[idx](t) = 1.0+phisum(t);
+		v[idx](t) = gam;
+		for (uint32_t j = t+1; j < T; j++){
+			v[idx](t) += phisum(j);
+		}
+    	double psiuk = digamma(u(k)) - digamma(u(k)+v(k));
+    	psiabsum[idx](k) = psiuk + psivk;
+    	psivk += digamma(v(k)) - digamma(u(k)+v(k));
+	}
+	psiuvsum[idx](T-1) = psivk;
+}
+
+template<class Model>
+void VarHDP<Model>::updateGlobalParamDist(){
+	for (uint32_t t = 0; t < T; t++){
+		nu(t) = model.getNu0() + phizetasum(t);
+		for (uint32_t j = 0; j < M; j++){
+			eta(t, j) = model.getEta0()(j) + phizetaTsum.row(t, j);
+		}
+	}
+	model.getLogH(eta, nu, logh, dlogh_deta, dlogh_dnu);
+}
+
+template<class Model>
+double VarHDP<Model>::computeGlobalObjective(){
+
+}
+
+template<class Model>
+double VarHDP<Model>::computeLocalObjective(uint32_t idx){
+
+}
+
+template<class Model>
+double VarHDP<Model>::computeTestLogLikelihood(){
+
+}
+
 
 def dirichlet_expectation(alpha):
     if (len(alpha.shape) == 1):

@@ -32,7 +32,7 @@ class VarDP{
 		void run(bool computeTestLL = false, double tol = 1e-6);
 		VarDPResults getResults();
 	private:
-		void initWeightsParams();
+		void init();
 		void updateWeightDist();
 		void updateLabelDist();
 		void updateParamDist();
