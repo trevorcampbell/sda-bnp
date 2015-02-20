@@ -22,8 +22,8 @@ VarHDP<Model>::VarHDP(const std::vector< std::vector<VXd> >& train_data, const s
 	rng.seed(rd());
 
 	//initialize memory
-	nu = VXd::Zero(T);
-	eta = MXd::Zero(T, M);
+	nu = logh = dlogh_dnu = VXd::Zero(T);
+	eta = dlogh_deta = MXd::Zero(T, M);
 	u = v = VXd::Zeros(T-1); 
 	for (uint32_t i = 0; i < N; i++){
 		a.push_back(VXd::Zeros(K-1));
@@ -31,25 +31,53 @@ VarHDP<Model>::VarHDP(const std::vector< std::vector<VXd> >& train_data, const s
 		zeta.push_back(MXd::Zero(Nl[i], K));
 		phi.push_back(MXd::Zero(K, T));
 	}
-
 }
 
 template<class Model>
 void VarHDP<Model>::init(){
-	//initialize topic word weights
-	std::gamma_distribution<> gamdist; //using alpha=1.0, eta =1.0
-	for(uint32_t i = 0; i < T; i++){
+	//initialize topic word distribution and dlogh/d___
+	std::uniform_int_distribution<> uniint(0, N);
+	for(uint32_t t = 0; t < T; t++){
+		uint32_t idx = uniint(rng);
+		std::uniform_int_distribution<> uniintl(0, Nl[idx]);
+		uint32_t idxl = uniintl(rng);
 		for(uint32_t j =0; j < M; j++){
-			eta(i, j) = gamdist(rng)*D*100.0/(T*M);
+			eta(t, j) = (model.getEta0()(j) + 0.05*train_stats[idx](idxl, j))/1.05;
 		}
+		nu(j) = model.getNu0();
 	}
+	model.getLogH(eta, nu, logh, dlogh_deta, dlogh_dnu);
 
+	//initialize the global topic weights
 	u = VXd::Ones(T-1);
 	v = gam*VXd::Ones(T-1);
 
+	//initial local params
 	for(uint32_t i =0; i < N; i++){
-	}
+		//local weights
+		a[i] = VXd::Ones(K-1);
+		b[i] = alpha*VXd::Ones(K-1);
+		//local psiabsum
+		psiabsum[i] = VXd::Zero(K);
+		double psibk = 0.0;
+		for (uint32_t k = 0; k < K-1; k++){
+    		double psiak = digamma(a[i](k)) - digamma(a[i](k)+b[i](k));
+    		psiabsum[i](k) = psiak + psibk;
+    		psibk += digamma(b[i](k)) - digamma(a[i](k)+b[i](k));
+		}
+		psiabsum[i](K-1) = psibk;
 
+		//local correspondences
+		phi[i] = 1.0/T*MXd::Ones(K, T);
+		for(uint32_t k = 0; k < K; k++){
+			for(uint32_t t = 0; t < T; t++){
+				phiNsum[idx](k) += phi[idx](k, t)*dlogh_dnu(t);
+				phiEsum[idx].row(k) += phi[idx](k, t)*dlogh_deta.row(t);
+			}
+		}
+
+		//everything needed for the first label update is ready
+	}
 }
 
 
@@ -84,10 +112,7 @@ void VarHDP<Model>::run(bool computeTestLL = false, double tol = 1e-6){
 		//store the current time
 		times.push_back(cpuTime.get());
 		//compute the objective
-		for (uint32_t i =0; i < N; i++){
-			obj += computeLocalObjective(idx);
-		}
-		obj += computeGlobalObjective();
+		obj = computeFullObjective();
 		//save the objective
 		objs.push_back(obj);
 		//compute the obj diff
@@ -114,24 +139,36 @@ void VarHDP<Model>::getResults(){
 
 template<class Model>
 void VarHDP<Model>::updateLocalDists(double tol){
-	//zero out the sufficient stats
-//TODO		
-
-	//run variational updates on the local params
+	//zero out global stats
+	phizetasum = MXd::Zero(T);
+	phisum = MXd::Zero(T);
+	phizetaTsum = MXd::Zero(T, M);
+	//loop over all local obs collections
 	for (uint32_t i = 0; i < N; i++){
 		//create objective tracking vars
 		double diff = 10.0*tol + 1.0;
 		double obj = std::numeric_limits<double>::infinity();
 		double prevobj = std::numeric_limits<double>::infinity();
 
+		//run variational updates on the local params
 		while(diff > tol){
-			updateLocalWeightDist(idx);
 			updateLocalLabelDist(idx);
+			updateLocalWeightDist(idx);
 			updateLocalCorrespondenceDist(idx);
 			prevobj = obj;
 			obj = computeLocalObjective(idx);
 			//compute the obj diff
 			diff = fabs((obj - prevobj)/obj);
+		}
+		//add phi/zeta to global stats
+		for(uint32_t t = 0; t < T; t++){
+			for(uint32_t k = 0; k < K; k++){
+				phizetasum(t) += phi[i](k, t)*zetasum[i](k);
+				phisum(t) += phi[i](k, t);
+				for (uint32_t j = 0; j < M; j++){
+					phizetaTsum(t, j) += phi[i](k, t)*zetaTsum[i](k, j);
+				}
+			}
 		}
 	}
 }
@@ -142,14 +179,14 @@ void VarHDP<Model>::updateLocalWeightDist(uint32_t idx){
 	psiabsum[idx] = VXd::Zero(K);
 	double psibk = 0.0;
 	for (uint32_t k = 0; k < K-1; k++){
-		a[idx](k) = 1.0+zetasum(k);
+		a[idx](k) = 1.0+zetasum[idx](k);
 		b[idx](k) = alpha;
 		for (uint32_t j = k+1; j < K; j++){
-			b[idx](k) += zetasum(j);
+			b[idx](k) += zetasum[idx](j);
 		}
-    	double psiak = digamma(a(k)) - digamma(a(k)+b(k));
+    	double psiak = digamma(a[idx](k)) - digamma(a[idx](k)+b[idx](k));
     	psiabsum[idx](k) = psiak + psibk;
-    	psibk += digamma(b(k)) - digamma(a(k)+b(k));
+    	psibk += digamma(b[idx](k)) - digamma(a[idx](k)+b[idx](k));
 	}
 	psiabsum[idx](K-1) = psibk;
 }
@@ -193,6 +230,7 @@ void VarHDP<Model>::updateLocalCorrespondenceDist(uint32_t idx){
 	//update the correspondence distribution
 	phiNsum[idx] = VXd::Zero(K);
 	phiEsum[idx] = MXd::Zero(K, M);
+	
 	for (uint32_t k = 0; k < K; k++){
 		//compute the log of the weights, storing the maximum so far
 		double logpmax = -std::numeric_limits<double>::infinity();
@@ -260,18 +298,122 @@ void VarHDP<Model>::updateGlobalParamDist(){
 }
 
 template<class Model>
-double VarHDP<Model>::computeGlobalObjective(){
+double VarHDP<Model>::computeFullObjective(){
+	//reuse the local code for computing each local obj
+	double obj = 0;
+	for (uint32_t i =0 ; i < N; i++){
+		obj += computeLocalObjective(i);
+	}
 
+	//get the variational beta entropy
+	double betaEntropy = 0.0;
+	for (uint32_t k = 0; t < T-1; k++){
+        betaEntropy += -boost_lbeta(u(t), v(t)) + (u(t)-1.0)*digamma(u(t)) +(v(t)-1.0)*digamma(v(t))-(u(t)+v(t)-2.0)*digamma(u(t)+v(t));
+	}
+
+	//get the variational exponential family entropy
+	double expEntropy = 0.0;
+	for (uint32_t t = 0; t < T; t++){
+		expEntropy += logh(t) - nu(t)*dlogh_dnu(t);
+		for (uint32_t j = 0; j < M; j++){
+			expEntropy -= eta(t, j)*dlogh_deta(t, j);
+		}
+	}
+
+	//prior exp cross entropy
+    double priorExpXEntropy = T*model.getLogH0();
+	for (uint32_t t = 0; t < T; t++){
+		priorExpXEntropy -= model.getNu0()*dlogh_dnu(t);
+	    for (uint32_t j=0; j < M; j++){
+	    	priorExpXEntropy -= model.getEta0()(j)*dlogh_deta(t, j);
+	    }
+	}
+
+	//get the prior beta cross entropy
+	double priorBetaXEntropy = -T*boost_lbeta(1.0, alpha);
+	for (uint32_t t = 0; t < T-1; t++){
+		priorBetaXEntropy += (alpha-1.0)*(digamma(v(t)) - digamma(u(t)+v(t)));
+	}
+
+	//output
+	return obj
+		+ betaEntropy
+		+ expEntropy
+		- priorExpXEntropy
+		- priorBetaXentropy;
 }
 
 template<class Model>
 double VarHDP<Model>::computeLocalObjective(uint32_t idx){
+	//get the label entropy
+	MXd mzero = MXd::Zero(zeta[idx].rows(), zeta[idx].cols());
+	MXd zlogz = zeta[idx].array()*zeta[idx].array().log();
+	double labelEntropy = ((zeta[idx].array() > 1.0e-16).select(zlogz, mzero)).sum();
 
+	//get the correspondence entropy
+	MXd pzero = MXd::Zero(phi[idx].rows(), phi[idx].cols());
+	MXd plogp = phi[idx].array()*phi[idx].array().log();
+	double corrEntropy = ((phi[idx].array() > 1.0e-16).select(plogp, pzero)).sum();
+
+	//get the variational beta entropy
+	double betaEntropy = 0.0;
+	for (uint32_t k = 0; k < K-1; k++){
+        betaEntropy += -boost_lbeta(a[idx](k), b[idx](k)) + (a[idx](k)-1.0)*digamma(a[idx](k)) +(b[idx](k)-1.0)*digamma(b[idx](k))-(a[idx](k)+b[idx](k)-2.0)*digamma(a[idx](k)+b[idx](k));
+	}
+
+	//get the likelihood cross entropy
+	double likelihoodXEntropy = 0.0;
+	for (uint32_t k = 0; k < K; k++){
+		likelihoodXEntropy -= zetasum[idx](k)*phiNsum[idx](k);
+		for (uint32_t j = 0; j < M; j++){
+			likelihoodXEntropy -= zetaTsum[idx](k, j)*phiEsum[idx](k, j);
+		}
+	}
+
+	//get the prior label cross entropy
+	double priorLabelXEntropy = 0.0;
+	double psibk = 0.0;
+	for (uint32_t k = 0; k < K-1; k++){
+		double psiak = digamma(a[idx](k)) - digamma(a[idx](k)+b[idx](k));
+		priorLabelXEntropy += zetasum[idx](k)*(psiak + psibk);
+		psibk += digamma(b[idx](k)) - digamma(a[idx](k)+b[idx](k));
+	}
+	priorLabelXEntropy += zetasum[idx](K-1)*psibk;
+
+	//get the prior correspondence cross entropy
+	double priorCorrXEntropy = 0.0;
+	double psivt = 0.0;
+	for (uint32_t t = 0; t < T-1; t++){
+		double psiut = digamma(u(t)) - digamma(u(t)+v(t));
+		for (uint32_t k = 0; k < K; k++){
+			priorCorrXEntropy += phisum[idx](k, t)*(psiut + psivt);
+		}
+		psivt += digamma(v(t)) - digamma(u(t)+v(t));
+	}
+	priorCorrXEntropy += phisum[idx](T-1)*psivk;
+
+	//get the prior beta cross entropy
+	double priorBetaXEntropy = -K*boost_lbeta(1.0, alpha);
+	for (uint32_t k = 0; k < K-1; k++){
+		priorBetaXEntropy += (alpha-1.0)*(digamma(b[idx](k)) - digamma(a[idx](k)+b[idx](k)));
+	}
+
+	return labelEntropy 
+		 + corrEntropy
+		 + betaEntropy 
+		 - likelihoodXEntropy
+		 - priorCorrXEntropy
+		 - priorLabelXEntropy
+		 - priorBetaXEntropy;
 }
 
 template<class Model>
 double VarHDP<Model>::computeTestLogLikelihood(){
 
+}
+
+double boost_lbeta(double a, double b){
+	return lgamma(a)+lgamma(b)-lgamma(a+b);
 }
 
 

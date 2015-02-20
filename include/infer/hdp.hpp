@@ -45,7 +45,7 @@ class VarHDP{
 		void updateGlobalWeightDist();
 		void updateGlobalParamDist();
 
-		double computeGlobalObjective();
+		double computeFullObjective();
 		double computeLocalObjective(uint32_t idx);
 		double computeTestLogLikelihood();
 
@@ -55,18 +55,13 @@ class VarHDP{
 		std::vector<uint32_t> Nl, Ntl; //local number of observations in each collection
 
 
-		MXd eta;//dirichlet variational parameters for topics
-		VXd u, v, nu;//eeta variational parameters for global sticks
-		MXd phiTsum;
-		VXd phisum;
+		MXd eta, dlogh_deta;//dirichlet variational parameters for topics
+		VXd u, v, nu, logh, dlogh_dnu;//eeta variational parameters for global sticks
+		MXd phizetaTsum;
+		VXd phizetasum;
 		std::vector<VXd> a, b, psiabsum, psiuvsum, zetasum, phiNsum;
 		std::vector<MXd> phi, zeta, train_stats, zetaTsum, phiEsum; 
 		std::vector<double> times, objs, testlls;
-
-		self.m_var_sticks_ss = np.zeros(T)
-        self.m_var_logp0_ss = np.zeros(T)
-        self.m_var_beta_ss = np.zeros((T, size_vocab))
-
 
 };
 
