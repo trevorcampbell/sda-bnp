@@ -2,7 +2,7 @@
 
 template<class Model>
 VarHDP<Model>::VarHDP(const std::vector< std::vector<VXd> >& train_data, const std::vector< std::vector<VXd> >& test_data, const Model& model, double gam, double alpha, uint32_t T, uint32_t K) : model(model), test_data(test_data), gam(gam), alpha(alpha), T(T), K(K){
-	this->M = model.getStatDimension();
+	this->M = this->model.getStatDimension();
 	this->N = train_data.size();
 	this->Nt = test_data.size();
 
