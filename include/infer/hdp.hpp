@@ -27,7 +27,7 @@ class VarHDPResults{
 template<class Model>
 class VarHDP{
 	public:
-		VarHDP(const std::vector< std::vector<VXd> >& train_data, const std::vector< std::vector<VXd> >& test_data, const Model& model, double gam, double alpha, double eta, uint32_t T, uint32_t K);
+		VarHDP(const std::vector< std::vector<VXd> >& train_data, const std::vector< std::vector<VXd> >& test_data, const Model& model, double gam, double alpha, uint32_t T, uint32_t K);
 		void run(bool computeTestLL = false, double tol = 1e-6);
 		VarHDPResults getResults();
 
@@ -50,18 +50,20 @@ class VarHDP{
 		double computeTestLogLikelihood();
 
 		std::mt19937 rng;
-		double gam, alpha, eta; //gamma = global concentration, alpha = local concentration, eta = prior dirichlet topic
+		double gam, alpha; //gamma = global concentration, alpha = local concentration, eta = prior dirichlet topic
 		uint32_t N, Nt, T, K, M; // N is number of observation collections, T is global truncation, K is local truncation, M is stat dimension
 		std::vector<uint32_t> Nl, Ntl; //local number of observations in each collection
 
+		Model model;
 
 		MXd eta, dlogh_deta;//dirichlet variational parameters for topics
 		VXd u, v, nu, logh, dlogh_dnu;//eeta variational parameters for global sticks
 		MXd phizetaTsum;
-		VXd phizetasum;
-		std::vector<VXd> a, b, psiabsum, psiuvsum, zetasum, phiNsum;
+		VXd phizetasum, phisum, psiuvsum;
+		std::vector<VXd> a, b, psiabsum, zetasum, phiNsum;
 		std::vector<MXd> phi, zeta, train_stats, zetaTsum, phiEsum; 
 		std::vector<double> times, objs, testlls;
+		std::vector<std::vector<VXd> > test_data;
 
 };
 

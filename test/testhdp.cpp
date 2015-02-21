@@ -1,4 +1,4 @@
-#include <sdabnp/dp_mixture>
+#include <sdabnp/hdp_mixture>
 #include <sdabnp/model/normal_inverse_wishart>
 #include <Eigen/Dense>
 #include <random>
@@ -8,6 +8,7 @@ typedef Eigen::VectorXd VXd;
 
 int main(int argc, char** argv){
 	//constants
+	uint32_t T = 10;
 	uint32_t K = 3;
 	uint32_t N = 100;
 	uint32_t Nl = 100;
@@ -85,7 +86,8 @@ int main(int argc, char** argv){
 	NIWModel niw(mu0, kappa0, psi0, xi0);
 
 	std::cout << "Running VarHDP..." << std::endl;
-	VarHDP<NIWModel> hdp(train_data, test_data, niw, 1.0, K);
+	VarHDP<NIWModel> hdp(train_data, test_data, niw, 1.0, 1.0, T, K);
+
 	hdp.run(true);
 	VarHDPResults res = hdp.getResults();
 

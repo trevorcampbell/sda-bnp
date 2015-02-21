@@ -1,7 +1,7 @@
 #ifndef __HDP_IMPL_HPP
 
 template<class Model>
-VarHDP<Model>::VarHDP(const std::vector< std::vector<VXd> >& train_data, const std::vector< std::vector<VXd> >& test_data, const Model& model, double gam, double alpha, double eta, uint32_t T, uint32_t K) : model(model), test_data(test_data), gam(gam), alpha(alpha), eta(eta), T(T), K(K){
+VarHDP<Model>::VarHDP(const std::vector< std::vector<VXd> >& train_data, const std::vector< std::vector<VXd> >& test_data, const Model& model, double gam, double alpha, uint32_t T, uint32_t K) : model(model), test_data(test_data), gam(gam), alpha(alpha), T(T), K(K){
 	this->M = model.getStatDimension();
 	this->N = train_data.size();
 	this->Nt = test_data.size();
@@ -24,10 +24,10 @@ VarHDP<Model>::VarHDP(const std::vector< std::vector<VXd> >& train_data, const s
 	//initialize memory
 	nu = logh = dlogh_dnu = VXd::Zero(T);
 	eta = dlogh_deta = MXd::Zero(T, M);
-	u = v = VXd::Zeros(T-1); 
+	u = v = VXd::Zero(T-1); 
 	for (uint32_t i = 0; i < N; i++){
-		a.push_back(VXd::Zeros(K-1));
-		b.push_back(VXd::Zeros(K-1));
+		a.push_back(VXd::Zero(K-1));
+		b.push_back(VXd::Zero(K-1));
 		zeta.push_back(MXd::Zero(Nl[i], K));
 		phi.push_back(MXd::Zero(K, T));
 	}
@@ -41,10 +41,10 @@ void VarHDP<Model>::init(){
 		uint32_t idx = uniint(rng);
 		std::uniform_int_distribution<> uniintl(0, Nl[idx]);
 		uint32_t idxl = uniintl(rng);
-		for(uint32_t j =0; j < M; j++){
+		for(uint32_t j = 0; j < M; j++){
 			eta(t, j) = (model.getEta0()(j) + 0.05*train_stats[idx](idxl, j))/1.05;
 		}
-		nu(j) = model.getNu0();
+		nu(t) = model.getNu0();
 	}
 	model.getLogH(eta, nu, logh, dlogh_deta, dlogh_dnu);
 
@@ -71,8 +71,8 @@ void VarHDP<Model>::init(){
 		phi[i] = 1.0/T*MXd::Ones(K, T);
 		for(uint32_t k = 0; k < K; k++){
 			for(uint32_t t = 0; t < T; t++){
-				phiNsum[idx](k) += phi[idx](k, t)*dlogh_dnu(t);
-				phiEsum[idx].row(k) += phi[idx](k, t)*dlogh_deta.row(t);
+				phiNsum[i](k) += phi[i](k, t)*dlogh_dnu(t);
+				phiEsum[i].row(k) += phi[i](k, t)*dlogh_deta.row(t);
 			}
 		}
 
@@ -82,7 +82,7 @@ void VarHDP<Model>::init(){
 
 
 template<class Model>
-void VarHDP<Model>::run(bool computeTestLL = false, double tol = 1e-6){
+void VarHDP<Model>::run(bool computeTestLL, double tol){
 	//clear any previously stored results
 	times.clear();
 	objs.clear();
@@ -147,7 +147,7 @@ template<class Model>
 void VarHDP<Model>::updateLocalDists(double tol){
 	//zero out global stats
 	phizetasum = MXd::Zero(T);
-	phisum = MXd::Zero(T);
+	phisum = VXd::Zero(T);
 	phizetaTsum = MXd::Zero(T, M);
 	//loop over all local obs collections
 	for (uint32_t i = 0; i < N; i++){
@@ -158,11 +158,11 @@ void VarHDP<Model>::updateLocalDists(double tol){
 
 		//run variational updates on the local params
 		while(diff > tol){
-			updateLocalLabelDist(idx);
-			updateLocalWeightDist(idx);
-			updateLocalCorrespondenceDist(idx);
+			updateLocalLabelDist(i);
+			updateLocalWeightDist(i);
+			updateLocalCorrespondenceDist(i);
 			prevobj = obj;
-			obj = computeLocalObjective(idx);
+			obj = computeLocalObjective(i);
 			//compute the obj diff
 			diff = fabs((obj - prevobj)/obj);
 		}
@@ -241,7 +241,7 @@ void VarHDP<Model>::updateLocalCorrespondenceDist(uint32_t idx){
 		//compute the log of the weights, storing the maximum so far
 		double logpmax = -std::numeric_limits<double>::infinity();
 		for (uint32_t t = 0; t < T; t++){
-			phi[idx](k, t) = psiuvsum[idx](t) - zetasum[idx](k)*dlogh_dnu(t);
+			phi[idx](k, t) = psiuvsum(t) - zetasum[idx](k)*dlogh_dnu(t);
 			for (uint32_t j = 0; j < M; j++){
 				phi[idx](k, t) -= zetaTsum[idx](k, j)*dlogh_deta(t, j);
 			}
@@ -277,19 +277,19 @@ void VarHDP<Model>::updateGlobalDist(){
 template<class Model>
 void VarHDP<Model>::updateGlobalWeightDist(){
 	//Update u, v, and psisum
-	psiuvsum[idx] = VXd::Zero(T);
-	double psivk = 0.0;
+	psiuvsum = VXd::Zero(T);
+	double psivt = 0.0;
 	for (uint32_t t = 0; t < T-1; t++){
-		u[idx](t) = 1.0+phisum(t);
-		v[idx](t) = gam;
+		u(t) = 1.0+phisum(t);
+		v(t) = gam;
 		for (uint32_t j = t+1; j < T; j++){
-			v[idx](t) += phisum(j);
+			v(t) += phisum(j);
 		}
-    	double psiuk = digamma(u(k)) - digamma(u(k)+v(k));
-    	psiabsum[idx](k) = psiuk + psivk;
-    	psivk += digamma(v(k)) - digamma(u(k)+v(k));
+    	double psiut = digamma(u(t)) - digamma(u(t)+v(t));
+    	psiuvsum(t) = psiut + psivt;
+    	psivt += digamma(v(t)) - digamma(u(t)+v(t));
 	}
-	psiuvsum[idx](T-1) = psivk;
+	psiuvsum(T-1) = psivt;
 }
 
 template<class Model>
@@ -297,7 +297,7 @@ void VarHDP<Model>::updateGlobalParamDist(){
 	for (uint32_t t = 0; t < T; t++){
 		nu(t) = model.getNu0() + phizetasum(t);
 		for (uint32_t j = 0; j < M; j++){
-			eta(t, j) = model.getEta0()(j) + phizetaTsum.row(t, j);
+			eta(t, j) = model.getEta0()(j) + phizetaTsum(t, j);
 		}
 	}
 	model.getLogH(eta, nu, logh, dlogh_deta, dlogh_dnu);
@@ -313,7 +313,7 @@ double VarHDP<Model>::computeFullObjective(){
 
 	//get the variational beta entropy
 	double betaEntropy = 0.0;
-	for (uint32_t k = 0; t < T-1; k++){
+	for (uint32_t t = 0; t < T-1; t++){
         betaEntropy += -boost_lbeta(u(t), v(t)) + (u(t)-1.0)*digamma(u(t)) +(v(t)-1.0)*digamma(v(t))-(u(t)+v(t)-2.0)*digamma(u(t)+v(t));
 	}
 
@@ -346,7 +346,7 @@ double VarHDP<Model>::computeFullObjective(){
 		+ betaEntropy
 		+ expEntropy
 		- priorExpXEntropy
-		- priorBetaXentropy;
+		- priorBetaXEntropy;
 }
 
 template<class Model>
@@ -392,11 +392,13 @@ double VarHDP<Model>::computeLocalObjective(uint32_t idx){
 	for (uint32_t t = 0; t < T-1; t++){
 		double psiut = digamma(u(t)) - digamma(u(t)+v(t));
 		for (uint32_t k = 0; k < K; k++){
-			priorCorrXEntropy += phisum[idx](k, t)*(psiut + psivt);
+			priorCorrXEntropy += phi[idx](k, t)*(psiut + psivt);
 		}
 		psivt += digamma(v(t)) - digamma(u(t)+v(t));
 	}
-	priorCorrXEntropy += phisum[idx](T-1)*psivk;
+	for(uint32_t k = 0; k < K; k++){
+		priorCorrXEntropy += phi[idx](k, T-1)*psivt;
+	}
 
 	//get the prior beta cross entropy
 	double priorBetaXEntropy = -K*boost_lbeta(1.0, alpha);
