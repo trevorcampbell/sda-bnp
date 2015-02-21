@@ -146,7 +146,7 @@ VarHDPResults VarHDP<Model>::getResults(){
 template<class Model>
 void VarHDP<Model>::updateLocalDists(double tol){
 	//zero out global stats
-	phizetasum = MXd::Zero(T);
+	phizetasum = VXd::Zero(T);
 	phisum = VXd::Zero(T);
 	phizetaTsum = MXd::Zero(T, M);
 	//loop over all local obs collections
