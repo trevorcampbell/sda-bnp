@@ -9,4 +9,14 @@ then
 else
     echo "Error experienced during compilation, test was not run."
 fi
+echo "Compiling variational hdp test..."
+g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testhdp.cpp -lboost_system -o testhdp
+if [ -e "testhdp" ]
+then
+    echo "Done! Running test..."
+	./testhdp
+	rm testhdp
+else
+    echo "Error experienced during compilation, test was not run."
+fi
 
