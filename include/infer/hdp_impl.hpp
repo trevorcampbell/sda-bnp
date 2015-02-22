@@ -22,13 +22,18 @@ VarHDP<Model>::VarHDP(const std::vector< std::vector<VXd> >& train_data, const s
 	rng.seed(rd());
 
 	//initialize memory
-	nu = logh = dlogh_dnu = VXd::Zero(T);
-	eta = dlogh_deta = MXd::Zero(T, M);
+	nu = logh = dlogh_dnu = psiuvsum = phizetasum = phisum = VXd::Zero(T);
+	eta = dlogh_deta = phizetaTsum = MXd::Zero(T, M);
 	u = v = VXd::Zero(T-1); 
 	for (uint32_t i = 0; i < N; i++){
 		a.push_back(VXd::Zero(K-1));
 		b.push_back(VXd::Zero(K-1));
+		psiabsum.push_back(VXd::Zero(K));
 		zeta.push_back(MXd::Zero(Nl[i], K));
+		zetasum.push_back(VXd::Zero(K));
+		phiNsum.push_back(VXd::Zero(K));
+		phiEsum.push_back(MXd::Zero(K, M));
+		zetaTsum.push_back(MXd::Zero(K, M));
 		phi.push_back(MXd::Zero(K, T));
 	}
 }
@@ -36,10 +41,10 @@ VarHDP<Model>::VarHDP(const std::vector< std::vector<VXd> >& train_data, const s
 template<class Model>
 void VarHDP<Model>::init(){
 	//initialize topic word distribution and dlogh/d___
-	std::uniform_int_distribution<> uniint(0, N);
+	std::uniform_int_distribution<> uniint(0, N-1);
 	for(uint32_t t = 0; t < T; t++){
 		uint32_t idx = uniint(rng);
-		std::uniform_int_distribution<> uniintl(0, Nl[idx]);
+		std::uniform_int_distribution<> uniintl(0, Nl[idx]-1);
 		uint32_t idxl = uniintl(rng);
 		for(uint32_t j = 0; j < M; j++){
 			eta(t, j) = (model.getEta0()(j) + 0.05*train_stats[idx](idxl, j))/1.05;
