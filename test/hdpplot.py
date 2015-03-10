@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 train_data = np.genfromtxt('train.log')
 eta = np.genfromtxt('hdpmix-eta.log')
 nu = np.genfromtxt('hdpmix-nu.log')
+uv = np.genfromtxt('hdpmix-uv.log')
 
 D = train_data.shape[1]
 

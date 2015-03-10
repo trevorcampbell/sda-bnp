@@ -324,12 +324,12 @@ void VarDPResults::save(std::string name){
 	out_e.close();
 
 	std::ofstream out_n(name+"-nu.log", std::ios_base::trunc);
-	out_n << nu;
+	out_n << nu.transpose();
 	out_n.close();
 
 
 	std::ofstream out_ab(name+"-ab.log", std::ios_base::trunc);
-	out_ab << a << std::endl << b;
+	out_ab << a.transpose() << std::endl << b.transpose();
 	out_ab.close();
 
 	std::ofstream out_trc(name+"-trace.log", std::ios_base::trunc);

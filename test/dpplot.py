@@ -5,6 +5,10 @@ import matplotlib.pyplot as plt
 train_data = np.genfromtxt('train.log')
 eta = np.genfromtxt('dpmix-eta.log')
 nu = np.genfromtxt('dpmix-nu.log')
+ab = np.genfromtxt('dpmix-ab.log')
+
+stick = 1.0
+for i in range(ab.shape[1]):
 
 D = train_data.shape[1]
 

@@ -193,7 +193,7 @@ void VarHDPResults::save(std::string name){
 		out_p.close();
 
 		std::ofstream out_ab(ossab.str().c_str(), std::ios_base::trunc);
-		out_ab << a[i] << std::endl << b[i];
+		out_ab << a[i].transpose() << std::endl << b[i].transpose();
 		out_ab.close();
 	}
 	
@@ -202,11 +202,11 @@ void VarHDPResults::save(std::string name){
 	out_e.close();
 
 	std::ofstream out_n(name+"-nu.log", std::ios_base::trunc);
-	out_n << nu;
+	out_n << nu.transpose();
 	out_n.close();
 
 	std::ofstream out_uv(name+"-uv.log", std::ios_base::trunc);
-	out_uv << u << std::endl << v;
+	out_uv << u.transpose() << std::endl << v.transpose();
 	out_uv.close();
 
 	std::ofstream out_trc(name+"-trace.log", std::ios_base::trunc);
