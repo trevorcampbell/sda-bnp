@@ -1,26 +1,30 @@
 #!/bin/bash
 
-#echo "Compiling variational dp test..."
-#g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testdp.cpp -lboost_system -o testdp
-#if [ -e "testdp" ]
-#then
-#    echo "Done! Running test..."
-#	./testdp
-#	rm testdp
-#else
-#    echo "Error experienced during compilation, test was not run."
-#fi
-
-echo "Compiling variational hdp test..."
-g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testhdp.cpp -lboost_system -o testhdp
-if [ -e "testhdp" ]
+echo "Compiling variational dp test..."
+g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testdp.cpp -lboost_system -o testdp
+if [ -e "testdp" ]
 then
-    echo "Done! Running test..."
-	./testhdp
-	rm testhdp
+    echo "Done compiling, running test..."
+	./testdp
+	rm testdp
+	mkdir dpresults
+	cp test/dpplot.py dpresults
+	mv *.log dpresults
+	echo "Done! Go to ./dpresults and run python dpplot.py to visualize the results."
 else
     echo "Error experienced during compilation, test was not run."
 fi
+
+#echo "Compiling variational hdp test..."
+#g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testhdp.cpp -lboost_system -o testhdp
+#if [ -e "testhdp" ]
+#then
+#    echo "Done! Running test..."
+#	./testhdp
+#	rm testhdp
+#else
+#    echo "Error experienced during compilation, test was not run."
+#fi
 
 
 

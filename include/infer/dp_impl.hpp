@@ -198,6 +198,7 @@ VarDPResults VarDP<Model>::getResults(){
 	dpr.a = this->a;
 	dpr.b = this->b;
 	dpr.eta = this->eta;
+	dpr.nu = this->nu;
 	dpr.times = this->times;
 	dpr.objs = this->objs;
 	dpr.testlls = this->testlls;
@@ -321,6 +322,11 @@ void VarDPResults::save(std::string name){
 	std::ofstream out_e(name+"-eta.log", std::ios_base::trunc);
 	out_e << eta;
 	out_e.close();
+
+	std::ofstream out_n(name+"-nu.log", std::ios_base::trunc);
+	out_n << nu;
+	out_n.close();
+
 
 	std::ofstream out_ab(name+"-ab.log", std::ios_base::trunc);
 	out_ab << a << std::endl << b;

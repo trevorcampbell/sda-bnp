@@ -20,7 +20,7 @@ using boost::math::lgamma;
 class VarDPResults{
 	public:
 		MXd zeta;
-		MXd a, b, eta;
+		MXd a, b, eta, nu;
 		std::vector<double> times, objs, testlls;
 		void save(std::string filename);
 };

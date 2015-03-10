@@ -11,7 +11,7 @@ int main(int argc, char** argv){
 	uint32_t K = 3;
 	uint32_t N = 100;
 	uint32_t Nt = 100;
-	uint32_t D = 3;
+	uint32_t D = 2;
 
 	std::mt19937 rng;
 	std::random_device rd;
@@ -45,11 +45,24 @@ int main(int argc, char** argv){
 		pis[k] /= sumpis;
 	}
 
+	//output the generating model
+	std::ofstream mout("model.log");
+	for (uint32_t k = 0; k < K; k++){
+		mout << mus[k].transpose() << " ";
+		for (uint32_t j = 0; j < D; j++){
+			mout << sigs[k].row(j) << " ";
+		}
+		mout << pis[k] << std::endl;
+	}
+	mout.close();
+
 
 	//sample from the model
 	std::vector<VXd> train_data, test_data;
 	std::normal_distribution<> nrm;
 	std::discrete_distribution<> disc(pis.begin(), pis.end());
+	std::ofstream trout("train.log");
+	std::ofstream teout("test.log");
 	std::cout << "Sampling training/test data" << std::endl;
 	for (uint32_t i = 0; i < N; i++){
 		VXd x = VXd::Zero(D);
@@ -58,6 +71,7 @@ int main(int argc, char** argv){
 		}
 		uint32_t k = disc(rng);
 		train_data.push_back(mus[k] + sigsqrts[k]*x);
+		trout << train_data.back().transpose() << std::endl;
 		//std::cout << train_data.back().transpose() << std::endl;
 	}
 	for (uint32_t i = 0; i < Nt; i++){
@@ -67,8 +81,12 @@ int main(int argc, char** argv){
 		}
 		uint32_t k = disc(rng);
 		test_data.push_back(mus[k] + sigsqrts[k]*x);
+		teout << train_data.back().transpose() << std::endl;
 		//std::cout << test_data.back().transpose() << std::endl;
 	}
+	trout.close();
+	teout.close();
+	
 
 
 	VXd mu0 = VXd::Zero(D);
@@ -81,6 +99,7 @@ int main(int argc, char** argv){
 	VarDP<NIWModel> dp(train_data, test_data, niw, 1.0, K);
 	dp.run(true);
 	VarDPResults res = dp.getResults();
+	res.save("dpmix");
 
 	return 0;
 }
