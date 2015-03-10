@@ -108,6 +108,27 @@ void VarHDP<Model>::run(bool computeTestLL, double tol){
 
 	//loop on variational updates
 	while(diff > tol){
+
+		////TODO REMOVE -- find what isnan
+		//std::cout << "FIRST: " << std::endl;
+		//std::cout << "Eta: " << (bool)(eta == eta) << std::endl;
+		//std::cout << "dloghdeta: " << (bool)(dlogh_deta == dlogh_deta) << std::endl;
+		//std::cout << "u: " << (bool)(u == u) << " v: " << (bool)(v == v) << std::endl;
+		//std::cout << "nu: " << (bool)(nu == nu) << std::endl;
+		//std::cout << "dloghdnu: " << (bool)(dlogh_dnu == dlogh_dnu) << std::endl;
+		//std::cout << "Eta: " << (bool)(eta == eta) << std::endl;
+		//bool isanan = false, isbnan = false, isznan = false, ispnan = false;
+		//for (uint32_t iii = 0; iii < N; iii++){
+		//	isanan = isanan || !(a[iii] == a[iii]);
+		//	isbnan = isbnan || !(b[iii] == b[iii]);
+		//	isznan = isznan || !(zeta[iii] == zeta[iii]);
+		//	ispnan = ispnan || !(phi[iii] == phi[iii]);
+		//}
+		//std::cout << "a: " << !isanan << " b: " << !isbnan << std::endl;
+		//std::cout << "zeta: " << !isznan << " phi: " << !ispnan << std::endl;
+
+
+
 		//update the local distributions
 		updateLocalDists(tol);
 		//update the global distribution

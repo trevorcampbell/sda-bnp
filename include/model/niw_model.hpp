@@ -39,7 +39,7 @@ double multivariateTLogLike(VXd x, VXd mu, MXd cov, double dof){
 
 class NIWModel{
 	public:
-		NIWModel(VXd mu0, double kappa0, MXd psi, double xi0); 
+		NIWModel(VXd mu0, double kappa0, MXd psi0, double xi0); 
 		VXd getEta0();
 		double getNu0();
 		uint32_t getStatDimension();
@@ -54,13 +54,13 @@ class NIWModel{
 		double logh0;
 };
 
-NIWModel::NIWModel(VXd mu0, double kappa0, MXd psi, double xi0){
+NIWModel::NIWModel(VXd mu0, double kappa0, MXd psi0, double xi0){
 	this->D = mu0.rows();
 	this->eta0 = VXd::Zero(D*D+D+1);
-	//first component corresponds to psi
+	//first component corresponds to psi0
 	for(uint32_t i = 0; i < D; i++){
 		for (uint32_t j = 0; j < D; j++){
-			this->eta0(i*D+j) = psi(i, j);
+			this->eta0(i*D+j) = psi0(i, j) + kappa0*mu0(i)*mu0(j);
 		}
 	}
 	//second to mu0
@@ -176,6 +176,8 @@ void NIWModel::getLogH(MXd eta, VXd nu, VXd& logh, MXd& dlogh_deta, VXd& dlogh_d
 		    dlogh_dnu(k) -= 1.0/(2.0*nu(k))*eta(k, D*D+i)*dlogh_deta(k, D*D+i);
 		}
 	}
+	std::cout << "DLOGHDETA: " << (bool)(dlogh_deta == dlogh_deta) << std::endl;
+	std::cout << "DLOGHDNU: " << (bool)(dlogh_dnu == dlogh_dnu) << std::endl;
 }
 
 double NIWModel::getLogPosteriorPredictive(VXd x, VXd etak, double nuk){

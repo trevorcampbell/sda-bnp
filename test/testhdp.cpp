@@ -99,7 +99,7 @@ int main(int argc, char** argv){
 
 	VXd mu0 = VXd::Zero(D);
 	MXd psi0 = MXd::Identity(D, D);
-	double kappa0 = 1.0;
+	double kappa0 = 1e-6;
 	double xi0 = D+2;
 	NIWModel niw(mu0, kappa0, psi0, xi0);
 
