@@ -48,11 +48,25 @@ int main(int argc, char** argv){
 		pis[k] /= sumpis;
 	}
 
+	//output the generating model
+	std::ofstream mout("model.log");
+	for (uint32_t k = 0; k < K; k++){
+		mout << mus[k].transpose() << " ";
+		for (uint32_t j = 0; j < D; j++){
+			mout << sigs[k].row(j) << " ";
+		}
+		mout << pis[k] << std::endl;
+	}
+	mout.close();
+
+
 
 	//sample from the model
 	std::vector< std::vector<VXd> > train_data, test_data;
 	std::normal_distribution<> nrm;
 	std::discrete_distribution<> disc(pis.begin(), pis.end());
+	std::ofstream trout("train.log");
+	std::ofstream teout("test.log");
 	std::cout << "Sampling training/test data" << std::endl;
 	for (uint32_t i = 0; i < N; i++){
 		train_data.push_back(std::vector<VXd>());
@@ -63,6 +77,7 @@ int main(int argc, char** argv){
 			}
 			uint32_t k = disc(rng);
 			train_data.back().push_back(mus[k] + sigsqrts[k]*x);
+			trout << train_data.back().back().transpose() << std::endl;
 		}
 		//std::cout << train_data.back().transpose() << std::endl;
 	}
@@ -75,9 +90,12 @@ int main(int argc, char** argv){
 			}
 			uint32_t k = disc(rng);
 			test_data.back().push_back(mus[k] + sigsqrts[k]*x);
+			teout << train_data.back().back().transpose() << std::endl;
 		}
 		//std::cout << test_data.back().transpose() << std::endl;
 	}
+	trout.close();
+	teout.close();
 
 	VXd mu0 = VXd::Zero(D);
 	MXd psi0 = MXd::Identity(D, D);
@@ -90,6 +108,7 @@ int main(int argc, char** argv){
 
 	hdp.run(true);
 	VarHDPResults res = hdp.getResults();
+	res.save("hdpmix");
 
 	return 0;
 }
