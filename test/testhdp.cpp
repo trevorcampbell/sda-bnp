@@ -14,7 +14,7 @@ int main(int argc, char** argv){
 	uint32_t Nl = 100;
 	uint32_t Nt = 100;
 	uint32_t Ntl = 100;
-	uint32_t D = 3;
+	uint32_t D = 2;
 
 	std::mt19937 rng;
 	std::random_device rd;
