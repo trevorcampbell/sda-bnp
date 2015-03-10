@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 
 
 train_data = np.genfromtxt('train.log')
-eta = np.genfromtxt('dpmix-eta.log')
-nu = np.genfromtxt('dpmix-nu.log')
+eta = np.genfromtxt('hdpmix-eta.log')
+nu = np.genfromtxt('hdpmix-nu.log')
 
 D = train_data.shape[1]
 
@@ -22,7 +22,6 @@ for i in range(eta.shape[0]):
 
     xy  = mu[:, np.newaxis] + np.dot(np.linalg.cholesky(sig), np.vstack((np.cos(np.linspace(0, 2*np.pi, 100)), np.sin(np.linspace(0, 2*np.pi, 100)))))
     plt.plot(xy[0, :], xy[1, :])
-
 
 plt.show()
 
