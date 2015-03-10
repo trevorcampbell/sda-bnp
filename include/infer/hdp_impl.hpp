@@ -157,7 +157,7 @@ VarHDPResults VarHDP<Model>::getResults(){
 
 
 void VarHDPResults::save(std::string name){
-	for (uint32_t i = 0; i < N; i++){
+	for (uint32_t i = 0; i < zeta.size(); i++){
 		std::ostringstream ossz, ossp, ossab;
 		ossz << name << "-zeta-" << i << ".log";
 		ossp << name << "-phi-" << i << ".log";
@@ -185,7 +185,7 @@ void VarHDPResults::save(std::string name){
 	out_n.close();
 
 	std::ofstream out_uv(name+"-uv.log", std::ios_base::trunc);
-	out_uv << u[i] << std::endl << v[i];
+	out_uv << u << std::endl << v;
 	out_uv.close();
 
 	std::ofstream out_trc(name+"-trace.log", std::ios_base::trunc);
