@@ -42,7 +42,6 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 
 	//initialize the variables
 	init();
-	updateLabelDist();
 
 	
 	//loop on variational updates
@@ -112,6 +111,8 @@ void VarDP<Model>::init(){
 	}
 	//update logh/etc
 	model.getLogH(eta, nu, logh, dlogh_deta, dlogh_dnu);
+
+	updateLabelDist(); //finally make sure labels are updated
 	//std::cout << "INIT" << std::endl;
 	//std::cout << "Eta: " << std::endl << eta << std::endl;
 	//std::cout << "nu: " << std::endl << nu.transpose() << std::endl;
