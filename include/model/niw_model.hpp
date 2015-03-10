@@ -175,11 +175,11 @@ void NIWModel::getLogH(MXd eta, VXd nu, VXd& logh, MXd& dlogh_deta, VXd& dlogh_d
 		    dlogh_dnu(k) -= 1.0/(2.0*nu(k))*eta(k, D*D+i)*dlogh_deta(k, D*D+i);
 		}
 	}
-	std::cout << "Eta: " << std::endl << eta << std::endl;
-	std::cout << "Nu: " << std::endl << nu << std::endl;
-	std::cout << "logh: " << std::endl << logh << std::endl;
-	std::cout << "dlogh_deta: " << std::endl << dlogh_deta << std::endl;
-	std::cout << "dlogh_dnu: " << std::endl << dlogh_dnu << std::endl;
+	//std::cout << "Eta: " << std::endl << eta << std::endl;
+	//std::cout << "Nu: " << std::endl << nu << std::endl;
+	//std::cout << "logh: " << std::endl << logh << std::endl;
+	//std::cout << "dlogh_deta: " << std::endl << dlogh_deta << std::endl;
+	//std::cout << "dlogh_dnu: " << std::endl << dlogh_dnu << std::endl;
 }
 
 double NIWModel::getLogPosteriorPredictive(VXd x, VXd etak, double nuk){
