@@ -49,7 +49,7 @@ void VarHDP<Model>::init(){
 		for(uint32_t j = 0; j < M; j++){
 			eta(t, j) = (model.getEta0()(j) + 0.05*train_stats[idx](idxl, j))/1.05;
 		}
-		nu(t) = model.getNu0();
+		nu(t) = (model.getNu0() + 0.05*1.0)/1.05;
 	}
 	model.getLogH(eta, nu, logh, dlogh_deta, dlogh_dnu);
 

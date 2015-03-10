@@ -21,7 +21,7 @@ for i in range(eta.shape[0]):
     sig = psi/(xi+D+1)
 
     xy  = mu[:, np.newaxis] + np.dot(np.linalg.cholesky(sig), np.vstack((np.cos(np.linspace(0, 2*np.pi, 100)), np.sin(np.linspace(0, 2*np.pi, 100)))))
-    plt.plot(xy[0, :], xy[1, :])
+    plt.plot(xy[0, :], xy[1, :], lw=5)
 
 plt.axes().set_aspect('equal')
 plt.show()

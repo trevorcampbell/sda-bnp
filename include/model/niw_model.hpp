@@ -10,8 +10,7 @@ using boost::math::lgamma;
 
 double multivariateLnGamma(double x, uint32_t p){
 	double ret = p*(p-1)/4.0*log(M_PI);
-	uint32_t i = 0;
-	for (i = 0; i < p; i++){
+	for (uint32_t i = 0; i < p; i++){
 	    ret += lgamma(x - i/2.0);
 	}
 	return ret;
@@ -19,9 +18,8 @@ double multivariateLnGamma(double x, uint32_t p){
 
 double multivariatePsi(double x, uint32_t p){
 	double ret = 0;
-	uint32_t i = 0;
-	for (i = 0; i < p; i++){
-	    ret += digamma( (x-p-i-2.0)/2.0 );
+	for (uint32_t i = 0; i < p; i++){
+	    ret += digamma(x - i/2.0);
 	}
 	return ret;
 }
@@ -127,6 +125,7 @@ double NIWModel::getLogH0(){
 }
 
 void NIWModel::getLogH(MXd eta, VXd nu, VXd& logh, MXd& dlogh_deta, VXd& dlogh_dnu){
+	
 	uint32_t K = eta.rows();
 	logh = dlogh_dnu = VXd::Zero(K);
 	dlogh_deta = MXd::Zero(K, D*D+D+1);
@@ -134,11 +133,11 @@ void NIWModel::getLogH(MXd eta, VXd nu, VXd& logh, MXd& dlogh_deta, VXd& dlogh_d
 		const double eta3frc = (eta(k, D*D+D)-D-2.0)/2.0;
 		MXd n1n2n2T = MXd::Zero(D, D);
         for (uint32_t i = 0; i < D; i++){
-          //for(uint32_t j=i; j < D; j++){
           for(uint32_t j=0; j < D; j++){
             n1n2n2T(i, j) = eta(k, i*D+j) - 1.0/nu(k)*eta(k, D*D+i)*eta(k, D*D+j);
           }
         }
+		std::cout << "n1n2n2t: " << std::endl << n1n2n2T << std::endl;
 
 		Eigen::LDLT<MXd, Eigen::Upper> ldlt(n1n2n2T);
 		VXd diag = ldlt.vectorD();
@@ -168,7 +167,7 @@ void NIWModel::getLogH(MXd eta, VXd nu, VXd& logh, MXd& dlogh_deta, VXd& dlogh_d
 		}
 
 		/*compute dlogh_deta3*/
-		dlogh_deta(k, D*D+D) = 0.5*(ldet-D*log(2.0) - multivariatePsi(eta(k, D*D+D), D));	
+		dlogh_deta(k, D*D+D) = 0.5*(ldet-D*log(2.0) - multivariatePsi(eta3frc, D));	
 
 		/*compute dlogh_dnu*/
 		dlogh_dnu(k) = 0.5*D/nu(k);
@@ -176,8 +175,11 @@ void NIWModel::getLogH(MXd eta, VXd nu, VXd& logh, MXd& dlogh_deta, VXd& dlogh_d
 		    dlogh_dnu(k) -= 1.0/(2.0*nu(k))*eta(k, D*D+i)*dlogh_deta(k, D*D+i);
 		}
 	}
-	std::cout << "DLOGHDETA: " << (bool)(dlogh_deta == dlogh_deta) << std::endl;
-	std::cout << "DLOGHDNU: " << (bool)(dlogh_dnu == dlogh_dnu) << std::endl;
+	std::cout << "Eta: " << std::endl << eta << std::endl;
+	std::cout << "Nu: " << std::endl << nu << std::endl;
+	std::cout << "logh: " << std::endl << logh << std::endl;
+	std::cout << "dlogh_deta: " << std::endl << dlogh_deta << std::endl;
+	std::cout << "dlogh_dnu: " << std::endl << dlogh_dnu << std::endl;
 }
 
 double NIWModel::getLogPosteriorPredictive(VXd x, VXd etak, double nuk){
