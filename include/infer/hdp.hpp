@@ -19,9 +19,12 @@ using boost::math::lgamma;
 
 class VarHDPResults{
 	public:
-		//todo fill in
+		MXd eta;
+		VXd u, v, nu;
+		std::vector<VXd> a, b;
+		std::vector<MXd> phi, zeta;
 		std::vector<double> times, objs, testlls;
-		void save(std::string filename);
+		void save(std::string name);
 };
 
 template<class Model>

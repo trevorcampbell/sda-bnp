@@ -141,11 +141,63 @@ void VarHDP<Model>::run(bool computeTestLL, double tol){
 template<class Model>
 VarHDPResults VarHDP<Model>::getResults(){
 	VarHDPResults hdpr;
-	//TODO: fill in
+	hdpr.eta = this->eta;
+	hdpr.nu = this->nu;
+	hdpr.u = this->u;
+	hdpr.v = this->v;
+	hdpr.zeta = this->zeta;
+	hdpr.phi = this->phi;
+	hdpr.a = this->a;
+	hdpr.b = this->b;
 	hdpr.times = this->times;
 	hdpr.objs = this->objs;
 	hdpr.testlls = this->testlls;
 	return hdpr;
+}
+
+
+void VarHDPResults::save(std::string name){
+	for (uint32_t i = 0; i < N; i++){
+		std::ostringstream ossz, ossp, ossab;
+		ossz << name << "-zeta-" << i << ".log";
+		ossp << name << "-phi-" << i << ".log";
+		ossab << name << "-ab-" << i << ".log";
+
+		std::ofstream out_z(ossz.str().c_str(), std::ios_base::trunc);
+		out_z << zeta[i];
+		out_z.close();
+
+		std::ofstream out_p(ossp.str().c_str(), std::ios_base::trunc);
+		out_p << phi[i];
+		out_p.close();
+
+		std::ofstream out_ab(ossab.str().c_str(), std::ios_base::trunc);
+		out_ab << a[i] << std::endl << b[i];
+		out_ab.close();
+	}
+	
+	std::ofstream out_e(name+"-eta.log", std::ios_base::trunc);
+	out_e << eta;
+	out_e.close();
+
+	std::ofstream out_n(name+"-nu.log", std::ios_base::trunc);
+	out_n << nu;
+	out_n.close();
+
+	std::ofstream out_uv(name+"-uv.log", std::ios_base::trunc);
+	out_uv << u[i] << std::endl << v[i];
+	out_uv.close();
+
+	std::ofstream out_trc(name+"-trace.log", std::ios_base::trunc);
+	for (uint32_t i = 0; i < times.size(); i++){
+		out_trc << times[i] << " " << objs[i];
+		if (i < testlls.size()){
+			out_trc << " " << testlls[i] << std::endl;
+		} else {
+			out_trc << std::endl;
+		}
+	}
+	out_trc.close();
 }
 
 template<class Model>

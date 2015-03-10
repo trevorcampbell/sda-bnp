@@ -22,7 +22,7 @@ class VarDPResults{
 		MXd zeta;
 		MXd a, b, eta, nu;
 		std::vector<double> times, objs, testlls;
-		void save(std::string filename);
+		void save(std::string name);
 };
 
 template<class Model>
