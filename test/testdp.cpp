@@ -9,7 +9,7 @@ typedef Eigen::VectorXd VXd;
 int main(int argc, char** argv){
 	//constants
 	uint32_t K = 3;
-	uint32_t N = 100;
+	uint32_t N = 1000;
 	uint32_t Nt = 100;
 	uint32_t D = 2;
 
@@ -30,7 +30,7 @@ int main(int argc, char** argv){
 		mus.push_back(VXd::Zero(D));
 		sigs.push_back(MXd::Zero(D, D));
 		for(uint32_t d = 0; d < D; d++){
-			mus.back()(d) = 20.0*unir(rng)-10.0;
+			mus.back()(d) = 100.0*unir(rng)-50.0;
 			for(uint32_t f = 0; f < D; f++){
 				sigs.back()(d, f) = 5.0*unir(rng);
 			}
