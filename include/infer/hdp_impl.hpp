@@ -41,11 +41,24 @@ VarHDP<Model>::VarHDP(const std::vector< std::vector<VXd> >& train_data, const s
 template<class Model>
 void VarHDP<Model>::init(){
 	//use kmeans++ to break symmetry in the intiialization
-	std::vector<uint32_t> idces = kmeanspp(train_stats, [this](VXd& x, VXd& y){ return model.naturalParameterDistSquared(x, y); }, K, rng);
+	int Nlsum = 0;
+	for (uint32_t i = 0; i < N; i++){
+		Nlsum += Nl[i];
+	}
+	MXd tmp_stats = MXd::Zero( std::min(1000, Nlsum) );
+	std::uniform_int_distribution<> uni(0, N-1);
+	for (uint32_t i = 0; i < tmp_stats.rows(); i++){
+		int gid = uni(rng);
+		std::uniform_int_distribution<> unil(0, Nl[gid]-1);
+		int lid = unil(rng);
+		tmp_stats.row(i) = train_stats[gid].row(lid);
+	}
+
+	std::vector<uint32_t> idces = kmeanspp(tmp_stats, [this](VXd& x, VXd& y){ return model.naturalParameterDistSquared(x, y); }, K, rng);
 	for (uint32_t k = 0; k < K; k++){
 		//Update the parameters 
 	    for (uint32_t j = 0; j < M; j++){
-	    	eta(k, j) = model.getEta0()(j)+train_stats(idces[k], j);
+	    	eta(k, j) = model.getEta0()(j)+tmp_stats(idces[k], j);
 	    }
 		nu(k) = model.getNu0() + 1.0;
 	}
