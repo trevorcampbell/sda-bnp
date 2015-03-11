@@ -45,7 +45,7 @@ void VarHDP<Model>::init(){
 	for (uint32_t i = 0; i < N; i++){
 		Nlsum += Nl[i];
 	}
-	MXd tmp_stats = MXd::Zero( std::min(1000, Nlsum) );
+	MXd tmp_stats = MXd::Zero( std::min(1000, Nlsum), M );
 	std::uniform_int_distribution<> uni(0, N-1);
 	for (uint32_t i = 0; i < tmp_stats.rows(); i++){
 		int gid = uni(rng);
@@ -54,13 +54,13 @@ void VarHDP<Model>::init(){
 		tmp_stats.row(i) = train_stats[gid].row(lid);
 	}
 
-	std::vector<uint32_t> idces = kmeanspp(tmp_stats, [this](VXd& x, VXd& y){ return model.naturalParameterDistSquared(x, y); }, K, rng);
-	for (uint32_t k = 0; k < K; k++){
+	std::vector<uint32_t> idces = kmeanspp(tmp_stats, [this](VXd& x, VXd& y){ return model.naturalParameterDistSquared(x, y); }, T, rng);
+	for (uint32_t t = 0; t < T; t++){
 		//Update the parameters 
 	    for (uint32_t j = 0; j < M; j++){
-	    	eta(k, j) = model.getEta0()(j)+tmp_stats(idces[k], j);
+	    	eta(t, j) = model.getEta0()(j)+tmp_stats(idces[t], j);
 	    }
-		nu(k) = model.getNu0() + 1.0;
+		nu(t) = model.getNu0() + 1.0;
 	}
 
 	//update logh/etc
@@ -93,7 +93,6 @@ void VarHDP<Model>::init(){
 				phiEsum[i].row(k) += phi[i](k, t)*dlogh_deta.row(t);
 			}
 		}
-
 		//everything needed for the first label update is ready
 	}
 }
