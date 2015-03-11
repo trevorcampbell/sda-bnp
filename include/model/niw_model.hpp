@@ -45,6 +45,7 @@ class NIWModel{
 		double getLogH0();
 		void getLogH(MXd eta, VXd nu, VXd& logh, MXd& dlogh_deta, VXd& dlogh_dnu);
 		double getLogPosteriorPredictive(VXd stat, VXd etak, double nuk);
+		double naturalParameterDistSquared(VXd& stat1, VXd& stat2);
 	private:
 		uint32_t D;
 		VXd eta0;
@@ -202,6 +203,13 @@ double NIWModel::getLogPosteriorPredictive(VXd x, VXd etak, double nuk){
 	double dof = xi_post - D + 1.0;
 	MXd scale = psi_post*(k_post+1)/(k_post*dof);
 	return multivariateTLogLike(x, mu_post, scale, dof);
+}
+
+double NIWModel::naturalParameterDistSquared(VXd& stat1, VXd& stat2){
+	//just do simple euclidean distance between the mean
+	VXd m1 = stat1.block(D*D, 0, D, 1);
+	VXd m2 = stat2.block(D*D, 0, D, 1);
+	return (m1-m2).squaredNorm();
 }
 
 #define __NIW_MODEL_HPP

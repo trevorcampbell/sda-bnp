@@ -78,41 +78,73 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 
 template<class Model>
 void VarDP<Model>::init(){
-	//create random statistics from data collection
-	std::uniform_int_distribution<> unii(0, N-1);
-	std::uniform_real_distribution<> unir;
-	MXd random_sumzeta = MXd::Zero(1, K);
+	//use kmeans++ to  initialize eta/nu
+	std::vector<uint32_t> idces = kmpp(train_stats, [](VXd& x, VXd& y){ return model.naturalParameterDistSquared(x, y); }, K, rng);
+	double frc = (double)N/(double)K;
 	for (uint32_t k = 0; k < K; k++){
-		random_sumzeta(k) = 10.0*unir(rng);
-	}
-	MXd random_sumzetaT = MXd::Zero(K, M);
-	for (uint32_t k = 0; k < K; k++){
-		random_sumzetaT.row(k) = train_stats.row(unii(rng))*random_sumzeta(k);
+		//Update the parameters
+	    for (uint32_t j = 0; j < M; j++){
+	    	eta(k, j) = model.getEta0()(j)+frc*train_stats(idces[k], j);
+	    }
+		nu(k) = model.getNu0() + frc;
 	}
 
-	//get psi and eta from that
+	//initialize a/b to the prior
 	double psibk = 0.0;
 	for (uint32_t k = 0; k < K; k++){
 		//update weights
-		a(k) = 1.0+random_sumzeta(k);
+		a(k) = 1.0;
 		b(k) = alpha;
-		for (uint32_t j = k+1; j < K; j++){
-			b(k) += random_sumzeta(k);
-		}
     	double psiak = digamma(a(k)) - digamma(a(k)+b(k));
     	psisum(k) = psiak + psibk;
     	psibk += digamma(b(k)) - digamma(a(k)+b(k));
-
-	    //Update the parameters
-	    for (uint32_t j = 0; j < M; j++){
-	    	eta(k, j) = model.getEta0()(j)+random_sumzetaT(k, j);
-	    }
-		nu(k) = model.getNu0() + random_sumzeta(k);
 	}
+
 	//update logh/etc
 	model.getLogH(eta, nu, logh, dlogh_deta, dlogh_dnu);
 
 	updateLabelDist(); //finally make sure labels are updated
+
+
+	////BACKUP OLD WAY OF DOING IT
+	////create random statistics from data collection
+	//std::uniform_int_distribution<> unii(0, N-1);
+	//std::uniform_real_distribution<> unir;
+	//MXd random_sumzeta = MXd::Zero(1, K);
+	//for (uint32_t k = 0; k < K; k++){
+	//	random_sumzeta(k) = 10.0*unir(rng);
+	//}
+	//MXd random_sumzetaT = MXd::Zero(K, M);
+	//for (uint32_t k = 0; k < K; k++){
+	//	random_sumzetaT.row(k) = train_stats.row(unii(rng))*random_sumzeta(k);
+	//}
+
+	////get psi and eta from that
+	//double psibk = 0.0;
+	//for (uint32_t k = 0; k < K; k++){
+	//	//update weights
+	//	a(k) = 1.0+random_sumzeta(k);
+	//	b(k) = alpha;
+	//	for (uint32_t j = k+1; j < K; j++){
+	//		b(k) += random_sumzeta(k);
+	//	}
+    //	double psiak = digamma(a(k)) - digamma(a(k)+b(k));
+    //	psisum(k) = psiak + psibk;
+    //	psibk += digamma(b(k)) - digamma(a(k)+b(k));
+
+	//    //Update the parameters
+	//    for (uint32_t j = 0; j < M; j++){
+	//    	eta(k, j) = model.getEta0()(j)+random_sumzetaT(k, j);
+	//    }
+	//	nu(k) = model.getNu0() + random_sumzeta(k);
+	//}
+	////update logh/etc
+	//model.getLogH(eta, nu, logh, dlogh_deta, dlogh_dnu);
+
+	//updateLabelDist(); //finally make sure labels are updated
+
+
+
 	//std::cout << "INIT" << std::endl;
 	//std::cout << "Eta: " << std::endl << eta << std::endl;
 	//std::cout << "nu: " << std::endl << nu.transpose() << std::endl;

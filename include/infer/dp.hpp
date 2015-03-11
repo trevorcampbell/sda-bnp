@@ -10,6 +10,7 @@
 #include <boost/math/special_functions/gamma.hpp>
 #include <random>
 #include <sdabnp/util/timer.hpp>
+#include <sdabnp/util/kmpp.hpp>
 
 typedef Eigen::VectorXd VXd;
 typedef Eigen::MatrixXd MXd;

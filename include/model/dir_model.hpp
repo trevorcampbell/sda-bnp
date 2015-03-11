@@ -85,7 +85,11 @@ double DirModel::getLogPosteriorPredictive(VXd x, VXd etak, double nuk){
 	return log(alphai/sumalpha);
 }
 
-
+double DirModel::naturalParameterDistSquared(VXd& stat1, VXd& stat2){
+	//TODO: FIX THIS
+	assert(false);
+	return 0;
+}
 
 
 #define __DIR_MODEL_HPP
