@@ -138,7 +138,6 @@ void NIWModel::getLogH(MXd eta, VXd nu, VXd& logh, MXd& dlogh_deta, VXd& dlogh_d
             n1n2n2T(i, j) = eta(k, i*D+j) - 1.0/nu(k)*eta(k, D*D+i)*eta(k, D*D+j);
           }
         }
-		std::cout << "n1n2n2t: " << std::endl << n1n2n2T << std::endl;
 
 		Eigen::LDLT<MXd, Eigen::Upper> ldlt(n1n2n2T);
 		VXd diag = ldlt.vectorD();

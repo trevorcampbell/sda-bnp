@@ -16,7 +16,9 @@ std::vector<uint32_t> kmeanspp(MXd x, Func Dsq, uint32_t K, std::mt19937& rng){
 	std::vector<double> mindists(x.rows(), std::numeric_limits<double>::infinity());
 	for (uint32_t i =1; i < K; i++){
 		for (uint32_t j = 0; j < x.rows(); j++){
-			double newdist = Dsq(x.row(j).transpose(), x.row(res.back()).transpose());
+			VXd x1 = x.row(j).transpose();
+			VXd x2 = x.row(res.back()).transpose();
+			double newdist = Dsq(x1, x2);
 			mindists[j] = mindists[j] < newdist ? mindists[j] : newdist;
 		}
 		std::discrete_distribution<> disc(mindists.begin(), mindists.end());

@@ -40,17 +40,17 @@ VarHDP<Model>::VarHDP(const std::vector< std::vector<VXd> >& train_data, const s
 
 template<class Model>
 void VarHDP<Model>::init(){
-	//initialize topic word distribution and dlogh/d___
-	std::uniform_int_distribution<> uniint(0, N-1);
-	for(uint32_t t = 0; t < T; t++){
-		uint32_t idx = uniint(rng);
-		std::uniform_int_distribution<> uniintl(0, Nl[idx]-1);
-		uint32_t idxl = uniintl(rng);
-		for(uint32_t j = 0; j < M; j++){
-			eta(t, j) = (model.getEta0()(j) + 0.05*train_stats[idx](idxl, j))/1.05;
-		}
-		nu(t) = (model.getNu0() + 0.05*1.0)/1.05;
+	//use kmeans++ to break symmetry in the intiialization
+	std::vector<uint32_t> idces = kmeanspp(train_stats, [this](VXd& x, VXd& y){ return model.naturalParameterDistSquared(x, y); }, K, rng);
+	for (uint32_t k = 0; k < K; k++){
+		//Update the parameters 
+	    for (uint32_t j = 0; j < M; j++){
+	    	eta(k, j) = model.getEta0()(j)+train_stats(idces[k], j);
+	    }
+		nu(k) = model.getNu0() + 1.0;
 	}
+
+	//update logh/etc
 	model.getLogH(eta, nu, logh, dlogh_deta, dlogh_dnu);
 
 	//initialize the global topic weights

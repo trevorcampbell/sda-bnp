@@ -78,15 +78,14 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 
 template<class Model>
 void VarDP<Model>::init(){
-	//use kmeans++ to  initialize eta/nu
+	//use kmeans++ to break symmetry in the intiialization
 	std::vector<uint32_t> idces = kmeanspp(train_stats, [this](VXd& x, VXd& y){ return model.naturalParameterDistSquared(x, y); }, K, rng);
-	double frc = (double)N/(double)K;
 	for (uint32_t k = 0; k < K; k++){
-		//Update the parameters
+		//Update the parameters 
 	    for (uint32_t j = 0; j < M; j++){
-	    	eta(k, j) = model.getEta0()(j)+frc*train_stats(idces[k], j);
+	    	eta(k, j) = model.getEta0()(j)+train_stats(idces[k], j);
 	    }
-		nu(k) = model.getNu0() + frc;
+		nu(k) = model.getNu0() + 1.0;
 	}
 
 	//initialize a/b to the prior
