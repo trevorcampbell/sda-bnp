@@ -100,7 +100,7 @@ void VarHDP<Model>::init(){
 		std::sort(asgnscores.begin(), asgnscores.end(), [] (std::pair<uint32_t, double>& s1, std::pair<uint32_t, double>& s2){ return s1.second > s2.second;});
 		phi[i] = MXd::Ones(K, T);
 		for (uint32_t k = 0; k < K; k++){
-			phi[i](k, asgnscores[k].first) += 5;
+			phi[i](k, asgnscores[k].first) += 3;
 		}
 		for (uint32_t k = 0; k < K; k++){
 			double csum = 0.0;
