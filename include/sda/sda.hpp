@@ -1,8 +1,6 @@
 #ifndef __SDA_HPP
 #include<vector>
-#include<thread>
-#include<mutex>
-#include<condition_variable>
+#include<sdabnp/util/pool.hpp>
 
 template<typename Alg>
 class SDA{
@@ -11,13 +9,9 @@ class SDA{
 		~SDA();
 		void run();
 	private:
-		std::vector< std::thread > workers;
-		void worker();
-		bool stop;
-
-		std::deque< job > jobs;
-		std::mutex model_mutex, queue_mutex;
-		std::condition_variable queue_cond;
+		Pool tpool;
+		std::mutex model_mutex;
+		void minibatch_inf();
 };
 
 #define __SDA_HPP
