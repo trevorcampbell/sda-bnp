@@ -86,7 +86,34 @@ void VarHDP<Model>::init(){
 		psiabsum[i](K-1) = psibk;
 
 		//local correspondences
-		phi[i] = 1.0/T*MXd::Ones(K, T);
+		//go through the data in document i, sum up -stat.T*dloghdeta
+		std::vector< std::pair<uint32_t, double> > asgnscores;
+		for (uint32_t t = 0; t < T; t++){
+			asgnscores.push_back( std::pair<uint32_t, double>(t, 0.0) );
+			for (uint32_t j = 0; j < train_stats[i].rows(); j++){
+				for (uint32_t m = 0; m < M; m++){
+					asgnscores[t].second -= train_stats[i](j, m)*dlogh_deta(t, m);
+				}
+			}
+		}
+		//take the top K and weight more heavily for dirichlet
+		std::sort(asgnscores.begin(), asgnscores.end(), [] (std::pair<uint32_t, double>& s1, std::pair<uint32_t, double>& s2){ return s1.second > s2.second;});
+		phi[i] = MXd::Ones(K, T);
+		for (uint32_t k = 0; k < K; k++){
+			phi[i](k, asgnscores[k].first) += 5;
+		}
+		for (uint32_t k = 0; k < K; k++){
+			double csum = 0.0;
+			for(uint32_t t = 0; t < T; t++){
+				std::gamma_distribution<> gamd(phi[i](k, t), 1.0);
+				phi[i](k, t) =  gamd(rng);
+				csum += phi[i](k, t);
+			}
+			for(uint32_t t = 0; t < T; t++){
+				phi[i](k, t) /=  csum; 
+			}
+		}
+
 		for(uint32_t k = 0; k < K; k++){
 			for(uint32_t t = 0; t < T; t++){
 				phiNsum[i](k) += phi[i](k, t)*dlogh_dnu(t);
@@ -95,6 +122,7 @@ void VarHDP<Model>::init(){
 		}
 		//everything needed for the first label update is ready
 	}
+	
 }
 
 
@@ -120,26 +148,6 @@ void VarHDP<Model>::run(bool computeTestLL, double tol){
 
 	//loop on variational updates
 	while(diff > tol){
-
-		////TODO REMOVE -- find what isnan
-		//std::cout << "FIRST: " << std::endl;
-		//std::cout << "Eta: " << (bool)(eta == eta) << std::endl;
-		//std::cout << "dloghdeta: " << (bool)(dlogh_deta == dlogh_deta) << std::endl;
-		//std::cout << "u: " << (bool)(u == u) << " v: " << (bool)(v == v) << std::endl;
-		//std::cout << "nu: " << (bool)(nu == nu) << std::endl;
-		//std::cout << "dloghdnu: " << (bool)(dlogh_dnu == dlogh_dnu) << std::endl;
-		//std::cout << "Eta: " << (bool)(eta == eta) << std::endl;
-		//bool isanan = false, isbnan = false, isznan = false, ispnan = false;
-		//for (uint32_t iii = 0; iii < N; iii++){
-		//	isanan = isanan || !(a[iii] == a[iii]);
-		//	isbnan = isbnan || !(b[iii] == b[iii]);
-		//	isznan = isznan || !(zeta[iii] == zeta[iii]);
-		//	ispnan = ispnan || !(phi[iii] == phi[iii]);
-		//}
-		//std::cout << "a: " << !isanan << " b: " << !isbnan << std::endl;
-		//std::cout << "zeta: " << !isznan << " phi: " << !ispnan << std::endl;
-
-
 
 		//update the local distributions
 		updateLocalDists(tol);
@@ -253,6 +261,7 @@ void VarHDP<Model>::updateLocalDists(double tol){
 			updateLocalCorrespondenceDist(i);
 			prevobj = obj;
 			obj = computeLocalObjective(i);
+
 			//compute the obj diff
 			diff = fabs((obj - prevobj)/obj);
 		}
