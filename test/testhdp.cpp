@@ -8,7 +8,7 @@ typedef Eigen::VectorXd VXd;
 
 int main(int argc, char** argv){
 	//constants
-	uint32_t T = 3;
+	uint32_t T = 7;
 	uint32_t K = 3;
 	uint32_t N = 100;
 	uint32_t Nl = 100;
