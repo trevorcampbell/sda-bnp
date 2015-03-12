@@ -7,9 +7,9 @@
 template<typename Alg>
 class SDA{
 	public:
-		SDA();
+		SDA(uint32_t nThr);
 		~SDA();
-		void run(uint32_t nThr);
+		void run();
 	private:
 		std::vector< std::thread > workers;
 		void worker();
