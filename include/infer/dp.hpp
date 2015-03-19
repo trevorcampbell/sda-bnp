@@ -11,6 +11,7 @@
 #include <random>
 #include <sdabnp/util/timer.hpp>
 #include <sdabnp/util/kmpp.hpp>
+#include <sdabnp/util/trace.hpp>
 
 typedef Eigen::VectorXd VXd;
 typedef Eigen::MatrixXd MXd;
