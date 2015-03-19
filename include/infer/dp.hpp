@@ -18,20 +18,22 @@ double boost_lbeta(double a, double b);
 using boost::math::digamma;
 using boost::math::lgamma;
 
-class VarDPResults{
-	public:
-		MXd zeta;
-		MXd a, b, eta, nu;
-		std::vector<double> times, objs, testlls;
-		void save(std::string name);
-};
+
 
 template<class Model>
 class VarDP{
 	public:
+		class Distribution{
+			public:
+				MXd zeta;
+				MXd a, b, eta, nu;
+				void save(std::string name);
+		};
 		VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t K);
+		VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Distribution& prior, const Model& model, double alpha, uint32_t K);
 		void run(bool computeTestLL = false, double tol = 1e-6);
-		VarDPResults getResults();
+		Distribution getDistribution();
+		Trace getTrace();
 	private:
 		void init();
 		void updateWeightDist();

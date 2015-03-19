@@ -24,6 +24,30 @@ VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& 
 }
 
 template<class Model>
+VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Distribution& prior, const Model& model, 
+		double alpha, uint32_t K) : prior(prior), model(model), test_data(test_data), alpha(alpha), K(K){
+	M = this->model.getStatDimension();
+	N = train_data.size();
+	Nt = test_data.size();
+
+
+	//compute exponential family statistics once
+	train_stats = MXd::Zero(N, M);
+	for (uint32_t i = 0; i < N; i++){
+		train_stats.row(i) = this->model.getStat(train_data[i]).transpose();
+	}
+
+	//initialize the random device
+	std::random_device rd;
+	rng.seed(rd());
+
+	//initialize memory
+	a = b = psisum = nu = sumzeta = dlogh_dnu = logh = VXd::Zero(K);
+	zeta = MXd::Zero(N, K);
+	sumzetaT = dlogh_deta = eta = MXd::Zero(K, M);
+}
+
+template<class Model>
 void VarDP<Model>::run(bool computeTestLL, double tol){
 	//clear any previously stored results
 	times.clear();
@@ -224,17 +248,23 @@ void VarDP<Model>::updateLabelDist(){
 }
 
 template<class Model>
-VarDPResults VarDP<Model>::getResults(){
-	VarDPResults dpr;
-	dpr.zeta = this->zeta;
-	dpr.a = this->a;
-	dpr.b = this->b;
-	dpr.eta = this->eta;
-	dpr.nu = this->nu;
-	dpr.times = this->times;
-	dpr.objs = this->objs;
-	dpr.testlls = this->testlls;
-	return dpr;
+Distribution VarDP<Model>::getDistribution(){
+	Distribution d;
+	d.zeta = this->zeta;
+	d.a = this->a;
+	d.b = this->b;
+	d.eta = this->eta;
+	d.nu = this->nu;
+	return d;
+}
+
+template<class Model>
+Trace VarDP<Model>::getTrace(){
+	Trace tr;
+	tr.times = this->times;
+	tr.objs = this->objs;
+	tr.testlls = this->testlls;
+	return tr;
 }
 
 
@@ -346,7 +376,8 @@ double boost_lbeta(double a, double b){
 	return lgamma(a)+lgamma(b)-lgamma(a+b);
 }
 
-void VarDPResults::save(std::string name){
+template<class Model>
+void VarDP<Model>::Distribution::save(std::string name){
 	std::ofstream out_z(name+"-zeta.log", std::ios_base::trunc);
 	out_z << zeta;
 	out_z.close();
@@ -363,17 +394,6 @@ void VarDPResults::save(std::string name){
 	std::ofstream out_ab(name+"-ab.log", std::ios_base::trunc);
 	out_ab << a.transpose() << std::endl << b.transpose();
 	out_ab.close();
-
-	std::ofstream out_trc(name+"-trace.log", std::ios_base::trunc);
-	for (uint32_t i = 0; i < times.size(); i++){
-		out_trc << times[i] << " " << objs[i];
-		if (i < testlls.size()){
-			out_trc << " " << testlls[i] << std::endl;
-		} else {
-			out_trc << std::endl;
-		}
-	}
-	out_trc.close();
 }
 
 #define __DP_IMPL_HPP
