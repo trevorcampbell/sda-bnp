@@ -26,7 +26,7 @@ VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& 
 
 template<class Model>
 VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Distribution& prior, const Model& model, 
-		double alpha, uint32_t K) : prior(prior), model(model), test_data(test_data), alpha(alpha), K(K){
+		double alpha, uint32_t K) : model(model), test_data(test_data), alpha(alpha), K(K){
 	M = this->model.getStatDimension();
 	N = train_data.size();
 	Nt = test_data.size();
@@ -278,8 +278,8 @@ void VarDP<Model>::updateLabelDist(){
 }
 
 template<class Model>
-Distribution VarDP<Model>::getDistribution(){
-	Distribution d;
+typename VarDP<Model>::Distribution VarDP<Model>::getDistribution(){
+	VarDP<Model>::Distribution d;
 	d.zeta = this->zeta;
 	d.a = this->a;
 	d.b = this->b;

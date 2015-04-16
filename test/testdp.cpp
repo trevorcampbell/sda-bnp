@@ -98,7 +98,7 @@ int main(int argc, char** argv){
 	std::cout << "Running VarDP..." << std::endl;
 	VarDP<NIWModel> dp(train_data, test_data, niw, 1.0, K);
 	dp.run(true);
-	VarDP<NIWModel>::Distribution res = dp.getResults();
+	VarDP<NIWModel>::Distribution res = dp.getDistribution();
 	res.save("dpmix");
 
 	return 0;
