@@ -108,26 +108,26 @@ int main(int argc, char** argv){
 	std::ofstream trout1("train1.log");
 	std::ofstream trout2("train2.log");
 	for(uint32_t i = 0; i < train_data1.size(); i++){
-		trout1 << train_data1[i].transpose() << std::endl();
+		trout1 << train_data1[i].transpose() << std::endl;
 	}
 	for(uint32_t i = 0; i < train_data2.size(); i++){
-		trout2 << train_data2[i].transpose() << std::endl();
+		trout2 << train_data2[i].transpose() << std::endl;
 	}
 	trout1.close();
 	trout2.close();
 
 	std::cout << "Running VarDP1..." << std::endl;
-	VarDP<NIWModel> dp(train_data1, test_data, niw, 1.0, K);
-	dp.run(true);
-	VarDP<NIWModel>::Distribution res1 = dp.getDistribution();
+	VarDP<NIWModel> dp1(train_data1, test_data, niw, 1.0, K);
+	dp1.run(true);
+	VarDP<NIWModel>::Distribution res1 = dp1.getDistribution();
 	res1.save("dpmix1");
 
 
 	std::cout << "Running VarDP2..." << std::endl;
-	VarDP<NIWModel> dp(train_data2, test_data, res1, niw, 1.0, K);
-	dp.run(true);
-	VarDP<NIWModel>::Distribution res = dp.getDistribution();
-	res.save("dpmix2");
+	VarDP<NIWModel> dp2(train_data2, test_data, res1, niw, 1.0, K);
+	dp2.run(true);
+	VarDP<NIWModel>::Distribution res2 = dp2.getDistribution();
+	res2.save("dpmix2");
 
 	return 0;
 }
