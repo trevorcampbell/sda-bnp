@@ -43,9 +43,9 @@ then
 	./testdp
 	rm testdp
 	mkdir dpresults
-	cp test/dpplot.py dpresults
+	cp test/dppriorplot.py dpresults
 	mv *.log dpresults
-	echo "Done DP! Go to ./dpresults and run python dpplot.py to visualize the results."
+	echo "Done DP! Go to ./dpresults and run python dppriorplot.py to visualize the results."
 else
     echo "Error experienced during compilation, test was not run."
 fi
