@@ -101,5 +101,33 @@ int main(int argc, char** argv){
 	VarDP<NIWModel>::Distribution res = dp.getDistribution();
 	res.save("dpmix");
 
+
+	std::vector<VXd> train_data1, train_data2;
+	train_data1.insert(train_data1.begin(), train_data.begin(), train_data.begin()+N/2);
+	train_data2.insert(train_data2.begin(), train_data.begin()+N/2, train_data.end());
+	std::ofstream trout1("train1.log");
+	std::ofstream trout2("train2.log");
+	for(uint32_t i = 0; i < train_data1.size(); i++){
+		trout1 << train_data1[i].transpose() << std::endl();
+	}
+	for(uint32_t i = 0; i < train_data2.size(); i++){
+		trout2 << train_data2[i].transpose() << std::endl();
+	}
+	trout1.close();
+	trout2.close();
+
+	std::cout << "Running VarDP1..." << std::endl;
+	VarDP<NIWModel> dp(train_data1, test_data, niw, 1.0, K);
+	dp.run(true);
+	VarDP<NIWModel>::Distribution res1 = dp.getDistribution();
+	res1.save("dpmix1");
+
+
+	std::cout << "Running VarDP2..." << std::endl;
+	VarDP<NIWModel> dp(train_data2, test_data, res1, niw, 1.0, K);
+	dp.run(true);
+	VarDP<NIWModel>::Distribution res = dp.getDistribution();
+	res.save("dpmix2");
+
 	return 0;
 }
