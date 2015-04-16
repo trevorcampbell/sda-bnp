@@ -51,6 +51,9 @@ VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& 
 	b0 = prior.b;
 	nu0 = prior.nu;
 	eta0 = prior.eta;
+	MXd tmp1 = MXd::Zero(eta0.rows(), eta0.cols());
+	VXd tmp2 = VXd::Zero(nu0.size());
+	model.getLogH(eta0, nu0, logh0, tmp1, tmp2);
 }
 
 template<class Model>
@@ -331,12 +334,20 @@ double VarDP<Model>::computeObjective(){
 	}
 
 	//get the prior exponential cross entropy
-    double priorExpXEntropy = K*model.getLogH0();
+    double priorExpXEntropy = 0; 
 	for (uint32_t k = 0; k < K; k++){
-		priorExpXEntropy -= model.getNu0()*dlogh_dnu(k);
-	    for (uint32_t j=0; j < M; j++){
-	    	priorExpXEntropy -= model.getEta0()(j)*dlogh_deta(k, j);
-	    }
+		if (k < K0){
+			priorExpEntropy += logh0(k) - nu0(k)*dlogh_dnu(k);
+			for (uint32_t j=0; j < M; j++){
+	    		priorExpXEntropy -= eta0(k, j)*dlogh_deta(k, j);
+	    	}
+		} else{
+			priorExpEntropy +=  model.getLogH0() - model.getNu0()*dlogh_dnu(k);
+			for (uint32_t j=0; j < M; j++){
+	    		priorExpXEntropy -= model.getEta0()(j)*dlogh_deta(k, j);
+	    	}
+		}
+	    
 	}
 
 	//get the prior label cross entropy
@@ -349,9 +360,13 @@ double VarDP<Model>::computeObjective(){
 	}
 	
 	//get the prior beta cross entropy
-	double priorBetaXEntropy = -K*boost_lbeta(1.0, alpha);
+	double priorBetaXEntropy = 0; 
 	for (uint32_t k = 0; k < K; k++){
-		priorBetaXEntropy += (alpha-1.0)*(digamma(b(k)) - digamma(a(k)+b(k)));
+		if (k < K0){
+			priorBetaXEntropy += (a0(k)-1.0)*(digamma(a(k)) - digamma(a(k)+b(k))) + (b0(k)-1.0)*(digamma(b(k)) - digamma(a(k)+b(k))) - boost_lbeta(a0(k), b0(k));
+		} else {
+			priorBetaXEntropy += (alpha-1.0)*(digamma(b(k)) - digamma(a(k)+b(k))) - boost_lbeta(1.0, alpha);
+		}
 	}
 
 	return labelEntropy 

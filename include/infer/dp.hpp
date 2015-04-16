@@ -48,7 +48,7 @@ class VarDP{
 		Model model;
 		MXd zeta, sumzetaT, dlogh_deta, eta, train_stats;
 		VXd a, b, psisum, nu, logh, dlogh_dnu, sumzeta;
-		VXd a0, b0, nu0;
+		VXd a0, b0, nu0, logh0;
 		MXd eta0;
 		std::vector<double> times, objs, testlls;
 		std::vector<VXd> test_data;
