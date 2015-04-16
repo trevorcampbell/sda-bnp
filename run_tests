@@ -15,20 +15,20 @@ else
     echo "Error experienced during compilation, test was not run."
 fi
 
-echo "Compiling variational hdp test..."
-g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testhdp.cpp -lboost_system -o testhdp
-if [ -e "testhdp" ]
-then
-    echo "Done! Running test..."
-	./testhdp
-	rm testhdp
-	mkdir hdpresults
-	cp test/hdpplot.py hdpresults
-	mv *.log hdpresults
-	echo "Done HDP! Go to ./hdpresults and run python hdpplot.py to visualize the results."
-else
-    echo "Error experienced during compilation, test was not run."
-fi
+#echo "Compiling variational hdp test..."
+#g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testhdp.cpp -lboost_system -o testhdp
+#if [ -e "testhdp" ]
+#then
+#    echo "Done! Running test..."
+#	./testhdp
+#	rm testhdp
+#	mkdir hdpresults
+#	cp test/hdpplot.py hdpresults
+#	mv *.log hdpresults
+#	echo "Done HDP! Go to ./hdpresults and run python hdpplot.py to visualize the results."
+#else
+#    echo "Error experienced during compilation, test was not run."
+#fi
 
 
 

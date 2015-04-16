@@ -19,15 +19,13 @@ double boost_lbeta(double a, double b);
 using boost::math::digamma;
 using boost::math::lgamma;
 
-
-
 template<class Model>
 class VarDP{
 	public:
 		class Distribution{
 			public:
-				MXd zeta;
-				MXd a, b, eta, nu;
+				MXd zeta, eta;
+				VXd a, b, nu;
 				void save(std::string name);
 		};
 		VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t K);
@@ -46,10 +44,12 @@ class VarDP{
 		std::mt19937 rng;
 
 		double alpha;
-		uint32_t K, M, N, Nt; //K is the # components in the model, M is the dimension of the statistic
+		uint32_t K0, K, M, N, Nt; //K0 is number of nonstandard prior components, K is the # components in the model, M is the dimension of the statistic
 		Model model;
 		MXd zeta, sumzetaT, dlogh_deta, eta, train_stats;
 		VXd a, b, psisum, nu, logh, dlogh_dnu, sumzeta;
+		VXd a0, b0, nu0;
+		MXd eta0;
 		std::vector<double> times, objs, testlls;
 		std::vector<VXd> test_data;
 };

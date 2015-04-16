@@ -5,6 +5,7 @@ VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& 
 	M = this->model.getStatDimension();
 	N = train_data.size();
 	Nt = test_data.size();
+	K0 = 0; // no nonstandard prior components
 
 
 	//compute exponential family statistics once
@@ -29,6 +30,7 @@ VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& 
 	M = this->model.getStatDimension();
 	N = train_data.size();
 	Nt = test_data.size();
+	K0 = prior.a.size();
 
 
 	//compute exponential family statistics once
@@ -45,6 +47,10 @@ VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& 
 	a = b = psisum = nu = sumzeta = dlogh_dnu = logh = VXd::Zero(K);
 	zeta = MXd::Zero(N, K);
 	sumzetaT = dlogh_deta = eta = MXd::Zero(K, M);
+	a0 = prior.a;
+	b0 = prior.b;
+	nu0 = prior.nu;
+	eta0 = prior.eta;
 }
 
 template<class Model>
@@ -106,18 +112,30 @@ void VarDP<Model>::init(){
 	std::vector<uint32_t> idces = kmeanspp(train_stats, [this](VXd& x, VXd& y){ return model.naturalParameterDistSquared(x, y); }, K, rng);
 	for (uint32_t k = 0; k < K; k++){
 		//Update the parameters 
-	    for (uint32_t j = 0; j < M; j++){
-	    	eta(k, j) = model.getEta0()(j)+train_stats(idces[k], j);
-	    }
-		nu(k) = model.getNu0() + 1.0;
+		if (k < K0){
+			for (uint32_t j = 0; j < M; j++){
+	    		eta(k, j) = eta0(k, j)+train_stats(idces[k], j);
+	    	}
+			nu(k) = nu0(k) + 1.0;
+		} else {
+			for (uint32_t j = 0; j < M; j++){
+	    		eta(k, j) = model.getEta0()(j)+train_stats(idces[k], j);
+	    	}
+			nu(k) = model.getNu0() + 1.0;
+		}
 	}
 
 	//initialize a/b to the prior
 	double psibk = 0.0;
 	for (uint32_t k = 0; k < K; k++){
 		//update weights
-		a(k) = 1.0;
-		b(k) = alpha;
+		if (k < K0){
+			a(k) = a0(k);
+			b(k) = b0(k);
+		} else {
+			a(k) = 1.0;
+			b(k) = alpha;
+		}
     	double psiak = digamma(a(k)) - digamma(a(k)+b(k));
     	psisum(k) = psiak + psibk;
     	psibk += digamma(b(k)) - digamma(a(k)+b(k));
@@ -186,8 +204,13 @@ void VarDP<Model>::updateWeightDist(){
 	//Update a, b, and psisum
 	double psibk = 0.0;
 	for (uint32_t k = 0; k < K; k++){
-		a(k) = 1.0+sumzeta(k);
-		b(k) = alpha;
+		if (k < K0){
+			a(k) = a0(k) + sumzeta(k);
+			b(k) = b0(k);
+		} else {
+			a(k) = 1.0 + sumzeta(k);
+			b(k) = alpha;
+		}
 		for (uint32_t j = k+1; j < K; j++){
 			b(k) += sumzeta(j);
 		}
@@ -202,10 +225,17 @@ template<class Model>
 void VarDP<Model>::updateParamDist(){
 	//Update the parameters
 	for (uint32_t k = 0; k < K; k++){
-	    for (uint32_t j = 0; j < M; j++){
-	    	eta(k, j) = model.getEta0()(j)+sumzetaT(k, j);
-	    }
-	    nu(k) = model.getNu0() + sumzeta(k);
+		if (k < K0){
+	    	for (uint32_t j = 0; j < M; j++){
+	    		eta(k, j) = eta0(k, j)+sumzetaT(k, j);
+	    	}
+	    	nu(k) = nu0(k) + sumzeta(k);
+		} else {
+			for (uint32_t j = 0; j < M; j++){
+	    		eta(k, j) = model.getEta0()(j)+sumzetaT(k, j);
+	    	}
+	    	nu(k) = model.getNu0() + sumzeta(k);
+		}
 	}
 	//update logh/etc
 	model.getLogH(eta, nu, logh, dlogh_deta, dlogh_dnu);
