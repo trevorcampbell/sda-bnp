@@ -5,6 +5,10 @@
 #include<mutex>
 #include<condition_variable>
 
+
+//TODO: Make this class work fine over a network as well
+//i.e. make jobs/workers general
+
 template<typename Job>
 class Pool{
 	public:
