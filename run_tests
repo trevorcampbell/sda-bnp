@@ -35,7 +35,7 @@
 
 
 ###TEST 1: DP Test with Non-standard prior
-echo "Compiling variational dp test..."
+echo "Compiling variational dp w/ nonstandard prior test..."
 g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testdpprior.cpp -lboost_system -o testdp
 if [ -e "testdp" ]
 then
