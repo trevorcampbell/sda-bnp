@@ -53,7 +53,7 @@ VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& 
 	eta0 = prior.eta;
 	MXd tmp1 = MXd::Zero(eta0.rows(), eta0.cols());
 	VXd tmp2 = VXd::Zero(nu0.size());
-	model.getLogH(eta0, nu0, logh0, tmp1, tmp2);
+	this->model.getLogH(eta0, nu0, logh0, tmp1, tmp2);
 }
 
 template<class Model>
@@ -79,9 +79,13 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 	
 	//loop on variational updates
 	while(diff > tol){
+		//std::cout << "OBJ PRE WEIGHT: " << computeObjective() << std::endl;
 		updateWeightDist();
+		//std::cout << "OBJ POST WEIGHT/PRE PARAM: " << computeObjective() << std::endl;
 		updateParamDist();
+		//std::cout << "OBJ POST PARAM/PRE LABEL: " << computeObjective() << std::endl;
 		updateLabelDist();
+		//std::cout << "OBJ POST LABEL: " << computeObjective() << std::endl;
 
 		prevobj = obj;
 		//store the current time
@@ -337,12 +341,12 @@ double VarDP<Model>::computeObjective(){
     double priorExpXEntropy = 0; 
 	for (uint32_t k = 0; k < K; k++){
 		if (k < K0){
-			priorExpEntropy += logh0(k) - nu0(k)*dlogh_dnu(k);
+			priorExpXEntropy += logh0(k) - nu0(k)*dlogh_dnu(k);
 			for (uint32_t j=0; j < M; j++){
 	    		priorExpXEntropy -= eta0(k, j)*dlogh_deta(k, j);
 	    	}
 		} else{
-			priorExpEntropy +=  model.getLogH0() - model.getNu0()*dlogh_dnu(k);
+			priorExpXEntropy +=  model.getLogH0() - model.getNu0()*dlogh_dnu(k);
 			for (uint32_t j=0; j < M; j++){
 	    		priorExpXEntropy -= model.getEta0()(j)*dlogh_deta(k, j);
 	    	}
