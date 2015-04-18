@@ -44,7 +44,7 @@ void Pool<Job>::submit(Job job){
 	{
 		std::lock_guard<std::mutex> lock(queue_mutex);
 		jobs.push_back(job);
-	}
+	} // release the lock_guard
 	queue_cond.notify_one();
 }
 
@@ -58,8 +58,8 @@ void Pool<Job>::worker(){
 				queue_cond.wait(lock);
 			}
 			if (stop){
-				lock.unlock();
-				return;
+				//lock.unlock();
+				return; //releases the lock_guard automatically upon destruction
 			}
 
 			job = jobs.front();
