@@ -34,18 +34,6 @@ class VarDP{
 		Distribution getDistribution();
 		Trace getTrace();
 
-		//utility classes to allow SDABNP to use this algorithm
-		class Job{
-			public:
-				//constructor takes in data, test data, etc needed to create a vardp obj
-				//function ``createFunctor'' takes a mutex and distribution to update and outputs a callable functor using varDP as an algorithm
-		};
-
-		class Evaluator{
-			public:
-				//constructor holds on to training/test data, provides objective/testll services
-		};
-
 	private:
 		void init();
 		void updateWeightDist();
