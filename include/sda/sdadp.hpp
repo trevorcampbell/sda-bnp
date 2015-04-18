@@ -12,6 +12,7 @@
 #include<thread>
 #include<mutex>
 #include <sdabnp/util/timer.hpp>
+#include <sdabnp/util/matching.hpp>
 #include <sdabnp/util/trace.hpp>
 #include <sdabnp/util/pool.hpp>
 
@@ -23,8 +24,7 @@ template<class Model>
 class SDADP{
 	public:
 		SDADP(const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t Knew);
-		void start(const std::vector<std::vector<VXd> >& miniBatches, bool computeTestLL = false, double tol = 1e-6);
-		void addMinibatch(const std::vector<VXd>& train_data); 
+		void submitMinibatch(const std::vector<VXd>& train_data); 
 		VarDP<Model>::Distribution getDistribution();
 		Trace getTrace();
 	private:
