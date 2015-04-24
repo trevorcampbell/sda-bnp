@@ -31,6 +31,14 @@ class MultiTrace{
 		std::vector<double> globaltimes, globaltestlls;
 		std::vector< std::vector<double> > localtimes, localobjs, localtestlls;
 		std::vector<double> localstarttimes;
+		void clear(){
+			globaltimes.clear();
+			globaltestlls.clear();
+			localtimes.clear();
+			localobjs.clear();
+			localtestlls.clear();
+			localstarttimes.clear();
+		}
 		void save(std::string name){
 			//for a multitrace, the only thing to output is testll
 			//so if this isn't the right size, forget it

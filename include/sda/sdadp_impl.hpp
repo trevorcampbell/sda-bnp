@@ -79,6 +79,7 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 	//do minibatch inference
 	VarDP<Model>::Distribution dist1;
 	Trace tr;
+	double t0 = timer.get();
 	if(dist0.a.size() == 0){ //if there is no prior to work off of
 		VarDP<Model> vdp(train_data, test_data, model, alpha, Knew);
 		vdp.run(bool computeTestLL = false, double tol = 1e-6);
@@ -90,6 +91,10 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 	 	dist1 = vdp.getDistribution();
 	 	tr = vdp.getTrace();
 	}
+	mtrace.localstarttimes.push_back(t0);
+	mtrace.localtimes.push_back(tr.times);
+	mtrace.localobjs.push_back(tr.objs);
+	mtrace.localtestlls.push_back(tr.testlls);
 
 	VarDP<Model>::Distribution dist2;
 	//lock mutex, update  with matching, unlock
