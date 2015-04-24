@@ -1,6 +1,8 @@
 #ifndef __TRACE_HPP
 #include<string>
 #include<fstream>
+#include<sstream>
+#include<iostream>
 
 class Trace{
 	public:
@@ -16,6 +18,47 @@ class Trace{
 				}
 			}
 			out_trc.close();
+		}
+};
+
+class MultiTrace{
+	public:
+		std::vector<double> globaltimes, globaltestlls;
+		std::vector< std::vector<double> > localtimes, localobjs, localtestlls;
+		std::vector<double> localstarttimes;
+		void save(std::string name){
+			//for a multitrace, the only thing to output is testll
+			//so if this isn't the right size, forget it
+			if (globaltimes.size() != globaltestlls.size()){
+				std::cout << "Error -- globaltimes.size() != globaltestlls.size()!" << std::endl;
+				return;
+			}
+			std::ofstream out_trc(name+"-globaltrace.log", std::ios_base::trunc);
+			for (uint32_t i = 0; i < globaltimes.size(); i++){
+				out_trc << globaltimes[i] << " " << globaltestlls[i] << std::endl;
+			}
+			out_trc.close();
+
+			std::ofstream out_tms(name + "-localstarttimes.log", std::ios_base::trunc);
+			for (uint32_t i = 0; i < localstarttimes.size(); i++){
+				out_tms << localstarttimes[i] << std::endl;
+			}
+			out_tms.close();
+
+			for (uint32_t i = 0; i < localtimes.size(); i++){
+				std::ostringstream oss;
+				oss << name << "-localtrace-" << i << ".log";
+				std::ofstream out_ltrc(oss.str().c_str(), std::ios_base::trunc);
+				for (uint32_t j = 0; j < localtimes[i].size(); j++){
+					out_ltrc << localtimes[i][j] << " " << localobjs[i][j];
+					if (j < localtestlls[i].size()){
+						out_ltrc << " " << localtestlls[i][j] << std::endl;
+					} else {
+						out_ltrc << std::endl;
+					}
+				}
+				out_ltrc.close();
+			}
 		}
 };
 #define __TRACE_HPP

@@ -26,7 +26,7 @@ class SDADP{
 		SDADP(const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t Knew);
 		void submitMinibatch(const std::vector<VXd>& train_data); 
 		VarDP<Model>::Distribution getDistribution();
-		Trace getTrace();
+		MultiTrace getTrace();
 	private:
 		double computeObjective();
 		double computeTestLogLikelihood();

@@ -1,7 +1,5 @@
 #ifndef __SDADP_IMPL_HPP
 
-//void submit(Job job);
-
 template<class Model>
 SDADP<Model>::SDADP(const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t Knew, uint32_t nthr):
 test_data(test_data), model(model), alpha(alpha), Knew(Knew), pool(nthr){
@@ -35,12 +33,40 @@ Trace SDADP<Model>::getTrace(){
 }
 
 template<class Model>
-double SDADP<Model>::computeObjective(){
-
-}
-
-template<class Model>
 double SDADP<Model>::computeTestLogLikelihood(){
+	if (Nt == 0){
+		std::cout << "WARNING: Test Log Likelihood = NaN since Nt = 0" << std::endl;
+	}
+	//first get average weights
+	double stick = 1.0;
+	VXd weights = VXd::Zero(K);
+	for(uint32_t k = 0; k < K-1; k++){
+		weights(k) = stick*a(k)/(a(k)+b(k));
+		stick *= b(k)/(a(k)+b(k));
+	}
+	weights(K-1) = stick;
+
+	//now loop over all test data and get weighted avg likelihood
+	double loglike = 0.0;
+	for(uint32_t i = 0; i < Nt; i++){
+		std::vector<double> loglikes;
+		for (uint32_t k = 0; k < K; k++){
+			loglikes.push_back(log(weights(k)) + model.getLogPosteriorPredictive(test_data[i], eta.row(k), nu(k)));
+		}
+		//numerically stable sum
+		//first sort in increasing order
+		std::sort(loglikes.begin(), loglikes.end());
+		//then sum in increasing order
+		double like = 0.0;
+		for (uint32_t k = 0; k < K; k++){
+			//subtract off the max first
+			like += exp(loglikes[k] - loglikes.back());
+		}
+		//now multiply by exp(max), take the log, and add to running loglike total
+		loglike += loglikes.back() + log(like);
+	}
+	return loglike/Nt; //should return NaN if Nt == 0
+
 
 }
 
