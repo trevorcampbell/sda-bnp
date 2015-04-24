@@ -112,11 +112,13 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 
 
 	//solve matching between dist1 nd dist2 with prior dist0
+	VarDP<Model>::Distribution distm;
+	distm = mergeDistributions(dist2, dist1, dist0);
 
 	//update the global distribution
 	{
 		std::lock_guard<std::mutex> lock(distmut);
-		dist = ;
+		dist = distm;
 	} //release the lock
 
 	//compute the test log likelihood of the global model
@@ -128,107 +130,149 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		mtrace.globaltimes.push_back(t0);
 		mtrace.globaltestlls.push_back(testll);
 	} //release the lock
+
+	//done!
+	return;
 }
 
 
-void buildMatchingCost(int* const costs,
-					   const double* const eta1,   const double* const eta2, const double* const eta0,
-				       const double* const nu1,    const double* const nu2, const double nu0,
-				       const double* const logp01, const double* const logp02,
-				       const double* const Enk1,   const double* const Enk2,
-				       const double alpha, const double logh0, void (*getLogH)(double*, double* const, double* const, const double * const, const double, const uint32_t, bool),
-				       const uint32_t K1,    const uint32_t K2, const uint32_t M, const uint32_t D){
+VarDP<Model>::Distribution mergeDistributions(VarDP<Model>::Distribution src, VarDP<Model>::Distribution dest, VarDP<Model>::Distribution prior){
+	uint32_t Kp = prior.a.size();
+	uint32_t Ks = src.a.size();
+	uint32_t Kd = dest.a.size();
 
-	uint32_t k1, k2, j;
-	double *etam = (double*) malloc(sizeof(double)*M);
-	double* costs12 = (double*) malloc(sizeof(double)*K1*K2);	
-	double* costs10 = (double*) malloc(sizeof(double)*K1);
-	double* costs20 = (double*) malloc(sizeof(double)*K2);
-	double cost0 = logh0;
-	double mincost = cost0, maxcost = cost0;
-	for (k1 = 0; k1 < K1; k1++){
-		for (k2 = 0; k2 < K2; k2++){
-			//merge the etas into a working var
-			for(j=0; j < M; j++){
-				etam[j] = eta1[k1*M+j] + eta2[k2*M+j] - eta0[j];
+	MXd costs = MXd::Zero(Ks+Kd, Ks+Kd);
+	MXi costsi = MXi::Zero(Ks+Kd, Ks+Kd);
+
+	//compute logp0 and Enk for d1 and d2
+	VXd logp0s = VXd::Zero(Ks);
+	VXd logp0d = VXd::Zero(Kd);
+	VXd Enks = VXd::Zero(Ks);
+	VXd Enkd = VXd::Zero(Kd);
+
+
+	//compute costs
+	VXd etam = VXd::Zeros(model.getEta0().size())
+	VXd num = VXd::Zeros(1);
+	VXd loghm = VXd::Zeros(1);
+	VXd dlogh_dnum = VXd::Zeros(1);
+	MXd dlogh_detam = MXd::Zeros(1, etam.size());
+	for (uint32_t i = 0; i < Ks; i++){
+		//compute costs in the 1-2 block and fill in the 1-0 block
+		for (uint32_t j = 0; j < Kd; j++){
+			etam = src.eta.row(i) + dest.eta.row(j);
+			num(0) = src.nu(i) + dest.nu(j);
+			if (j < Kp){
+				etam -= prior.eta.row(j);
+				num(0) -= prior.nu(j);
+			} else {
+				etam -= model.getEta0();
+				num(0) -= model.getNu0();
 			}
-			//compute the cost/row/col in the matching matrix
-			//note that amps DP obj assumes maximization, so take the negative
-			const uint32_t i = k1*K2 + k2;
-			costs12[i] = -ampsDPObj_k(etam, nu1[k1]+nu2[k2]-nu0, exp(logp01[k1]+logp02[k2]), Enk1[k1]+Enk2[k2], alpha, getLogH, D);
-			if(costs12[i] < mincost){ mincost = costs12[i];}
-			if(costs12[i] > maxcost){ maxcost = costs12[i];}
+			model.getLogH(etam, num, loghm, dlogh_detam, dlogh_dnum);
+			costs(i, j) = loghm(0) - log(alpha)*(1.0-exp(logp0s(i)+logp0d(j))) - gsl_sf_lngamma(Enks(i)+Enkd(j));
 		}
-		//compute cost for matching k1 to nothing in agent 2
-		costs10[k1] = -ampsDPObj_k(&(eta1[k1*M]), nu1[k1], exp(logp01[k1]), Enk1[k1], alpha, getLogH, D);
-		if(costs10[k1] < mincost){ mincost = costs10[k1];}
-		if(costs10[k1] > maxcost){ maxcost = costs10[k1];}
+		//compute costs in the 1-0 block
+		model.getLogH(src.eta.row(i), src.nu(i), loghm, dlogh_detam, dlogh_dnum);
+		double c10 = loghm(0) - log(alpha)*(1.0-exp(logp0s(i))) - gsl_sf_lngamma(Enks(i));
+		for (uint32_t j = Kd; j < Ks+Kd; j++){
+			costs(i, j) = c10;
+		}
 	}
-	//compute score for matching k2 to nothing in K1
-	for(k2 = 0; k2 < K2; k2++){
-		//compute cost for matching k2 to nothing in agent 1
-		costs20[k2] = -ampsDPObj_k(&(eta2[k2*M]), nu2[k2], exp(logp02[k2]), Enk2[k2], alpha, getLogH, D);
-		if(costs20[k2] < mincost){ mincost = costs20[k2];}
-		if(costs20[k2] > maxcost){ maxcost = costs20[k2];}
+
+	//compute costs in the 2-0 block
+	for (uint32_t j = 0; j < K2; j++){
+		model.getLogH(dest.eta.row(j), dest.nu(j), loghm, dlogh_detam, dlogh_dnum);
+		double c20 = loghm(0) - log(alpha)*(1.0-exp(logp0d(i))) - gsl_sf_lngamma(Enkd(i));
+		for (uint32_t i = Ks; i < Ks+Kd; i++){
+			costs(i, j) = c20;
+		}
 	}
+
+	//the 0-0 block is a constant
+	for (uint32_t i = Ks; i < Ks+Kd; i++){
+		for (uint32_t j = Kd; j < Ks+Kd; j++){
+			costs(i, j) = model.getLogH0();
+		}
+	}
+
 	//now all costs have been computed, and max/min are known
 	//subtract off the minimum from everything and remap to integers between 0 and INT_MAX/1000 
+	double mincost = costs.minCoeff();
+	double maxcost = costs.minCoeff();
 	maxcost -= mincost;
 	double fctr = ((double)INT_MAX/1000.0)/maxcost;
-	for(k1 = 0; k1 < K1; k1++){
-		for(k2 = 0; k2 < K2; k2++){
-			costs[k1*(K1+K2)+k2] = (int)(fctr*(costs12[k1*K2+k2] - mincost));
-		}
-		for(k2 = K2; k2 < K1+K2; k2++){
-			costs[k1*(K1+K2)+k2] = (int)(fctr*(costs10[k1]-mincost));
+	for (uint32_t i = 0; i < Ks+Kd; i++){
+		for (uint32_t j = 0; j < Ks+Kd; j++){
+			costsi(i, j) = (int)(fctr*(costs(i, j) - mincost));
 		}
 	}
-	for(k1 = K1; k1 < K1+K2; k1++){
-		for(k2 = 0; k2 < K2; k2++){
-			costs[k1*(K1+K2)+k2] = (int)(fctr*(costs20[k2]-mincost));
-		}
-		for(k2 = K2; k2 < K1+K2; k2++){
-			costs[k1*(K1+K2)+k2] = (int)(fctr*(cost0 - mincost));
-		}
-	} 
-	free(costs12); free(costs10); free(costs20);	
-	free(etam);
-	return;
-}
 
-double ampsDPObj_k(const double * const eta, 
-		const double nu, 
-		const double logp0, 
-		const double Enk, 
-		const double alpha, 
-		void (*getLogH)(double*, double* const, double* const, const double * const, const double, const uint32_t, bool),
-		const uint32_t D){
+	std::vector<int> matchings;
+	int cost = hungarian(costsi, matchings);
 
-	double dpreg = log(alpha)*(1.0-exp(logp0)) + gsl_sf_lngamma(Enk) ;
-	double logh;
-    getLogH(&logh, NULL, NULL, eta, nu, D, false);
-    return dpreg - logh;
-}
-void computeLogP0EnkSingle(double* logp0, double* Enk,
-				const double * const zetas, 
-				const uint32_t N,
-				const uint32_t K){
-	uint32_t k, j;
-		for(k = 0; k < K; k++){
-			logp0[k] = 0.0;
-			Enk[k] = 0.0;
-			for (j = 0; j < N; j++){
-				logp0[k] += log(1.0-zetas[j*K+k]);
-				Enk[k] += zetas[j*K+k];
+	VarDP<Model>::Distribution out = dest;
+
+	//match the first Ks elements (one for each src component) to the dest
+	out.zeta.conservativeResize(out.zeta.rows()+src.zeta.rows(), Eigen::NoChange_t);
+	for (uint32_t i = 0; i < Ks; i++){
+		if (matchings[i] < Kd){
+			out.eta.row(matchings[i]) += src.eta.row(i);
+			out.nu(matchings[i]) += src.nu(i);
+			if (matchings[i] < Kp){
+				out.eta.row(matchings[i]) -= prior.eta.row(matchings[i]);
+				out.nu(matchings[i]) -= prior.nu(matchings[i]);
+			} else {
+				out.eta.row(matchings[i]) -= model.getEta0();
+				out.nu(matchings[i]) -= model.getNu0();
 			}
-			/*there is a possibility that logp0[k] = -inf, if the zetas are deterministic*/
-			/*this is fine theoretically, but computationally when doing amps one needs to add/subtract statistics*/
-			/*if you leave these as inf, you end up adding/subtracting inf from inf, which results in nans*/
-			/*therefore, just replace these with large numbers -- double precision sets exp(-800) to 0, so:*/
-			if(logp0[k] < -800.0){logp0[k] = -800.0;}
+			out.zeta.block(out.zeta.rows()-src.zeta.rows(), matchings[i], src.zeta.rows(), 1) = src.zeta.block(0, i, src.zeta.rows(), 1);
+		} else {
+			out.eta.conservativeResize(out.eta.rows()+1, Eigen::NoChange_t);
+			out.eta.row(out.eta.rows()-1) = src.eta.row(i);
+			out.nu.conservativeResize(out.nu.size()+1);
+			out.nu(out.nu.size()-1) = src.nu(i);
+			out.zeta.conservativeResize(Eigen::NoChange_t, out.zeta.cols()+1);
+			out.zeta.block(out.zeta.rows()-src.zeta.rows(), out.zeta.cols()-1, src.zeta.rows(), 1) = src.zeta.block(0, i, src.zeta.rows(), 1);
 		}
-	return;
+	}
+	out.a.resize(out.eta.rows());
+	out.b.resize(out.eta.rows());
+	VXd sumz = VXd::Zeros(out.eta.rows());
+	for (uint32_t k = 0; k < out.eta.rows(); k++){
+		sumz(k) = out.zeta.col(k).sum();
+	}
+	for (uint32_t k = 0; k < out.eta.rows(); k++){
+		out.a(k) = 1.0 + sumz(k);
+		out.b(k) = alpha;
+		for (uint32_t j = k+1; j < out.eta.rows(); j++){
+			out.b(k) += sumz(j);
+		}
+	}
+
+	return out;
 }
+
+//void computeLogP0EnkSingle(double* logp0, double* Enk,
+//				const double * const zetas, 
+//				const uint32_t N,
+//				const uint32_t K){
+//	uint32_t k, j;
+//		for(k = 0; k < K; k++){
+//			logp0[k] = 0.0;
+//			Enk[k] = 0.0;
+//			for (j = 0; j < N; j++){
+//				logp0[k] += log(1.0-zetas[j*K+k]);
+//				Enk[k] += zetas[j*K+k];
+//			}
+//			/*there is a possibility that logp0[k] = -inf, if the zetas are deterministic*/
+//			/*this is fine theoretically, but computationally when doing amps one needs to add/subtract statistics*/
+//			/*if you leave these as inf, you end up adding/subtracting inf from inf, which results in nans*/
+//			/*therefore, just replace these with large numbers -- double precision sets exp(-800) to 0, so:*/
+//			if(logp0[k] < -800.0){logp0[k] = -800.0;}
+//		}
+//	return;
+//}
 
 #define __SDADP_IMPL_HPP
 #endif /* __SDADP_IMPL_HPP */

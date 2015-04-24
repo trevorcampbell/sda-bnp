@@ -18,6 +18,7 @@
 
 typedef Eigen::VectorXd VXd;
 typedef Eigen::MatrixXd MXd;
+typedef Eigen::MatrixXi MXi;
 using boost::math::lgamma;
 
 template<class Model>
@@ -29,6 +30,7 @@ class SDADP{
 		MultiTrace getTrace();
 	private:
 		double computeTestLogLikelihood();
+		VarDP<Model>::Distribution mergeDistributions(VarDP<Model>::Distribution d1, VarDP<Model>::Distribution d2, VarDP<Model>::Distribution d0);
 
 		Timer timer;
 		double alpha;
