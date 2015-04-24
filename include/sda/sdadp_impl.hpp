@@ -3,7 +3,7 @@
 template<class Model>
 SDADP<Model>::SDADP(const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t Knew, uint32_t nthr):
 test_data(test_data), model(model), alpha(alpha), Knew(Knew), pool(nthr){
-	//nothing else to do here
+	timer.start(); //start the clock -- used for tracking performance
 }
 
 template<class Model>
@@ -23,13 +23,9 @@ VarDP<Model>::Distribution SDADP<Model>::getDistribution(){
 }
 
 template<class Model>
-Trace SDADP<Model>::getTrace(){
+MultiTrace SDADP<Model>::getTrace(){
 	//TODO be careful about locking here???
-	Trace tr;
-	tr.times = this->times;
-	tr.objs = this->objs;
-	tr.testlls = this->testlls;
-	return tr;
+	return mtrace;
 }
 
 template<class Model>
@@ -94,7 +90,6 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 	 	dist1 = vdp.getDistribution();
 	 	tr = vdp.getTrace();
 	}
-	tr.save("job");
 
 	VarDP<Model>::Distribution dist2;
 	//lock mutex, update  with matching, unlock

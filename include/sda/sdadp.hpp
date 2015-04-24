@@ -31,13 +31,14 @@ class SDADP{
 		double computeObjective();
 		double computeTestLogLikelihood();
 
+		Timer timer;
 		double alpha;
 		uint32_t Knew;
 		std::vector<VXd> test_data;
 		Model model;
 		VarDP<Model>::Distribution dist;
 		std::mutex distmut;
-		std::vector<double> times, objs, testlls;
+		MultiTrace mtrace;
 
 		void varDPJob(const std::vector<VXd>& train_data);
 		Pool<std::function<void()> > pool;

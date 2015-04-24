@@ -7,6 +7,11 @@
 class Trace{
 	public:
 		std::vector<double> times, objs, testlls;
+		void clear(){
+			times.clear();
+			objs.clear();
+			testlls.clear();
+		}
 		void save(std::string name){
 			std::ofstream out_trc(name+"-trace.log", std::ios_base::trunc);
 			for (uint32_t i = 0; i < times.size(); i++){

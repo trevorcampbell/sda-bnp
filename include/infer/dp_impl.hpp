@@ -59,9 +59,7 @@ VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& 
 template<class Model>
 void VarDP<Model>::run(bool computeTestLL, double tol){
 	//clear any previously stored results
-	times.clear();
-	objs.clear();
-	testlls.clear();
+	trace.clear();
 
 	//create objective tracking vars
 	double diff = 10.0*tol + 1.0;
@@ -85,18 +83,18 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 
 		prevobj = obj;
 		//store the current time
-		times.push_back(cpuTime.get());
+		trace.times.push_back(cpuTime.get());
 		//compute the objective
 		obj = computeObjective();
 		//save the objective
-		objs.push_back(obj);
+		trace.objs.push_back(obj);
 		//compute the obj diff
 		diff = fabs((obj - prevobj)/obj);
 		//if test likelihoods were requested, compute those (but pause the timer first)
 		if (computeTestLL){
 			cpuTime.stop();
 			double testll = computeTestLogLikelihood();
-			testlls.push_back(testll);
+			trace.testlls.push_back(testll);
 			cpuTime.start();
 			std::cout << "obj: " << obj << " testll: " << testll << std::endl;
 		} else {
@@ -293,11 +291,7 @@ typename VarDP<Model>::Distribution VarDP<Model>::getDistribution(){
 
 template<class Model>
 Trace VarDP<Model>::getTrace(){
-	Trace tr;
-	tr.times = this->times;
-	tr.objs = this->objs;
-	tr.testlls = this->testlls;
-	return tr;
+	return trace;
 }
 
 
