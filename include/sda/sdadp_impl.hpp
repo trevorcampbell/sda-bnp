@@ -30,24 +30,31 @@ MultiTrace SDADP<Model>::getTrace(){
 
 template<class Model>
 double SDADP<Model>::computeTestLogLikelihood(){
-	if (Nt == 0){
-		std::cout << "WARNING: Test Log Likelihood = NaN since Nt = 0" << std::endl;
+	VarDP<Model>::Distribution dist0;
+	{
+		std::lock_guard<std::mutex> lock(distmut);
+		dist0 = dist;
+	} //release the lock
+
+	if (test_data.size() == 0){
+ 		std::cout << "WARNING: Test Log Likelihood = NaN since Nt = 0" << std::endl;
+		return 0;
 	}
 	//first get average weights
 	double stick = 1.0;
 	VXd weights = VXd::Zero(K);
 	for(uint32_t k = 0; k < K-1; k++){
-		weights(k) = stick*a(k)/(a(k)+b(k));
-		stick *= b(k)/(a(k)+b(k));
+		weights(k) = stick*dist0.a(k)/(dist0.a(k)+dist0.b(k));
+		stick *= dist0.b(k)/(dist0.a(k)+dist0.b(k));
 	}
 	weights(K-1) = stick;
 
 	//now loop over all test data and get weighted avg likelihood
 	double loglike = 0.0;
-	for(uint32_t i = 0; i < Nt; i++){
+	for(uint32_t i = 0; i < test_data.size(); i++){
 		std::vector<double> loglikes;
-		for (uint32_t k = 0; k < K; k++){
-			loglikes.push_back(log(weights(k)) + model.getLogPosteriorPredictive(test_data[i], eta.row(k), nu(k)));
+		for (uint32_t k = 0; k < dist0.eta.rows(); k++){
+			loglikes.push_back(log(weights(k)) + model.getLogPosteriorPredictive(test_data[i], dist0.eta.row(k), dist0.nu(k)));
 		}
 		//numerically stable sum
 		//first sort in increasing order
@@ -61,9 +68,7 @@ double SDADP<Model>::computeTestLogLikelihood(){
 		//now multiply by exp(max), take the log, and add to running loglike total
 		loglike += loglikes.back() + log(like);
 	}
-	return loglike/Nt; //should return NaN if Nt == 0
-
-
+	return loglike/Nt;
 }
 
 template<class Model>
@@ -82,24 +87,26 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 	double t0 = timer.get();
 	if(dist0.a.size() == 0){ //if there is no prior to work off of
 		VarDP<Model> vdp(train_data, test_data, model, alpha, Knew);
-		vdp.run(bool computeTestLL = false, double tol = 1e-6);
+		vdp.run(true);
 	 	dist1 = vdp.getDistribution();
 	 	tr = vdp.getTrace();
 	} else { //if there is a prior
 		VarDP<Model> vdp(train_data, test_data, dist0, model, alpha, dist0.a.size()+Knew);
-		vdp.run(bool computeTestLL = false, double tol = 1e-6);
+		vdp.run(true);
 	 	dist1 = vdp.getDistribution();
 	 	tr = vdp.getTrace();
 	}
-	mtrace.localstarttimes.push_back(t0);
-	mtrace.localtimes.push_back(tr.times);
-	mtrace.localobjs.push_back(tr.objs);
-	mtrace.localtestlls.push_back(tr.testlls);
 
+	//lock mutex, store the local trace, get the current distribution, unlock
 	VarDP<Model>::Distribution dist2;
-	//lock mutex, update  with matching, unlock
 	{
 		std::lock_guard<std::mutex> lock(distmut);
+		//add the result of the job to the multitrace
+		mtrace.localstarttimes.push_back(t0);
+		mtrace.localtimes.push_back(tr.times);
+		mtrace.localobjs.push_back(tr.objs);
+		mtrace.localtestlls.push_back(tr.testlls);
+		//get the distribution at the current point
 		dist2 = dist;
 	} //release the lock
 
@@ -109,7 +116,17 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 	//update the global distribution
 	{
 		std::lock_guard<std::mutex> lock(distmut);
-		dist2 = dist;
+		dist = ;
+	} //release the lock
+
+	//compute the test log likelihood of the global model
+	t0 = timer.get();
+	double testll = computeTestLogLikelihood();
+	//lock mutex, update  with matching, unlock
+	{
+		std::lock_guard<std::mutex> lock(distmut);
+		mtrace.globaltimes.push_back(t0);
+		mtrace.globaltestlls.push_back(testll);
 	} //release the lock
 }
 

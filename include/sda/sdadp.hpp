@@ -28,7 +28,6 @@ class SDADP{
 		VarDP<Model>::Distribution getDistribution();
 		MultiTrace getTrace();
 	private:
-		double computeObjective();
 		double computeTestLogLikelihood();
 
 		Timer timer;
