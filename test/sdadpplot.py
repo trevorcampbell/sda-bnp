@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 
 
 train_data = np.genfromtxt('train.log')
-eta = np.genfromtxt('dpmix-eta.log')
-nu = np.genfromtxt('dpmix-nu.log')
-ab = np.genfromtxt('dpmix-ab.log')
+eta = np.genfromtxt('sdadpmix-eta.log')
+nu = np.genfromtxt('sdadpmix-nu.log')
+ab = np.genfromtxt('sdadpmix-ab.log')
 
 
 stick = 1.0

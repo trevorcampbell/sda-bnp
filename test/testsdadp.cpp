@@ -10,6 +10,7 @@ int main(int argc, char** argv){
 	//constants
 	uint32_t K = 3;
 	uint32_t N = 1000;
+	uint32_t Nmini = 100;
 	uint32_t Nt = 100;
 	uint32_t D = 2;
 
@@ -86,7 +87,6 @@ int main(int argc, char** argv){
 	}
 	trout.close();
 	teout.close();
-	
 
 
 	VXd mu0 = VXd::Zero(D);
@@ -96,10 +96,17 @@ int main(int argc, char** argv){
 	NIWModel niw(mu0, kappa0, psi0, xi0);
 
 	std::cout << "Running VarDP..." << std::endl;
-	VarDP<NIWModel> dp(train_data, test_data, niw, 1.0, K);
-	dp.run(true);
-	VarDP<NIWModel>::Distribution res = dp.getDistribution();
-	res.save("dpmix");
+	SDADP<NIWModel> sdadp (test_data, niw, 1.0, 3);
+	uint32_t Nctr = 0;
+	while(Nctr < N){
+		std::vector<VXd> minibatch;
+		minibatch.insert(minibatch.begin(), train_data.begin()+Nctr, train_data.begin()+Nctr+Nmini);
+		sdadp.submitMinibatch(minibatch);
+		Nctr += Nmini;
+	}
+	//TODO wait until the jobs are done!
+	VarDP<NIWModel>::Distribution res = sdadp.getDistribution();
+	res.save("sdadpmix");
 
 	return 0;
 }
