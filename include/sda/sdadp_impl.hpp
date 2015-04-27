@@ -154,6 +154,24 @@ VarDP<Model>::Distribution mergeDistributions(VarDP<Model>::Distribution src, Va
 	VXd Enks = VXd::Zero(Ks);
 	VXd Enkd = VXd::Zero(Kd);
 
+	for (uint32_t k = 0; k < Ks; k++){
+		Enks(k) = src.zeta.col(k).sum();
+		for (uint32_t j = 0; j < src.zeta.rows(); j++){
+			logp0s(k) += log(1.0-src.zeta(j, k));
+		}
+		if (logp0s(k) < -800.0){
+			logp0s(k) = -800.0;
+		}
+	}
+	for (uint32_t k = 0; k < Kd; k++){
+		Enkd(k) = dest.zeta.col(k).sum();
+		for (uint32_t j = 0; j < dest.zeta.rows(); j++){
+			logp0d(k) += log(1.0-dest.zeta(j, k));
+		}
+		if (logp0d(k) < -800.0){
+			logp0d(k) = -800.0;
+		}
+	}
 
 	//compute costs
 	VXd etam = VXd::Zeros(model.getEta0().size())
@@ -256,27 +274,6 @@ VarDP<Model>::Distribution mergeDistributions(VarDP<Model>::Distribution src, Va
 
 	return out;
 }
-
-//void computeLogP0EnkSingle(double* logp0, double* Enk,
-//				const double * const zetas, 
-//				const uint32_t N,
-//				const uint32_t K){
-//	uint32_t k, j;
-//		for(k = 0; k < K; k++){
-//			logp0[k] = 0.0;
-//			Enk[k] = 0.0;
-//			for (j = 0; j < N; j++){
-//				logp0[k] += log(1.0-zetas[j*K+k]);
-//				Enk[k] += zetas[j*K+k];
-//			}
-//			/*there is a possibility that logp0[k] = -inf, if the zetas are deterministic*/
-//			/*this is fine theoretically, but computationally when doing amps one needs to add/subtract statistics*/
-//			/*if you leave these as inf, you end up adding/subtracting inf from inf, which results in nans*/
-//			/*therefore, just replace these with large numbers -- double precision sets exp(-800) to 0, so:*/
-//			if(logp0[k] < -800.0){logp0[k] = -800.0;}
-//		}
-//	return;
-//}
 
 #define __SDADP_IMPL_HPP
 #endif /* __SDADP_IMPL_HPP */
