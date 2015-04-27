@@ -24,8 +24,12 @@ VarDP<Model>::Distribution SDADP<Model>::getDistribution(){
 
 template<class Model>
 MultiTrace SDADP<Model>::getTrace(){
-	//TODO be careful about locking here???
-	return mtrace;
+	MultiTrace mt;
+	{
+		std::lock_guard<std::mutex> lock(distmut);
+		mt = mtrace;
+	}
+	return mt;
 }
 
 template<class Model>
