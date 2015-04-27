@@ -11,22 +11,26 @@ class Pool{
 		Pool(uint32_t nThr);
 		~Pool();
 		void submit(Job job);
+		void wait();
 	private:
 		std::vector< std::thread > workers;
+		std::vector<bool> busy;
 		void worker();
 		bool stop;
 
 		std::deque<Job> jobs;
 		std::mutex queue_mutex;
-		std::condition_variable queue_cond;
+		std::condition_variable queue_cond, wait_cond;
 };
+
 
 
 template<typename Job>
 Pool<Job>::Pool(uint32_t nThr){
 	stop = false;
 	for(uint32_t t = 0; t < nThr; t++){
-		workers.push_back(std::thread(&Pool<Job>::worker, this));
+		busy.push_back(false);
+		workers.push_back(std::thread(&Pool<Job>::worker, this, t));
 	}
 }
 
@@ -48,22 +52,45 @@ void Pool<Job>::submit(Job job){
 	queue_cond.notify_one();
 }
 
+template<typename Job>
+void Pool<Job>::wait(){
+	{
+		std::lock_guard<std::mutex> lock(queue_mutex);
+		bool allFree = true;
+		bool queueEmpty = jobs.empty();
+		for (uint32_t i = 0; i < workers.size(); i++){
+			allFree &= !busy[i];
+		}
+		while( (!allFree || !queueEmpty) && !stop){
+			wait_cond.wait(lock);
+			allFree = true;
+			queueEmpty = jobs.empty();
+			for (uint32_t i = 0; i < workers.size(); i++){
+				allFree &= !busy[i];
+			}
+		}
+	}
+}
 
 template<typename Job>
-void Pool<Job>::worker(){
+void Pool<Job>::worker(uint32_t id){
 	while(true){
 		{
 			std::lock_guard<std::mutex> lock(queue_mutex);
+			busy[id] = false;
 			while(!stop && jobs.empty()){
+				wait_cond.notify_one(); //if the main thread is waiting for us to be done,
+										//wake it up to check since I'm now going to sleep
 				queue_cond.wait(lock);
 			}
 			if (stop){
-				//lock.unlock();
+				wait_cond.notify_one();
 				return; //releases the lock_guard automatically upon destruction
 			}
 
 			job = jobs.front();
 			jobs.pop_front();
+			busy[id] = true;
 		}//release the lock_guard
 
 		job();//do the job
