@@ -17,9 +17,9 @@ void SDADP<Model>::waitUntilDone(){
 }
 
 template<class Model>
-VarDP<Model>::Distribution SDADP<Model>::getDistribution(){
+typename VarDP<Model>::Distribution SDADP<Model>::getDistribution(){
 	//have to lock/store since the worker pool might be doing stuff with it
-	VarDP<Model>::Distribution out;
+	typename VarDP<Model>::Distribution out;
 	{
 		std::lock_guard<std::mutex> lock(distmut);
 		out = dist;
@@ -39,7 +39,7 @@ MultiTrace SDADP<Model>::getTrace(){
 
 template<class Model>
 double SDADP<Model>::computeTestLogLikelihood(){
-	VarDP<Model>::Distribution dist0;
+	typename VarDP<Model>::Distribution dist0;
 	{
 		std::lock_guard<std::mutex> lock(distmut);
 		dist0 = dist;
@@ -84,14 +84,14 @@ template<class Model>
 void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 
 	//lock the mutex, get the distribution, unlock
-	VarDP<Model>::Distribution dist0;
+	typename VarDP<Model>::Distribution dist0;
 	{
 		std::lock_guard<std::mutex> lock(distmut);
 		dist0 = dist;
 	} //release the lock
 
 	//do minibatch inference
-	VarDP<Model>::Distribution dist1;
+	typename VarDP<Model>::Distribution dist1;
 	Trace tr;
 	double t0 = timer.get();
 	if(dist0.a.size() == 0){ //if there is no prior to work off of
@@ -107,7 +107,7 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 	}
 
 	//lock mutex, store the local trace, get the current distribution, unlock
-	VarDP<Model>::Distribution dist2;
+	typename VarDP<Model>::Distribution dist2;
 	{
 		std::lock_guard<std::mutex> lock(distmut);
 		//add the result of the job to the multitrace
@@ -121,7 +121,7 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 
 
 	//solve matching between dist1 nd dist2 with prior dist0
-	VarDP<Model>::Distribution distm;
+	typename VarDP<Model>::Distribution distm;
 	distm = mergeDistributions(dist2, dist1, dist0);
 
 	//update the global distribution
@@ -145,7 +145,7 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 }
 
 
-VarDP<Model>::Distribution mergeDistributions(VarDP<Model>::Distribution src, VarDP<Model>::Distribution dest, VarDP<Model>::Distribution prior){
+typename VarDP<Model>::Distribution mergeDistributions(typename VarDP<Model>::Distribution src, typename VarDP<Model>::Distribution dest, typename VarDP<Model>::Distribution prior){
 	uint32_t Kp = prior.a.size();
 	uint32_t Ks = src.a.size();
 	uint32_t Kd = dest.a.size();
@@ -238,7 +238,7 @@ VarDP<Model>::Distribution mergeDistributions(VarDP<Model>::Distribution src, Va
 	std::vector<int> matchings;
 	int cost = hungarian(costsi, matchings);
 
-	VarDP<Model>::Distribution out = dest;
+	typename VarDP<Model>::Distribution out = dest;
 
 	//match the first Ks elements (one for each src component) to the dest
 	out.zeta.conservativeResize(out.zeta.rows()+src.zeta.rows(), Eigen::NoChange_t);
