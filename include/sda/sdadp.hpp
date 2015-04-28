@@ -25,7 +25,7 @@ using boost::math::lgamma;
 template<class Model>
 class SDADP{
 	public:
-		SDADP(const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t Knew);
+		SDADP(const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t Knew, uint32_t nthr);
 		void submitMinibatch(const std::vector<VXd>& train_data); 
 		void waitUntilDone();
 		typename VarDP<Model>::Distribution getDistribution();

@@ -45,10 +45,14 @@ double SDADP<Model>::computeTestLogLikelihood(){
 		dist0 = dist;
 	} //release the lock
 
-	if (test_data.size() == 0){
+	uint32_t K = dist0.eta.rows();
+	uint32_t Nt = test_data.size();
+
+	if (Nt == 0){
  		std::cout << "WARNING: Test Log Likelihood = NaN since Nt = 0" << std::endl;
 		return 0;
 	}
+
 	//first get average weights
 	double stick = 1.0;
 	VXd weights = VXd::Zero(K);
@@ -60,9 +64,9 @@ double SDADP<Model>::computeTestLogLikelihood(){
 
 	//now loop over all test data and get weighted avg likelihood
 	double loglike = 0.0;
-	for(uint32_t i = 0; i < test_data.size(); i++){
+	for(uint32_t i = 0; i < Nt; i++){
 		std::vector<double> loglikes;
-		for (uint32_t k = 0; k < dist0.eta.rows(); k++){
+		for (uint32_t k = 0; k < K; k++){
 			loglikes.push_back(log(weights(k)) + model.getLogPosteriorPredictive(test_data[i], dist0.eta.row(k), dist0.nu(k)));
 		}
 		//numerically stable sum
@@ -145,6 +149,7 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 }
 
 
+template<class Model>
 typename VarDP<Model>::Distribution mergeDistributions(typename VarDP<Model>::Distribution src, typename VarDP<Model>::Distribution dest, typename VarDP<Model>::Distribution prior){
 	uint32_t Kp = prior.a.size();
 	uint32_t Ks = src.a.size();
