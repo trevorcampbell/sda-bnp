@@ -11,6 +11,7 @@
 //#include <random>
 #include<thread>
 #include<mutex>
+#include <sdabnp/infer/dp.hpp>
 #include <sdabnp/util/timer.hpp>
 #include <sdabnp/util/matching.hpp>
 #include <sdabnp/util/trace.hpp>
@@ -27,18 +28,18 @@ class SDADP{
 		SDADP(const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t Knew);
 		void submitMinibatch(const std::vector<VXd>& train_data); 
 		void waitUntilDone();
-		VarDP<Model>::Distribution getDistribution();
+		typename VarDP<Model>::Distribution getDistribution();
 		MultiTrace getTrace();
 	private:
 		double computeTestLogLikelihood();
-		VarDP<Model>::Distribution mergeDistributions(VarDP<Model>::Distribution d1, VarDP<Model>::Distribution d2, VarDP<Model>::Distribution d0);
+		typename VarDP<Model>::Distribution mergeDistributions(typename VarDP<Model>::Distribution d1, typename VarDP<Model>::Distribution d2, typename VarDP<Model>::Distribution d0);
 
 		Timer timer;
 		double alpha;
 		uint32_t Knew;
 		std::vector<VXd> test_data;
 		Model model;
-		VarDP<Model>::Distribution dist;
+		typename VarDP<Model>::Distribution dist;
 		std::mutex distmut;
 		MultiTrace mtrace;
 
@@ -46,6 +47,7 @@ class SDADP{
 		Pool<std::function<void()> > pool;
 };
 
+#include "sdadp_impl.hpp"
 
 #define __SDADP_HPP
 #endif /* __SDADP_HPP */
