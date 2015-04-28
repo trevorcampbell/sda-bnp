@@ -6,7 +6,7 @@
 #include <fstream>
 #include <Eigen/Dense>
 //#include <boost/filesystem.hpp>
-#include <boost/math/special_functions/digamma.hpp>
+//#include <boost/math/special_functions/digamma.hpp>
 #include <boost/math/special_functions/gamma.hpp>
 //#include <random>
 #include<thread>

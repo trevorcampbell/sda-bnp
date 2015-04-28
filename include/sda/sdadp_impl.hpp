@@ -150,7 +150,7 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 
 
 template<class Model>
-typename VarDP<Model>::Distribution mergeDistributions(typename VarDP<Model>::Distribution src, typename VarDP<Model>::Distribution dest, typename VarDP<Model>::Distribution prior){
+typename VarDP<Model>::Distribution SDADP<Model>::mergeDistributions(typename VarDP<Model>::Distribution src, typename VarDP<Model>::Distribution dest, typename VarDP<Model>::Distribution prior){
 	uint32_t Kp = prior.a.size();
 	uint32_t Ks = src.a.size();
 	uint32_t Kd = dest.a.size();
@@ -184,11 +184,11 @@ typename VarDP<Model>::Distribution mergeDistributions(typename VarDP<Model>::Di
 	}
 
 	//compute costs
-	VXd etam = VXd::Zeros(model.getEta0().size())
-	VXd num = VXd::Zeros(1);
-	VXd loghm = VXd::Zeros(1);
-	VXd dlogh_dnum = VXd::Zeros(1);
-	MXd dlogh_detam = MXd::Zeros(1, etam.size());
+	VXd etam = VXd::Zero(model.getEta0().size());
+	VXd num = VXd::Zero(1);
+	VXd loghm = VXd::Zero(1);
+	VXd dlogh_dnum = VXd::Zero(1);
+	MXd dlogh_detam = MXd::Zero(1, etam.size());
 	for (uint32_t i = 0; i < Ks; i++){
 		//compute costs in the 1-2 block and fill in the 1-0 block
 		for (uint32_t j = 0; j < Kd; j++){
@@ -202,20 +202,24 @@ typename VarDP<Model>::Distribution mergeDistributions(typename VarDP<Model>::Di
 				num(0) -= model.getNu0();
 			}
 			model.getLogH(etam, num, loghm, dlogh_detam, dlogh_dnum);
-			costs(i, j) = loghm(0) - log(alpha)*(1.0-exp(logp0s(i)+logp0d(j))) - gsl_sf_lngamma(Enks(i)+Enkd(j));
+			costs(i, j) = loghm(0) - log(alpha)*(1.0-exp(logp0s(i)+logp0d(j))) - lgamma(Enks(i)+Enkd(j));
 		}
 		//compute costs in the 1-0 block
-		model.getLogH(src.eta.row(i), src.nu(i), loghm, dlogh_detam, dlogh_dnum);
-		double c10 = loghm(0) - log(alpha)*(1.0-exp(logp0s(i))) - gsl_sf_lngamma(Enks(i));
+		etam = src.eta.row(i);
+		num(0) = src.nu(i);
+		model.getLogH(etam, num, loghm, dlogh_detam, dlogh_dnum);
+		double c10 = loghm(0) - log(alpha)*(1.0-exp(logp0s(i))) - lgamma(Enks(i));
 		for (uint32_t j = Kd; j < Ks+Kd; j++){
 			costs(i, j) = c10;
 		}
 	}
 
 	//compute costs in the 2-0 block
-	for (uint32_t j = 0; j < K2; j++){
-		model.getLogH(dest.eta.row(j), dest.nu(j), loghm, dlogh_detam, dlogh_dnum);
-		double c20 = loghm(0) - log(alpha)*(1.0-exp(logp0d(i))) - gsl_sf_lngamma(Enkd(i));
+	for (uint32_t j = 0; j < Kd; j++){
+		etam = dest.eta.row(j);
+		num(0) = dest.nu(j);
+		model.getLogH(etam, num, loghm, dlogh_detam, dlogh_dnum);
+		double c20 = loghm(0) - log(alpha)*(1.0-exp(logp0d(j))) - lgamma(Enkd(j));
 		for (uint32_t i = Ks; i < Ks+Kd; i++){
 			costs(i, j) = c20;
 		}
@@ -246,7 +250,7 @@ typename VarDP<Model>::Distribution mergeDistributions(typename VarDP<Model>::Di
 	typename VarDP<Model>::Distribution out = dest;
 
 	//match the first Ks elements (one for each src component) to the dest
-	out.zeta.conservativeResize(out.zeta.rows()+src.zeta.rows(), Eigen::NoChange_t);
+	out.zeta.conservativeResize(out.zeta.rows()+src.zeta.rows(), Eigen::NoChange);
 	for (uint32_t i = 0; i < Ks; i++){
 		if (matchings[i] < Kd){
 			out.eta.row(matchings[i]) += src.eta.row(i);
@@ -260,17 +264,17 @@ typename VarDP<Model>::Distribution mergeDistributions(typename VarDP<Model>::Di
 			}
 			out.zeta.block(out.zeta.rows()-src.zeta.rows(), matchings[i], src.zeta.rows(), 1) = src.zeta.block(0, i, src.zeta.rows(), 1);
 		} else {
-			out.eta.conservativeResize(out.eta.rows()+1, Eigen::NoChange_t);
+			out.eta.conservativeResize(out.eta.rows()+1, Eigen::NoChange);
 			out.eta.row(out.eta.rows()-1) = src.eta.row(i);
 			out.nu.conservativeResize(out.nu.size()+1);
 			out.nu(out.nu.size()-1) = src.nu(i);
-			out.zeta.conservativeResize(Eigen::NoChange_t, out.zeta.cols()+1);
+			out.zeta.conservativeResize(Eigen::NoChange, out.zeta.cols()+1);
 			out.zeta.block(out.zeta.rows()-src.zeta.rows(), out.zeta.cols()-1, src.zeta.rows(), 1) = src.zeta.block(0, i, src.zeta.rows(), 1);
 		}
 	}
 	out.a.resize(out.eta.rows());
 	out.b.resize(out.eta.rows());
-	VXd sumz = VXd::Zeros(out.eta.rows());
+	VXd sumz = VXd::Zero(out.eta.rows());
 	for (uint32_t k = 0; k < out.eta.rows(); k++){
 		sumz(k) = out.zeta.col(k).sum();
 	}

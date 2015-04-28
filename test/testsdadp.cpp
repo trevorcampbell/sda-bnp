@@ -96,7 +96,7 @@ int main(int argc, char** argv){
 	NIWModel niw(mu0, kappa0, psi0, xi0);
 
 	std::cout << "Running VarDP..." << std::endl;
-	SDADP<NIWModel> sdadp (test_data, niw, 1.0, 3);
+	SDADP<NIWModel> sdadp (test_data, niw, 1.0, 3, 8);
 	uint32_t Nctr = 0;
 	while(Nctr < N){
 		std::vector<VXd> minibatch;

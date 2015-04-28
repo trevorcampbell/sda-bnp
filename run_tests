@@ -79,7 +79,7 @@
 
 ##TEST 6: SDA DP Test
 echo "Compiling sda dp test..."
-g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testsdadp.cpp -lboost_system -o testsdadp
+g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testsdadp.cpp -lboost_system -lpthread -o testsdadp
 if [ -e "testsdadp" ]
 then
     echo "Done compiling, running test..."
