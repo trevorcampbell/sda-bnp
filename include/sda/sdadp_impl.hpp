@@ -12,6 +12,11 @@ void SDADP<Model>::submitMinibatch(const std::vector<VXd>& train_data){
 }
 
 template<class Model>
+void SDADP<Model>::waitUntilDone(){
+	pool.wait();
+}
+
+template<class Model>
 VarDP<Model>::Distribution SDADP<Model>::getDistribution(){
 	//have to lock/store since the worker pool might be doing stuff with it
 	VarDP<Model>::Distribution out;

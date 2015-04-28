@@ -104,7 +104,7 @@ int main(int argc, char** argv){
 		sdadp.submitMinibatch(minibatch);
 		Nctr += Nmini;
 	}
-	//TODO wait until the jobs are done!
+	sdadp.waitUntilDone();
 	VarDP<NIWModel>::Distribution res = sdadp.getDistribution();
 	res.save("sdadpmix");
 
