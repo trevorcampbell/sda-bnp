@@ -1,10 +1,12 @@
 #ifndef __MATCHING_HPP
 #include <stdint.h>
+#include <Eigen/Dense>
 #include <vector>
 
 typedef Eigen::MatrixXi MXi;
 int hungarian(MXi costs, std::vector<int>& matchings) {
   int i, j, k, l, t, q, unmatched, s, cost = 0;
+  int n = costs.rows();
 
   //init memory to 0
   int* col_mate = (int*)calloc(n, sizeof(int));

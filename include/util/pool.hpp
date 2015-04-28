@@ -1,6 +1,7 @@
 #ifndef __POOL_HPP
 
 #include<vector>
+#include<queue>
 #include<thread>
 #include<mutex>
 #include<condition_variable>
@@ -15,10 +16,10 @@ class Pool{
 	private:
 		std::vector< std::thread > workers;
 		std::vector<bool> busy;
-		void worker();
+		void worker(uint32_t id);
 		bool stop;
 
-		std::deque<Job> jobs;
+		std::queue<Job> jobs;
 		std::mutex queue_mutex;
 		std::condition_variable queue_cond, wait_cond;
 };
@@ -46,52 +47,50 @@ Pool<Job>::~Pool(){
 template<typename Job>
 void Pool<Job>::submit(Job job){
 	{
-		std::lock_guard<std::mutex> lock(queue_mutex);
-		jobs.push_back(job);
+		std::lock_guard<std::mutex> lk(queue_mutex);
+		jobs.push(job);
 	} // release the lock_guard
 	queue_cond.notify_one();
 }
 
 template<typename Job>
 void Pool<Job>::wait(){
-	{
-		std::lock_guard<std::mutex> lock(queue_mutex);
-		bool allFree = true;
-		bool queueEmpty = jobs.empty();
+	std::unique_lock<std::mutex> lk(queue_mutex);
+	bool allFree = true;
+	bool queueEmpty = jobs.empty();
+	for (uint32_t i = 0; i < workers.size(); i++){
+		allFree &= !busy[i];
+	}
+	while( (!allFree || !queueEmpty) && !stop){
+		wait_cond.wait(lk);
+		allFree = true;
+		queueEmpty = jobs.empty();
 		for (uint32_t i = 0; i < workers.size(); i++){
 			allFree &= !busy[i];
 		}
-		while( (!allFree || !queueEmpty) && !stop){
-			wait_cond.wait(lock);
-			allFree = true;
-			queueEmpty = jobs.empty();
-			for (uint32_t i = 0; i < workers.size(); i++){
-				allFree &= !busy[i];
-			}
-		}
 	}
+	lk.unlock();
 }
 
 template<typename Job>
 void Pool<Job>::worker(uint32_t id){
 	while(true){
-		{
-			std::lock_guard<std::mutex> lock(queue_mutex);
-			busy[id] = false;
-			while(!stop && jobs.empty()){
-				wait_cond.notify_one(); //if the main thread is waiting for us to be done,
-										//wake it up to check since I'm now going to sleep
-				queue_cond.wait(lock);
-			}
-			if (stop){
-				wait_cond.notify_one();
-				return; //releases the lock_guard automatically upon destruction
-			}
+		std::unique_lock<std::mutex> lk(queue_mutex);
+		busy[id] = false;
+		while(!stop && jobs.empty()){
+			wait_cond.notify_one(); //if the main thread is waiting for us to be done,
+									//wake it up to check since I'm now going to sleep
+			queue_cond.wait(lk);
+		}
+		if (stop){
+			lk.unlock();
+			wait_cond.notify_one();
+			return; 
+		}
 
-			job = jobs.front();
-			jobs.pop_front();
-			busy[id] = true;
-		}//release the lock_guard
+		Job job = jobs.front();
+		jobs.pop();
+		busy[id] = true;
 
 		job();//do the job
 	}

@@ -1,10 +1,7 @@
-
-#include <sdabnp/util/pool.hpp>
-#include <Eigen/Dense>
+#include <iostream>
 #include <random>
+#include <sdabnp/util/pool.hpp>
 
-typedef Eigen::MatrixXd MXd;
-typedef Eigen::VectorXd VXd;
 
 class Foo{
 	public:
@@ -29,7 +26,7 @@ class Foo{
 			return a;
 		}
 	private:
-		Pool pool;
+		Pool<std::function<void ()> > pool;
 		std::mutex m;
 		int a;
 };
@@ -40,7 +37,8 @@ int main(int argc, char** argv){
 	int Njobs = 1000;
 	std::vector<int> jobs;
 	std::random_device rd;
-	std::mt19937 rng.seed(rd());
+	std::mt19937 rng;
+	rng.seed(rd());
 	std::uniform_int_distribution<int> uintgen(0, 50000);
 
 	int sum = 0;
@@ -50,7 +48,7 @@ int main(int argc, char** argv){
 		f.submit(r);
 	}
 
-	f.wait();
+	f.waitUntilDone();
 
 	std::cout << "f.get() = " << f.get() << std::endl;
 	std::cout << "sum = " << sum << std::endl;

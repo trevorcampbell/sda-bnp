@@ -35,24 +35,24 @@
 
 
 ###TEST 3: DP Test with Non-standard prior
-echo "Compiling variational dp w/ nonstandard prior test..."
-g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testdpprior.cpp -lboost_system -o testdp
-if [ -e "testdp" ]
-then
-    echo "Done compiling, running test..."
-	./testdp
-	rm testdp
-	mkdir dpresults
-	cp test/dppriorplot.py dpresults
-	mv *.log dpresults
-	echo "Done DP! Go to ./dpresults and run python dppriorplot.py to visualize the results."
-else
-    echo "Error experienced during compilation, test was not run."
-fi
+#echo "Compiling variational dp w/ nonstandard prior test..."
+#g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testdpprior.cpp -lboost_system -o testdp
+#if [ -e "testdp" ]
+#then
+#    echo "Done compiling, running test..."
+#	./testdp
+#	rm testdp
+#	mkdir dpresults
+#	cp test/dppriorplot.py dpresults
+#	mv *.log dpresults
+#	echo "Done DP! Go to ./dpresults and run python dppriorplot.py to visualize the results."
+#else
+#    echo "Error experienced during compilation, test was not run."
+#fi
 
 ###TEST 4: Thread pool test
 echo "Compiling pool test..."
-g++ -std=c++11 -O3 -I/usr/local/include test/testpool.cpp -o testpool
+g++ -std=c++11 -O3 -I/usr/local/include test/testpool.cpp -lpthread -o testpool
 if [ -e "testpool" ]
 then
     echo "Done compiling, running test..."
@@ -65,7 +65,7 @@ fi
 
 ###TEST 4: Matching test
 echo "Compiling matching test..."
-g++ -std=c++11 -O3 -I/usr/local/include test/testmatching.cpp -o testmatching
+g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testmatching.cpp -o testmatching
 if [ -e "testmatching" ]
 then
     echo "Done compiling, running test..."

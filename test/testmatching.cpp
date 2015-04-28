@@ -1,14 +1,15 @@
-
-#include <sdabnp/util/matching.hpp>
-#include <Eigen/Dense>
+#include <iostream>
 #include <random>
+#include <Eigen/Dense>
+#include <sdabnp/util/matching.hpp>
 
 typedef Eigen::MatrixXi MXi;
 
 int main(int argc, char** argv){
 	int N = 1000;
 	std::random_device rd;
-	std::mt19937 rng.seed(rd());
+	std::mt19937 rng;
+	rng.seed(rd());
 	std::uniform_int_distribution<int> uintgen(0, 1000);
 
 	MXi costs(5, 5);
