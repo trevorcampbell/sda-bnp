@@ -50,28 +50,45 @@
 #    echo "Error experienced during compilation, test was not run."
 #fi
 
-###TEST 4: Thread pool test
-echo "Compiling pool test..."
-g++ -std=c++11 -O3 -I/usr/local/include test/testpool.cpp -lpthread -o testpool
-if [ -e "testpool" ]
-then
-    echo "Done compiling, running test..."
-	./testpool
-	rm testpool
-	echo "Done pool test!"
-else
-    echo "Error experienced during compilation, test was not run."
-fi
+####TEST 4: Thread pool test
+#echo "Compiling pool test..."
+#g++ -std=c++11 -O3 -I/usr/local/include test/testpool.cpp -lpthread -o testpool
+#if [ -e "testpool" ]
+#then
+#    echo "Done compiling, running test..."
+#	./testpool
+#	rm testpool
+#	echo "Done pool test!"
+#else
+#    echo "Error experienced during compilation, test was not run."
+#fi
+#
+####TEST 5: Matching test
+#echo "Compiling matching test..."
+#g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testmatching.cpp -o testmatching
+#if [ -e "testmatching" ]
+#then
+#    echo "Done compiling, running test..."
+#	./testmatching
+#	rm testmatching
+#	echo "Done matching test!"
+#else
+#    echo "Error experienced during compilation, test was not run."
+#fi
 
-###TEST 4: Matching test
-echo "Compiling matching test..."
-g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testmatching.cpp -o testmatching
-if [ -e "testmatching" ]
+
+##TEST 6: SDA DP Test
+echo "Compiling sda dp test..."
+g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testsdadp.cpp -lboost_system -o testsdadp
+if [ -e "testsdadp" ]
 then
     echo "Done compiling, running test..."
-	./testmatching
-	rm testmatching
-	echo "Done matching test!"
+	./testsdadp
+	rm testsdadp
+	mkdir sdadpresults
+	cp test/sdadppriorplot.py sdadpresults
+	mv *.log sdadpresults
+	echo "Done DP! Go to ./sdadpresults and run python sdadppriorplot.py to visualize the results."
 else
     echo "Error experienced during compilation, test was not run."
 fi
