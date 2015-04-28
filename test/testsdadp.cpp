@@ -1,4 +1,4 @@
-#include <sdabnp/dp_mixture>
+#include <sdabnp/sda_dp_mixture>
 #include <sdabnp/model/normal_inverse_wishart>
 #include <Eigen/Dense>
 #include <random>
