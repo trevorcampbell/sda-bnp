@@ -184,11 +184,11 @@ typename VarDP<Model>::Distribution SDADP<Model>::mergeDistributions(typename Va
 	}
 
 	//compute costs
-	VXd etam = VXd::Zero(model.getEta0().size());
+	MXd etam = MXd::Zero(1, model.getEta0().size());
 	VXd num = VXd::Zero(1);
-	VXd loghm = VXd::Zero(1);
-	VXd dlogh_dnum = VXd::Zero(1);
-	MXd dlogh_detam = MXd::Zero(1, etam.size());
+	VXd loghm = num;
+	VXd dlogh_dnum = num;
+	MXd dlogh_detam = etam;
 	for (uint32_t i = 0; i < Ks; i++){
 		//compute costs in the 1-2 block and fill in the 1-0 block
 		for (uint32_t j = 0; j < Kd; j++){
@@ -198,7 +198,7 @@ typename VarDP<Model>::Distribution SDADP<Model>::mergeDistributions(typename Va
 				etam -= prior.eta.row(j);
 				num(0) -= prior.nu(j);
 			} else {
-				etam -= model.getEta0();
+				etam -= model.getEta0().transpose();
 				num(0) -= model.getNu0();
 			}
 			model.getLogH(etam, num, loghm, dlogh_detam, dlogh_dnum);
@@ -259,7 +259,7 @@ typename VarDP<Model>::Distribution SDADP<Model>::mergeDistributions(typename Va
 				out.eta.row(matchings[i]) -= prior.eta.row(matchings[i]);
 				out.nu(matchings[i]) -= prior.nu(matchings[i]);
 			} else {
-				out.eta.row(matchings[i]) -= model.getEta0();
+				out.eta.row(matchings[i]) -= model.getEta0().transpose();
 				out.nu(matchings[i]) -= model.getNu0();
 			}
 			out.zeta.block(out.zeta.rows()-src.zeta.rows(), matchings[i], src.zeta.rows(), 1) = src.zeta.block(0, i, src.zeta.rows(), 1);
