@@ -4,7 +4,7 @@
 int main(int argc, char** argv){
 	VXd mu = VXd::Zero(2);
 	MXd cov = MXd::Identity(2, 2);
-	MXd pdf = MXd::Zeros(200, 200);
+	MXd pdf = MXd::Zero(200, 200);
 	double dof = 5;
 	for (uint32_t i = 0; i < 200; i++){
 		for (uint32_t j = 0; j < 200; j++){
