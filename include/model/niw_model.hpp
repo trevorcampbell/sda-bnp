@@ -32,7 +32,7 @@ double multivariateTLogLike(VXd x, VXd mu, MXd cov, double dof){
 	for (uint32_t i = 0; i < D; i++){
 		ldet += log(diag(i));
 	}
-	return lgamma( (dof+D)/2.0 ) - lgamma( dof/2.0 ) - D/2.0*log(dof) - D/2*log(M_PI) - 0.5*ldet - (dof+D)/2.0*(1.0+1.0/dof*(x-mu).transpose()*ldlt.solve(x-mu));
+	return lgamma( (dof+D)/2.0 ) - lgamma( dof/2.0 ) - D/2.0*log(dof) - D/2*log(M_PI) - 0.5*ldet - (dof+D)/2.0*log(1.0+1.0/dof*(x-mu).transpose()*ldlt.solve(x-mu));
 }
 
 class NIWModel{
