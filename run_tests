@@ -2,20 +2,20 @@
 
 
 ####TEST 1: Basic DP Test
-#echo "Compiling variational dp test..."
-#g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testdp.cpp -lboost_system -o testdp
-#if [ -e "testdp" ]
-#then
-#    echo "Done compiling, running test..."
-#	./testdp
-#	rm testdp
-#	mkdir dpresults
-#	cp test/dpplot.py dpresults
-#	mv *.log dpresults
-#	echo "Done DP! Go to ./dpresults and run python dpplot.py to visualize the results."
-#else
-#    echo "Error experienced during compilation, test was not run."
-#fi
+echo "Compiling variational dp test..."
+g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testdp.cpp -lboost_system -o testdp
+if [ -e "testdp" ]
+then
+    echo "Done compiling, running test..."
+	./testdp
+	rm testdp
+	mkdir dpresults
+	cp test/dpplot.py dpresults
+	mv *.log dpresults
+	echo "Done DP! Go to ./dpresults and run python dpplot.py to visualize the results."
+else
+    echo "Error experienced during compilation, test was not run."
+fi
 
 ####TEST 2: Basic HDP Test
 #echo "Compiling variational hdp test..."
@@ -96,19 +96,19 @@
 
 
 #TEST 7: NIW Test
-echo "Compiling niw test..."
-g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testniw.cpp -lboost_system -lpthread -o testniw
-
-if [ -e "testniw" ]
-then
-    echo "Done compiling, running test..."
-	./testniw
-	rm testniw
-	mkdir niwresults
-	cp test/niwplot.py niwresults
-	echo "Done testing niw! Go to ./niwresults and run python niwplot.py to visualize the results."
-else
-    echo "Error experienced during compilation, test was not run."
-fi
+#echo "Compiling niw test..."
+#g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testniw.cpp -lboost_system -lpthread -o testniw
+#
+#if [ -e "testniw" ]
+#then
+#    echo "Done compiling, running test..."
+#	./testniw
+#	rm testniw
+#	mkdir niwresults
+#	cp test/niwplot.py niwresults
+#	echo "Done testing niw! Go to ./niwresults and run python niwplot.py to visualize the results."
+#else
+#    echo "Error experienced during compilation, test was not run."
+#fi
 
 
