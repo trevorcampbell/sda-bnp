@@ -104,7 +104,9 @@ then
     echo "Done compiling, running test..."
 	./testniw
 	rm testniw
-	echo "Done testing niw! Go to ./sdadpresults and run python sdadppriorplot.py to visualize the results."
+	mkdir niwresults
+	cp test/niwplot.py niwresults
+	echo "Done testing niw! Go to ./niwresults and run python niwplot.py to visualize the results."
 else
     echo "Error experienced during compilation, test was not run."
 fi
