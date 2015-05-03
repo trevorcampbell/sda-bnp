@@ -388,9 +388,10 @@ double VarDP<Model>::computeTestLogLikelihood(){
 	}
 	weights(K-1) = stick;
 
-	//now loop over all test data and get weighted avg likelihood
+	//now loop over all test data
 	double loglike = 0.0;
 	for(uint32_t i = 0; i < Nt; i++){
+		//get the log likelihoods for all clusters
 		std::vector<double> loglikes;
 		for (uint32_t k = 0; k < K; k++){
 			loglikes.push_back(log(weights(k)) + model.getLogPosteriorPredictive(test_data[i], eta.row(k), nu(k)));
