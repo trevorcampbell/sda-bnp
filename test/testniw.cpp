@@ -1,9 +1,9 @@
-#include <normal_inverse_wishart>
+#include <sdabnp/model/normal_inverse_wishart>
 #include <fstream>
 
 int main(int argc, char** argv){
 	VXd mu = VXd::Zero(2);
-	MXd cov = MXd::Identity(2);
+	MXd cov = MXd::Identity(2, 2);
 	MXd pdf = MXd::Zeros(200, 200);
 	double dof = 5;
 	for (uint32_t i = 0; i < 200; i++){
@@ -15,7 +15,7 @@ int main(int argc, char** argv){
 		}
 	}
 
-	std::ostream fout("test.log");
+	std::ofstream fout("test.log");
 	fout << pdf;
 	fout.close();
 

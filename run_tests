@@ -78,9 +78,8 @@
 
 
 ##TEST 6: SDA DP Test
-echo "Compiling sda dp test..."
+#echo "Compiling sda dp test..."
 #g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testsdadp.cpp -lboost_system -lpthread -o testsdadp
-g++ -std=c++11 -g -I/usr/local/include/eigen3 -I/usr/local/include test/testsdadp.cpp -lboost_system -lpthread -o testsdadp
 #
 #if [ -e "testsdadp" ]
 #then
@@ -94,4 +93,20 @@ g++ -std=c++11 -g -I/usr/local/include/eigen3 -I/usr/local/include test/testsdad
 #else
 #    echo "Error experienced during compilation, test was not run."
 #fi
+
+
+#TEST 7: NIW Test
+echo "Compiling niw test..."
+g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testniw.cpp -lboost_system -lpthread -o testniw
+
+if [ -e "testniw" ]
+then
+    echo "Done compiling, running test..."
+	./testniw
+	rm testniw
+	echo "Done testing niw! Go to ./sdadpresults and run python sdadppriorplot.py to visualize the results."
+else
+    echo "Error experienced during compilation, test was not run."
+fi
+
 
