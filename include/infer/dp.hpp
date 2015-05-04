@@ -24,7 +24,8 @@ class VarDP{
 	public:
 		class Distribution{
 			public:
-				MXd zeta, eta;
+				MXd eta;
+				VXd sumz, logp0;
 				VXd a, b, nu;
 				void save(std::string name);
 		};

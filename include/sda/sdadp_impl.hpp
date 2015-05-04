@@ -103,15 +103,16 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		vdp.run(true);
 	 	dist1 = vdp.getDistribution();
 	 	tr = vdp.getTrace();
+	 	//remove empty new clusters
 	} else { //if there is a prior
 		VarDP<Model> vdp(train_data, test_data, dist0, model, alpha, dist0.a.size()+Knew);
 		vdp.run(true);
 	 	dist1 = vdp.getDistribution();
 	 	tr = vdp.getTrace();
+	 	//remove empty new clusters
 	}
 
-	//lock mutex, store the local trace, get the current distribution, unlock
-	typename VarDP<Model>::Distribution dist2;
+	//lock mutex, store the local trace, merge the minibatch distribution, unlock
 	{
 		std::lock_guard<std::mutex> lock(distmut);
 		//add the result of the job to the multitrace
@@ -119,27 +120,15 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		mtrace.localtimes.push_back(tr.times);
 		mtrace.localobjs.push_back(tr.objs);
 		mtrace.localtestlls.push_back(tr.testlls);
-		//get the distribution at the current point
-		dist2 = dist;
-	} //release the lock
-
-
-	//solve matching between dist1 nd dist2 with prior dist0
-	typename VarDP<Model>::Distribution distm;
-	t0 = timer.get();
-	distm = mergeDistributions(dist1, dist2, dist0);
-	double mergeTime = timer.get()-t0;
-
-	//update the global distribution
-	{
-		std::lock_guard<std::mutex> lock(distmut);
-		mtrace.localmergetimes.push_back(mergeTime);
-		dist = distm;
+		//merge
+		t0 = timer.get(); //reuse t0 -- already stored it above
+		dist = mergeDistributions(dist1, dist, dist0);
+		mtrace.localmergetimes.push_back(timer.get()-t0);
 	} //release the lock
 
 	//compute the test log likelihood of the global model
 	t0 = timer.get();
-	double testll = computeTestLogLikelihood();
+	double testll = computeTestLogLikelihood(); //this function locks dist internally where required
 	//lock mutex, update  with matching, unlock
 	{
 		std::lock_guard<std::mutex> lock(distmut);

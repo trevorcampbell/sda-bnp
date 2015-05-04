@@ -283,7 +283,13 @@ void VarDP<Model>::updateLabelDist(){
 template<class Model>
 typename VarDP<Model>::Distribution VarDP<Model>::getDistribution(){
 	VarDP<Model>::Distribution d;
-	d.zeta = this->zeta;
+	d.sumz = (this->zeta.colwise().sum()).transpose();
+	d.logp0 = (((1.0-this->zeta.array()).log()).colwise().sum()).transpose();
+	for (uint32_t k = 0; k < K; k++){
+		if (d.logp0(k) < -800.0){ //stops numerical issues later on -- approximation is good enough, for all intents and purposes exp(-800) = 0
+			d.logp0(k) = -800.0;
+		}
+	}
 	d.a = this->a;
 	d.b = this->b;
 	d.eta = this->eta;
