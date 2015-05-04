@@ -110,17 +110,19 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 template<class Model>
 void VarDP<Model>::init(){
 	//use kmeans++ to break symmetry in the intiialization
-	std::vector<uint32_t> idces = kmeanspp(train_stats, [this](VXd& x, VXd& y){ return model.naturalParameterDistSquared(x, y); }, K, rng);
+	//outputs K-K0 indices for new cluster initialization
+	//tries to make them different from the first K0 cluster centers as well
+	std::vector<uint32_t> idces = kmeanspp(train_stats, [this](VXd& x, VXd& y){ return model.naturalParameterDistSquared(x, y); }, K, eta0, K0, rng);
 	for (uint32_t k = 0; k < K; k++){
 		//Update the parameters 
 		if (k < K0){
 			for (uint32_t j = 0; j < M; j++){
-	    		eta(k, j) = eta0(k, j)+train_stats(idces[k], j);
+	    		eta(k, j) = eta0(k, j); //+train_stats(idces[k], j);
 	    	}
-			nu(k) = nu0(k) + 1.0;
+			nu(k) = nu0(k); // + 1.0;
 		} else {
 			for (uint32_t j = 0; j < M; j++){
-	    		eta(k, j) = model.getEta0()(j)+train_stats(idces[k], j);
+	    		eta(k, j) = model.getEta0()(j)+train_stats(idces[k-K0], j);
 	    	}
 			nu(k) = model.getNu0() + 1.0;
 		}
