@@ -112,7 +112,7 @@ int main(int argc, char** argv){
 	double xi0 = D+2;
 	NIWModel niw(mu0, kappa0, psi0, xi0);
 	for (uint32_t i = 0; i < Nthr.size(); i++){
-		std::cout << "Running VarDP with " << Nthr[i] < " threads..." << std::endl;
+		std::cout << "Running VarDP with " << Nthr[i] << " threads..." << std::endl;
 		SDADP<NIWModel> sdadp(test_data, niw, alpha, Knew, Nthr[i]);
 		uint32_t Nctr = 0;
 		while(Nctr < N){
