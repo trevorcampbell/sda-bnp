@@ -88,7 +88,7 @@ then
 	mkdir sdadpresults
 	cp test/sdadpplot.py sdadpresults
 	mv *.log sdadpresults
-	echo "Done DP! Go to ./sdadpresults and run python sdadppriorplot.py to visualize the results."
+	echo "Done DP! Go to ./sdadpresults and run python sdadpplot.py to visualize the results."
 else
     echo "Error experienced during compilation, test was not run."
 fi
