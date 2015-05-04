@@ -15,6 +15,19 @@ int main(int argc, char** argv){
 	uint32_t Nmini = 100;
 	uint32_t Nt = 100;
 	uint32_t D = 2;
+	double alpha = 1.0;
+	uint32_t Knew = 3;
+	std::vector<uint32_t> Nthr;
+	Nthr.push_back(1);
+	Nthr.push_back(2);
+	Nthr.push_back(4);
+	Nthr.push_back(8);
+	Nthr.push_back(16);
+	Nthr.push_back(32);
+
+	double minMu = -50.0, maxMu = 50.0;
+	double sigMagnitude =5.0;
+	double pi0 = 0.0;
 
 	std::mt19937 rng;
 	std::random_device rd;
@@ -33,14 +46,14 @@ int main(int argc, char** argv){
 		mus.push_back(VXd::Zero(D));
 		sigs.push_back(MXd::Zero(D, D));
 		for(uint32_t d = 0; d < D; d++){
-			mus.back()(d) = 100.0*unir(rng)-50.0;
+			mus.back()(d) = (maxMu-minMu)*unir(rng) + minMu;
 			for(uint32_t f = 0; f < D; f++){
-				sigs.back()(d, f) = 5.0*unir(rng);
+				sigs.back()(d, f) = sigMagnitude*unir(rng);
 			}
 		}
 		sigs.back() = (sigs.back().transpose()*sigs.back()).eval();//eval to stop aliasing
 		sigsqrts.push_back(Eigen::LLT<MXd, Eigen::Upper>(sigs.back()).matrixL());
-		pis.push_back(unir(rng));
+		pis.push_back(pi0+unir(rng));
 		sumpis += pis.back();
 		//std::cout << "Mu: " << mus.back().transpose() << std::endl << "Sig: " << sigs.back() << std::endl << "Wt: " << pis.back() << std::endl;
 	}
@@ -96,19 +109,21 @@ int main(int argc, char** argv){
 	double kappa0 = 1e-6;
 	double xi0 = D+2;
 	NIWModel niw(mu0, kappa0, psi0, xi0);
-
-	std::cout << "Running VarDP..." << std::endl;
-	SDADP<NIWModel> sdadp (test_data, niw, 1.0, 3, 8);
-	uint32_t Nctr = 0;
-	while(Nctr < N){
-		std::vector<VXd> minibatch;
-		minibatch.insert(minibatch.begin(), train_data.begin()+Nctr, train_data.begin()+Nctr+Nmini);
-		sdadp.submitMinibatch(minibatch);
-		Nctr += Nmini;
+	for (uint32_t i = 0; i < Nthr.size(); i++){
+		std::cout << "Running VarDP with " << Nthr < " threads..." << std::endl;
+		SDADP<NIWModel> sdadp(test_data, niw, alpha, Knew, Nthr[i]);
+		uint32_t Nctr = 0;
+		while(Nctr < N){
+			std::vector<VXd> minibatch;
+			minibatch.insert(minibatch.begin(), train_data.begin()+Nctr, train_data.begin()+Nctr+Nmini);
+			sdadp.submitMinibatch(minibatch);
+			Nctr += Nmini;
+		}
+		sdadp.waitUntilDone();
+		VarDP<NIWModel>::Distribution res = sdadp.getDistribution();
+		std::ostringstream oss;
+		oss << "sdadpmix" << Nthr;
+		res.save(oss.str().c_str());
 	}
-	sdadp.waitUntilDone();
-	VarDP<NIWModel>::Distribution res = sdadp.getDistribution();
-	res.save("sdadpmix");
-
 	return 0;
 }

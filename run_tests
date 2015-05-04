@@ -77,21 +77,21 @@
 #fi
 
 
-##TEST 6: SDA DP Test
-echo "Compiling sda dp test..."
-g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testsdadp.cpp -lboost_system -lpthread -o testsdadp
-if [ -e "testsdadp" ]
-then
-    echo "Done compiling, running test..."
-	./testsdadp
-	rm testsdadp
-	mkdir sdadpresults
-	cp test/sdadpplot.py sdadpresults
-	mv *.log sdadpresults
-	echo "Done DP! Go to ./sdadpresults and run python sdadpplot.py to visualize the results."
-else
-    echo "Error experienced during compilation, test was not run."
-fi
+###TEST 6: SDA DP Test
+#echo "Compiling sda dp test..."
+#g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testsdadp.cpp -lboost_system -lpthread -o testsdadp
+#if [ -e "testsdadp" ]
+#then
+#    echo "Done compiling, running test..."
+#	./testsdadp
+#	rm testsdadp
+#	mkdir sdadpresults
+#	cp test/sdadpplot.py sdadpresults
+#	mv *.log sdadpresults
+#	echo "Done DP! Go to ./sdadpresults and run python sdadpplot.py to visualize the results."
+#else
+#    echo "Error experienced during compilation, test was not run."
+#fi
 
 
 #TEST 7: NIW Test
@@ -109,5 +109,21 @@ fi
 #else
 #    echo "Error experienced during compilation, test was not run."
 #fi
+
+##TEST 8: SDA DP Evaluation
+echo "Compiling sda dp eval..."
+g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/evalsda.cpp -lboost_system -lpthread -o evalsda
+if [ -e "evalsda" ]
+then
+    echo "Done compiling, running test..."
+	./evalsda
+	rm evalsda
+	mkdir sdaresults
+	cp test/evalsdaplot.py sdaresults
+	mv *.log sdaresults
+	echo "Done DP! Go to ./sdaresults and run python evalsdaplot.py to visualize the results."
+else
+    echo "Error experienced during compilation, test was not run."
+fi
 
 
