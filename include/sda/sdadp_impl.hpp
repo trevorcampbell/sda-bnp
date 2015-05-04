@@ -190,11 +190,13 @@ typename VarDP<Model>::Distribution SDADP<Model>::mergeDistributions(typename Va
 		//new components were created in src, but dest is still the same size as prior
 		//just do the merge directly
 		out = src;
-		out.eta.block(0, 0, Kd, out.eta.cols()) += dest.eta - prior.eta;
-		out.nu.head(Kd) += dest.nu - prior.nu;
-		out.zeta.conservativeResize(out.zeta.rows()+dest.zeta.rows(), Eigen::NoChange);
-		out.zeta.block(out.zeta.rows()-dest.zeta.rows(), 0, dest.zeta.rows(), out.zeta.cols()) = Eigen::MatrixXd::Zero(dest.zeta.rows(), out.zeta.cols());
-		out.zeta.block(out.zeta.rows()-dest.zeta.rows(), 0, dest.zeta.rows(), dest.zeta.cols()) = dest.zeta;
+		if (Kp > 0){
+			out.eta.block(0, 0, Kd, out.eta.cols()) += dest.eta - prior.eta;
+			out.nu.head(Kd) += dest.nu - prior.nu;
+			out.zeta.conservativeResize(out.zeta.rows()+dest.zeta.rows(), Eigen::NoChange);
+			out.zeta.block(out.zeta.rows()-dest.zeta.rows(), 0, dest.zeta.rows(), out.zeta.cols()) = Eigen::MatrixXd::Zero(dest.zeta.rows(), out.zeta.cols());
+			out.zeta.block(out.zeta.rows()-dest.zeta.rows(), 0, dest.zeta.rows(), dest.zeta.cols()) = dest.zeta;
+		}
 		VXd sumz = VXd::Zero(out.eta.rows());
 		for (uint32_t k = 0; k < out.eta.rows(); k++){
 			sumz(k) = out.zeta.col(k).sum();
@@ -297,8 +299,10 @@ typename VarDP<Model>::Distribution SDADP<Model>::mergeDistributions(typename Va
 
 		out = dest;
 		//merge the first Kp elements directly (no matchings)
-		out.eta.block(0, 0, Kp, out.eta.cols()) += src.eta.block(0, 0, Kp, src.eta.cols()) - prior.eta;
-		out.nu.head(Ks) += src.nu.head(Kp) - prior.nu;
+		if (Kp > 0){ //if dest + src both have elements, but their common prior is empty this can happen
+			out.eta.block(0, 0, Kp, out.eta.cols()) += src.eta.block(0, 0, Kp, src.eta.cols()) - prior.eta;
+			out.nu.head(Ks) += src.nu.head(Kp) - prior.nu;
+		}
 		out.zeta.conservativeResize(out.zeta.rows()+src.zeta.rows(), Eigen::NoChange);
 		out.zeta.block(out.zeta.rows()-src.zeta.rows(), 0, src.zeta.rows(), out.zeta.cols()) = MXd::Zero(src.zeta.rows(), out.zeta.cols());
 		out.zeta.block(out.zeta.rows()-src.zeta.rows(), 0, src.zeta.rows(), Kp) = src.zeta.block(0, 0, src.zeta.rows(), Kp);
