@@ -2,6 +2,8 @@
 #include <sdabnp/model/normal_inverse_wishart>
 #include <Eigen/Dense>
 #include <random>
+#include <iostream>
+#include <sstream>
 
 typedef Eigen::MatrixXd MXd;
 typedef Eigen::VectorXd VXd;
@@ -110,7 +112,7 @@ int main(int argc, char** argv){
 	double xi0 = D+2;
 	NIWModel niw(mu0, kappa0, psi0, xi0);
 	for (uint32_t i = 0; i < Nthr.size(); i++){
-		std::cout << "Running VarDP with " << Nthr < " threads..." << std::endl;
+		std::cout << "Running VarDP with " << Nthr[i] < " threads..." << std::endl;
 		SDADP<NIWModel> sdadp(test_data, niw, alpha, Knew, Nthr[i]);
 		uint32_t Nctr = 0;
 		while(Nctr < N){
@@ -122,7 +124,7 @@ int main(int argc, char** argv){
 		sdadp.waitUntilDone();
 		VarDP<NIWModel>::Distribution res = sdadp.getDistribution();
 		std::ostringstream oss;
-		oss << "sdadpmix" << Nthr;
+		oss << "sdadpmix" << Nthr[i];
 		res.save(oss.str().c_str());
 	}
 	return 0;
