@@ -2,20 +2,20 @@
 
 
 ####TEST 1: Basic DP Test
-echo "Compiling variational dp test..."
-g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testdp.cpp -lboost_system -o testdp
-if [ -e "testdp" ]
-then
-    echo "Done compiling, running test..."
-	./testdp
-	rm testdp
-	mkdir dpresults
-	cp test/dpplot.py dpresults
-	mv *.log dpresults
-	echo "Done DP! Go to ./dpresults and run python dpplot.py to visualize the results."
-else
-    echo "Error experienced during compilation, test was not run."
-fi
+#echo "Compiling variational dp test..."
+#g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testdp.cpp -lboost_system -o testdp
+#if [ -e "testdp" ]
+#then
+#    echo "Done compiling, running test..."
+#	./testdp
+#	rm testdp
+#	mkdir dpresults
+#	cp test/dpplot.py dpresults
+#	mv *.log dpresults
+#	echo "Done DP! Go to ./dpresults and run python dpplot.py to visualize the results."
+#else
+#    echo "Error experienced during compilation, test was not run."
+#fi
 
 ####TEST 2: Basic HDP Test
 #echo "Compiling variational hdp test..."
@@ -78,21 +78,20 @@ fi
 
 
 ##TEST 6: SDA DP Test
-#echo "Compiling sda dp test..."
-#g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testsdadp.cpp -lboost_system -lpthread -o testsdadp
-#
-#if [ -e "testsdadp" ]
-#then
-#    echo "Done compiling, running test..."
-#	./testsdadp
-#	rm testsdadp
-#	mkdir sdadpresults
-#	cp test/sdadppriorplot.py sdadpresults
-#	mv *.log sdadpresults
-#	echo "Done DP! Go to ./sdadpresults and run python sdadppriorplot.py to visualize the results."
-#else
-#    echo "Error experienced during compilation, test was not run."
-#fi
+echo "Compiling sda dp test..."
+g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/testsdadp.cpp -lboost_system -lpthread -o testsdadp
+if [ -e "testsdadp" ]
+then
+    echo "Done compiling, running test..."
+	./testsdadp
+	rm testsdadp
+	mkdir sdadpresults
+	cp test/sdadpplot.py sdadpresults
+	mv *.log sdadpresults
+	echo "Done DP! Go to ./sdadpresults and run python sdadppriorplot.py to visualize the results."
+else
+    echo "Error experienced during compilation, test was not run."
+fi
 
 
 #TEST 7: NIW Test
