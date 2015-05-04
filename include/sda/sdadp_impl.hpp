@@ -126,7 +126,7 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 
 	//solve matching between dist1 nd dist2 with prior dist0
 	typename VarDP<Model>::Distribution distm;
-	distm = mergeDistributions(dist2, dist1, dist0);
+	distm = mergeDistributions(dist1, dist2, dist0);
 
 	//update the global distribution
 	{
@@ -154,138 +154,176 @@ typename VarDP<Model>::Distribution SDADP<Model>::mergeDistributions(typename Va
 	uint32_t Kp = prior.a.size();
 	uint32_t Ks = src.a.size();
 	uint32_t Kd = dest.a.size();
-
-	MXd costs = MXd::Zero(Ks+Kd, Ks+Kd);
-	MXi costsi = MXi::Zero(Ks+Kd, Ks+Kd);
-
-	//compute logp0 and Enk for d1 and d2
-	VXd logp0s = VXd::Zero(Ks);
-	VXd logp0d = VXd::Zero(Kd);
-	VXd Enks = VXd::Zero(Ks);
-	VXd Enkd = VXd::Zero(Kd);
-
-	for (uint32_t k = 0; k < Ks; k++){
-		Enks(k) = src.zeta.col(k).sum();
-		for (uint32_t j = 0; j < src.zeta.rows(); j++){
-			logp0s(k) += log(1.0-src.zeta(j, k));
+	typename VarDP<Model>::Distribution out;
+	assert(Kd >= Kp && Ks >= Kp);
+	if (Ks == Kp){
+		//no new components created; just do the merge directly
+		//match the first Ks elements (one for each src component) to the dest
+		out = dest;
+		out.eta.block(0, 0, Ks, out.eta.cols()) += src.eta - prior.eta;
+		out.nu.head(Ks) += src.nu - prior.nu;
+		out.zeta.conservativeResize(out.zeta.rows()+src.zeta.rows(), Eigen::NoChange);
+		out.zeta.block(out.zeta.rows()-src.zeta.rows(), 0, src.zeta.rows(), out.zeta.cols()) = Eigen::MatrixXd::Zero(src.zeta.rows(), out.zeta.cols());
+		out.zeta.block(out.zeta.rows()-src.zeta.rows(), 0, src.zeta.rows(), src.zeta.cols()) = src.zeta;
+		VXd sumz = VXd::Zero(out.eta.rows());
+		for (uint32_t k = 0; k < out.eta.rows(); k++){
+			sumz(k) = out.zeta.col(k).sum();
 		}
-		if (logp0s(k) < -800.0){
-			logp0s(k) = -800.0;
-		}
-	}
-	for (uint32_t k = 0; k < Kd; k++){
-		Enkd(k) = dest.zeta.col(k).sum();
-		for (uint32_t j = 0; j < dest.zeta.rows(); j++){
-			logp0d(k) += log(1.0-dest.zeta(j, k));
-		}
-		if (logp0d(k) < -800.0){
-			logp0d(k) = -800.0;
-		}
-	}
-
-	//compute costs
-	MXd etam = MXd::Zero(1, model.getEta0().size());
-	VXd num = VXd::Zero(1);
-	VXd loghm = num;
-	VXd dlogh_dnum = num;
-	MXd dlogh_detam = etam;
-	for (uint32_t i = 0; i < Ks; i++){
-		//compute costs in the 1-2 block and fill in the 1-0 block
-		for (uint32_t j = 0; j < Kd; j++){
-			etam = src.eta.row(i) + dest.eta.row(j);
-			num(0) = src.nu(i) + dest.nu(j);
-			if (j < Kp){
-				etam -= prior.eta.row(j);
-				num(0) -= prior.nu(j);
-			} else {
-				etam -= model.getEta0().transpose();
-				num(0) -= model.getNu0();
+		for (uint32_t k = 0; k < out.eta.rows(); k++){
+			out.a(k) = 1.0 + sumz(k);
+			out.b(k) = alpha;
+			for (uint32_t j = k+1; j < out.eta.rows(); j++){
+				out.b(k) += sumz(j);
 			}
+		}
+	} else if (Kd == Kp) {
+		//new components were created in src, but dest is still the same size as prior
+		//just do the merge directly
+		out = src;
+		out.eta.block(0, 0, Kd, out.eta.cols()) += dest.eta - prior.eta;
+		out.nu.head(Kd) += dest.nu - prior.nu;
+		out.zeta.conservativeResize(out.zeta.rows()+dest.zeta.rows(), Eigen::NoChange);
+		out.zeta.block(out.zeta.rows()-dest.zeta.rows(), 0, dest.zeta.rows(), out.zeta.cols()) = Eigen::MatrixXd::Zero(dest.zeta.rows(), out.zeta.cols());
+		out.zeta.block(out.zeta.rows()-dest.zeta.rows(), 0, dest.zeta.rows(), dest.zeta.cols()) = dest.zeta;
+		VXd sumz = VXd::Zero(out.eta.rows());
+		for (uint32_t k = 0; k < out.eta.rows(); k++){
+			sumz(k) = out.zeta.col(k).sum();
+		}
+		for (uint32_t k = 0; k < out.eta.rows(); k++){
+			out.a(k) = 1.0 + sumz(k);
+			out.b(k) = alpha;
+			for (uint32_t j = k+1; j < out.eta.rows(); j++){
+				out.b(k) += sumz(j);
+			}
+		}
+	} else {
+		uint32_t Ksp = Ks-Kp;
+		uint32_t Kdp = Kd-Kp;
+		//new components were created in both dest and src -- need to solve a matching
+		MXd costs = MXd::Zero(Ksp+Kdp, Ksp+Kdp);
+		MXi costsi = MXi::Zero(Ksp+Kdp, Ksp+Kdp);
+
+		//compute logp0 and Enk for d1 and d2
+		VXd logp0s = VXd::Zero(Ksp);
+		VXd logp0d = VXd::Zero(Kdp);
+		VXd Enks = VXd::Zero(Ksp);
+		VXd Enkd = VXd::Zero(Kdp);
+
+		for (uint32_t k = 0; k < Ksp; k++){
+			Enks(k) = src.zeta.col(Kp+k).sum();
+			for (uint32_t j = 0; j < src.zeta.rows(); j++){
+				logp0s(k) += log(1.0-src.zeta(j, Kp+k));
+			}
+			if (logp0s(k) < -800.0){
+				logp0s(k) = -800.0;
+			}
+		}
+		for (uint32_t k = 0; k < Kdp; k++){
+			Enkd(k) = dest.zeta.col(Kp+k).sum();
+			for (uint32_t j = 0; j < dest.zeta.rows(); j++){
+				logp0d(k) += log(1.0-dest.zeta(j, Kp+k));
+			}
+			if (logp0d(k) < -800.0){
+				logp0d(k) = -800.0;
+			}
+		}
+
+		//compute costs
+		MXd etam = MXd::Zero(1, model.getEta0().size());
+		VXd num = VXd::Zero(1);
+		VXd loghm = num;
+		VXd dlogh_dnum = num;
+		MXd dlogh_detam = etam;
+		for (uint32_t i = 0; i < Ksp; i++){
+			//compute costs in the 1-2 block and fill in the 1-0 block
+			for (uint32_t j = 0; j < Kdp; j++){
+				etam = src.eta.row(Kp+i) + dest.eta.row(Kp+j) - model.getEta0().transpose();
+				num(0) = src.nu(Kp+i) + dest.nu(Kp+j) - model.getNu0();
+				model.getLogH(etam, num, loghm, dlogh_detam, dlogh_dnum);
+				costs(i, j) = loghm(0) - log(alpha)*(1.0-exp(logp0s(i)+logp0d(j))) - lgamma(Enks(i)+Enkd(j));
+			}
+			//compute costs in the 1-0 block
+			etam = src.eta.row(Kp+i);
+			num(0) = src.nu(Kp+i);
 			model.getLogH(etam, num, loghm, dlogh_detam, dlogh_dnum);
-			costs(i, j) = loghm(0) - log(alpha)*(1.0-exp(logp0s(i)+logp0d(j))) - lgamma(Enks(i)+Enkd(j));
-		}
-		//compute costs in the 1-0 block
-		etam = src.eta.row(i);
-		num(0) = src.nu(i);
-		model.getLogH(etam, num, loghm, dlogh_detam, dlogh_dnum);
-		double c10 = loghm(0) - log(alpha)*(1.0-exp(logp0s(i))) - lgamma(Enks(i));
-		for (uint32_t j = Kd; j < Ks+Kd; j++){
-			costs(i, j) = c10;
-		}
-	}
-
-	//compute costs in the 2-0 block
-	for (uint32_t j = 0; j < Kd; j++){
-		etam = dest.eta.row(j);
-		num(0) = dest.nu(j);
-		model.getLogH(etam, num, loghm, dlogh_detam, dlogh_dnum);
-		double c20 = loghm(0) - log(alpha)*(1.0-exp(logp0d(j))) - lgamma(Enkd(j));
-		for (uint32_t i = Ks; i < Ks+Kd; i++){
-			costs(i, j) = c20;
-		}
-	}
-
-	//the 0-0 block is a constant
-	for (uint32_t i = Ks; i < Ks+Kd; i++){
-		for (uint32_t j = Kd; j < Ks+Kd; j++){
-			costs(i, j) = model.getLogH0();
-		}
-	}
-
-	//now all costs have been computed, and max/min are known
-	//subtract off the minimum from everything and remap to integers between 0 and INT_MAX/1000 
-	double mincost = costs.minCoeff();
-	double maxcost = costs.minCoeff();
-	maxcost -= mincost;
-	double fctr = ((double)INT_MAX/1000.0)/maxcost;
-	for (uint32_t i = 0; i < Ks+Kd; i++){
-		for (uint32_t j = 0; j < Ks+Kd; j++){
-			costsi(i, j) = (int)(fctr*(costs(i, j) - mincost));
-		}
-	}
-
-	std::vector<int> matchings;
-	int cost = hungarian(costsi, matchings);
-
-	typename VarDP<Model>::Distribution out = dest;
-
-	//match the first Ks elements (one for each src component) to the dest
-	out.zeta.conservativeResize(out.zeta.rows()+src.zeta.rows(), Eigen::NoChange);
-	for (uint32_t i = 0; i < Ks; i++){
-		if (matchings[i] < Kd){
-			out.eta.row(matchings[i]) += src.eta.row(i);
-			out.nu(matchings[i]) += src.nu(i);
-			if (matchings[i] < Kp){
-				out.eta.row(matchings[i]) -= prior.eta.row(matchings[i]);
-				out.nu(matchings[i]) -= prior.nu(matchings[i]);
-			} else {
-				out.eta.row(matchings[i]) -= model.getEta0().transpose();
-				out.nu(matchings[i]) -= model.getNu0();
+			double c10 = loghm(0) - log(alpha)*(1.0-exp(logp0s(i))) - lgamma(Enks(i));
+			for (uint32_t j = Kdp; j < Ksp+Kdp; j++){
+				costs(i, j) = c10;
 			}
-			out.zeta.block(out.zeta.rows()-src.zeta.rows(), matchings[i], src.zeta.rows(), 1) = src.zeta.block(0, i, src.zeta.rows(), 1);
-		} else {
-			out.eta.conservativeResize(out.eta.rows()+1, Eigen::NoChange);
-			out.eta.row(out.eta.rows()-1) = src.eta.row(i);
-			out.nu.conservativeResize(out.nu.size()+1);
-			out.nu(out.nu.size()-1) = src.nu(i);
-			out.zeta.conservativeResize(Eigen::NoChange, out.zeta.cols()+1);
-			out.zeta.block(out.zeta.rows()-src.zeta.rows(), out.zeta.cols()-1, src.zeta.rows(), 1) = src.zeta.block(0, i, src.zeta.rows(), 1);
 		}
-	}
-	out.a.resize(out.eta.rows());
-	out.b.resize(out.eta.rows());
-	VXd sumz = VXd::Zero(out.eta.rows());
-	for (uint32_t k = 0; k < out.eta.rows(); k++){
-		sumz(k) = out.zeta.col(k).sum();
-	}
-	for (uint32_t k = 0; k < out.eta.rows(); k++){
-		out.a(k) = 1.0 + sumz(k);
-		out.b(k) = alpha;
-		for (uint32_t j = k+1; j < out.eta.rows(); j++){
-			out.b(k) += sumz(j);
-		}
-	}
 
+		//compute costs in the 2-0 block
+		for (uint32_t j = 0; j < Kdp; j++){
+			etam = dest.eta.row(Kp+j);
+			num(0) = dest.nu(Kp+j);
+			model.getLogH(etam, num, loghm, dlogh_detam, dlogh_dnum);
+			double c20 = loghm(0) - log(alpha)*(1.0-exp(logp0d(j))) - lgamma(Enkd(j));
+			for (uint32_t i = Ksp; i < Ksp+Kdp; i++){
+				costs(i, j) = c20;
+			}
+		}
+
+		//the 0-0 block is a constant
+		for (uint32_t i = Ksp; i < Ksp+Kdp; i++){
+			for (uint32_t j = Kdp; j < Ksp+Kdp; j++){
+				costs(i, j) = model.getLogH0();
+			}
+		}
+
+		//now all costs have been computed, and max/min are known
+		//subtract off the minimum from everything and remap to integers between 0 and INT_MAX/1000 
+		double mincost = costs.minCoeff();
+		double maxcost = costs.minCoeff();
+		maxcost -= mincost;
+		double fctr = ((double)INT_MAX/1000.0)/maxcost;
+		for (uint32_t i = 0; i < Ksp+Kdp; i++){
+			for (uint32_t j = 0; j < Ksp+Kdp; j++){
+				costsi(i, j) = (int)(fctr*(costs(i, j) - mincost));
+			}
+		}
+
+		std::vector<int> matchings;
+		int cost = hungarian(costsi, matchings);
+
+		out = dest;
+		//merge the first Kp elements directly (no matchings)
+		out.eta.block(0, 0, Kp, out.eta.cols()) += src.eta.block(0, 0, Kp, src.eta.cols()) - prior.eta;
+		out.nu.head(Ks) += src.nu.head(Kp) - prior.nu;
+		out.zeta.conservativeResize(out.zeta.rows()+src.zeta.rows(), Eigen::NoChange);
+		out.zeta.block(out.zeta.rows()-src.zeta.rows(), 0, src.zeta.rows(), out.zeta.cols()) = MXd::Zero(src.zeta.rows(), out.zeta.cols());
+		out.zeta.block(out.zeta.rows()-src.zeta.rows(), 0, src.zeta.rows(), Kp) = src.zeta.block(0, 0, src.zeta.rows(), Kp);
+
+		//merge the last Ksp elements using the matchings
+		for (uint32_t i = Kp; i < Ks; i++){
+			uint32_t toIdx = Kp+matchings[i-Kp];
+			if (toIdx < Kd){
+				out.eta.row(toIdx) += src.eta.row(i) - model.getEta0().transpose();
+				out.nu(toIdx) += src.nu(i) - model.getNu0();
+				out.zeta.block(out.zeta.rows()-src.zeta.rows(), toIdx, src.zeta.rows(), 1) = src.zeta.block(0, i, src.zeta.rows(), 1);
+			} else {
+				out.eta.conservativeResize(out.eta.rows()+1, Eigen::NoChange);
+				out.eta.row(out.eta.rows()-1) = src.eta.row(i);
+				out.nu.conservativeResize(out.nu.size()+1);
+				out.nu(out.nu.size()-1) = src.nu(i);
+				out.zeta.conservativeResize(Eigen::NoChange, out.zeta.cols()+1);
+				out.zeta.block(0, out.zeta.cols()-1, out.zeta.rows(), 1) = MXd::Zero(out.zeta.rows(), 1);
+				out.zeta.block(out.zeta.rows()-src.zeta.rows(), out.zeta.cols()-1, src.zeta.rows(), 1) = src.zeta.block(0, i, src.zeta.rows(), 1);
+			}
+		}
+		out.a.resize(out.eta.rows());
+		out.b.resize(out.eta.rows());
+		VXd sumz = VXd::Zero(out.eta.rows());
+		for (uint32_t k = 0; k < out.eta.rows(); k++){
+			sumz(k) = out.zeta.col(k).sum();
+		}
+		for (uint32_t k = 0; k < out.eta.rows(); k++){
+			out.a(k) = 1.0 + sumz(k);
+			out.b(k) = alpha;
+			for (uint32_t j = k+1; j < out.eta.rows(); j++){
+				out.b(k) += sumz(j);
+			}
+		}
+	}
 	return out;
 }
 
