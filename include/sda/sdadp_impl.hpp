@@ -126,11 +126,14 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 
 	//solve matching between dist1 nd dist2 with prior dist0
 	typename VarDP<Model>::Distribution distm;
+	t0 = timer.get();
 	distm = mergeDistributions(dist1, dist2, dist0);
+	double mergeTime = timer.get()-t0;
 
 	//update the global distribution
 	{
 		std::lock_guard<std::mutex> lock(distmut);
+		mtrace.localmergetimes.push_back(mergetime);
 		dist = distm;
 	} //release the lock
 
