@@ -45,7 +45,7 @@
 #	mkdir dpresults
 #	cp test/dppriorplot.py dpresults
 #	mv *.log dpresults
-#	echo "Done DP! Go to ./dpresults and run python dppriorplot.py to visualize the results."
+#	echo "Done DP nonstandard prior! Go to ./dpresults and run python dppriorplot.py to visualize the results."
 #else
 #    echo "Error experienced during compilation, test was not run."
 #fi
@@ -88,7 +88,7 @@
 #	mkdir sdadpresults
 #	cp test/sdadpplot.py sdadpresults
 #	mv *.log sdadpresults
-#	echo "Done DP! Go to ./sdadpresults and run python sdadpplot.py to visualize the results."
+#	echo "Done SDA DP! Go to ./sdadpresults and run python sdadpplot.py to visualize the results."
 #else
 #    echo "Error experienced during compilation, test was not run."
 #fi
@@ -113,7 +113,6 @@
 ##TEST 8: SDA DP Evaluation
 echo "Compiling sda dp eval..."
 g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/evalsda.cpp -lboost_system -lpthread -o evalsda
-###g++ -std=c++11 -g -I/usr/local/include/eigen3 -I/usr/local/include test/evalsda.cpp -lboost_system -lpthread -o evalsda
 if [ -e "evalsda" ]
 then
     echo "Done compiling, running test..."
@@ -122,7 +121,7 @@ then
 	mkdir sdaresults
 	cp test/evalsdaplot.py sdaresults
 	mv *.log sdaresults
-	echo "Done DP! Go to ./sdaresults and run python evalsdaplot.py to visualize the results."
+	echo "Done SDA DP Evaluation! Go to ./sdaresults and run python evalsdaplot.py to visualize the results."
 else
     echo "Error experienced during compilation, test was not run."
 fi
