@@ -4,6 +4,7 @@ template<class Model>
 SDADP<Model>::SDADP(const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t Knew, uint32_t nthr):
 test_data(test_data), model(model), alpha(alpha), Knew(Knew), pool(nthr){
 	timer.start(); //start the clock -- used for tracking performance
+	dist.K = 0;
 }
 
 template<class Model>

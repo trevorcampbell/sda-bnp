@@ -7,7 +7,6 @@ VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& 
 	Nt = test_data.size();
 	K0 = 0; // no nonstandard prior components
 
-
 	//compute exponential family statistics once
 	train_stats = MXd::Zero(N, M);
 	for (uint32_t i = 0; i < N; i++){
