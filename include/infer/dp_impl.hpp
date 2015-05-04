@@ -30,7 +30,7 @@ VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& 
 	M = this->model.getStatDimension();
 	N = train_data.size();
 	Nt = test_data.size();
-	K0 = prior.a.size();
+	K0 = prior.K;
 
 
 	//compute exponential family statistics once
@@ -290,6 +290,7 @@ typename VarDP<Model>::Distribution VarDP<Model>::getDistribution(){
 			d.logp0(k) = -800.0;
 		}
 	}
+	d.K = this->K;
 	d.a = this->a;
 	d.b = this->b;
 	d.eta = this->eta;
@@ -426,9 +427,14 @@ double boost_lbeta(double a, double b){
 
 template<class Model>
 void VarDP<Model>::Distribution::save(std::string name){
-	std::ofstream out_z(name+"-zeta.log", std::ios_base::trunc);
-	out_z << zeta;
+	std::ofstream out_z(name+"-sumz.log", std::ios_base::trunc);
+	out_z << sumz;
 	out_z.close();
+
+	std::ofstream out_lp(name+"-logp0.log", std::ios_base::trunc);
+	out_lp << logp0;
+	out_lp.close();
+
 
 	std::ofstream out_e(name+"-eta.log", std::ios_base::trunc);
 	out_e << eta;

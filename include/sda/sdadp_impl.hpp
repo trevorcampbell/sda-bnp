@@ -45,7 +45,7 @@ double SDADP<Model>::computeTestLogLikelihood(){
 		dist0 = dist;
 	} //release the lock
 
-	uint32_t K = dist0.eta.rows();
+	uint32_t K = dist0.K;
 	uint32_t Nt = test_data.size();
 
 	if (Nt == 0){
@@ -87,6 +87,10 @@ double SDADP<Model>::computeTestLogLikelihood(){
 template<class Model>
 void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 
+	if (train_data.size() == 0){
+		return;
+	}
+
 	//lock the mutex, get the distribution, unlock
 	typename VarDP<Model>::Distribution dist0;
 	{
@@ -98,23 +102,54 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 	typename VarDP<Model>::Distribution dist1;
 	Trace tr;
 	double t0 = timer.get();
-	if(dist0.a.size() == 0){ //if there is no prior to work off of
+	if(dist0.K == 0){ //if there is no prior to work off of
 		VarDP<Model> vdp(train_data, test_data, model, alpha, Knew);
 		vdp.run(true);
 	 	dist1 = vdp.getDistribution();
 	 	tr = vdp.getTrace();
-	 	//remove empty new clusters
 	} else { //if there is a prior
-		VarDP<Model> vdp(train_data, test_data, dist0, model, alpha, dist0.a.size()+Knew);
+		VarDP<Model> vdp(train_data, test_data, dist0, model, alpha, dist0.K+Knew);
 		vdp.run(true);
 	 	dist1 = vdp.getDistribution();
 	 	tr = vdp.getTrace();
-	 	//remove empty new clusters
+	}
+	//remove empty clusters
+	for (uint32_t k = dist0.K; k < dist1.K; k++){
+		if (dist1.sumz(k) < 1.0 && k < dist1.K-1){
+			dist1.sumz.segment(k, dist1.K-(k+1)) = (dist1.sumz.segment(k+1, dist1.K-(k+1))).eval(); //eval stops aliasing
+			dist1.sumz.conservativeResize(dist1.K-1);
+			dist1.logp0.segment(k, dist1.K-(k+1)) = (dist1.logp0.segment(k+1, dist1.K-(k+1))).eval(); //eval stops aliasing
+			dist1.logp0.conservativeResize(dist1.K-1);
+			dist1.nu.segment(k, dist1.K-(k+1)) = (dist1.nu.segment(k+1, dist1.K-(k+1))).eval(); //eval stops aliasing
+			dist1.nu.conservativeResize(dist1.K-1);
+			dist1.a.segment(k, dist1.K-(k+1)) = (dist1.a.segment(k+1, dist1.K-(k+1))).eval(); //eval stops aliasing
+			dist1.a.conservativeResize(dist1.K-1);
+			dist1.b.segment(k, dist1.K-(k+1)) = (dist1.b.segment(k+1, dist1.K-(k+1))).eval(); //eval stops aliasing
+			dist1.b.conservativeResize(dist1.K-1);
+			dist1.eta.block(k, 0, dist1.K-(k+1), dist1.eta.cols()) = (dist1.eta.block(k+1, 0, dist1.K-(k+1), dist1.eta.cols())).eval();
+			dist1.eta.conservativeResize(dist1.K-1, Eigen::NoChange);
+			dist1.K--;
+			k--;
+		} else if (dist1.sumz(k) < 1.0){ //just knock off the end
+			dist1.sumz.conservativeResize(dist1.K-1);
+			dist1.logp0.conservativeResize(dist1.K-1);
+			dist1.nu.conservativeResize(dist1.K-1);
+			dist1.a.conservativeResize(dist1.K-1);
+			dist1.b.conservativeResize(dist1.K-1);
+			dist1.eta.conservativeResize(dist1.K-1, Eigen::NoChange);
+			dist1.K--;
+			k--;
+		}
+	}
+	if(dist1.K == 0){//if removing empty clusters destroyed all of them, just quit
+		return;
 	}
 
 	//lock mutex, store the local trace, merge the minibatch distribution, unlock
+	typename VarDP<Model>::Distribution dist2; //dist2 is used to check if a matching was solved later
 	{
 		std::lock_guard<std::mutex> lock(distmut);
+		dist2 = dist;
 		//add the result of the job to the multitrace
 		mtrace.localstarttimes.push_back(t0);
 		mtrace.localtimes.push_back(tr.times);
@@ -139,7 +174,7 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 			mtrace.globalmatchings.push_back(0); // the first merge never needs to do a matching since all components are new
 		} else {
 			uint32_t nm = mtrace.globalmatchings.back();
-			if (dist1.eta.rows() > dist0.eta.rows() && dist2.eta.rows() > dist0.eta.rows()){
+			if (dist1.K > dist0.K && dist2.K > dist0.K){
 				mtrace.globalmatchings.push_back(nm+1);
 			} else {
 				mtrace.globalmatchings.push_back(nm);

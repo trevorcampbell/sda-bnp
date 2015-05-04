@@ -24,6 +24,7 @@ class VarDP{
 	public:
 		class Distribution{
 			public:
+				uint32_t K;
 				MXd eta;
 				VXd sumz, logp0;
 				VXd a, b, nu;
