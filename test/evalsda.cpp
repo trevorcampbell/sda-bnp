@@ -2,6 +2,7 @@
 #include <sdabnp/model/normal_inverse_wishart>
 #include <Eigen/Dense>
 #include <random>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 
@@ -68,7 +69,7 @@ int main(int argc, char** argv){
 
 		//output the generating model
 		std::ostringstream oss1;
-		oss1 << setfill('0') << setw(3) << "model-" << nMC << ".log";
+		oss1 << "model-" << std::setw(3) << std::setfill('0')<< nMC << ".log";
 		std::ofstream mout(oss1.str().c_str());
 		for (uint32_t k = 0; k < K; k++){
 			mout << mus[k].transpose() << " ";
@@ -85,8 +86,8 @@ int main(int argc, char** argv){
 		std::normal_distribution<> nrm;
 		std::discrete_distribution<> disc(pis.begin(), pis.end());
 		std::ostringstream oss2, oss3;
-		oss2 << setfill('0') << setw(3) << "train-" << nMC << ".log";
-		oss3 << setfill('0') << setw(3) << "test-" << nMC << ".log";
+		oss2  << "train-" << std::setfill('0') << std::setw(3) << nMC << ".log";
+		oss3  << "test-"  << std::setfill('0') << std::setw(3) << nMC << ".log";
 		std::ofstream trout(oss2.str().c_str());
 		std::ofstream teout(oss3.str().c_str());
 		std::cout << "Sampling training/test data" << std::endl;
@@ -130,10 +131,10 @@ int main(int argc, char** argv){
 				Nctr += Nmini;
 			}
 			sdadp.waitUntilDone();
-			VarDP<NIWModel>::Distribution res = sdadp.getDistribution();
 			std::ostringstream oss;
-			oss << setfill('0') << setw(3) << "sdadpmix-nThr_" << Nthr[i] << "-" << nMC << ".log";
-			res.save(oss.str().c_str());
+			oss  << "sdadpmix-nThr_" << std::setfill('0') << std::setw(3) << Nthr[i] << "-" << std::setfill('0') << std::setw(3) << nMC;
+			sdadp.getDistribution().save(oss.str().c_str());
+			sdadp.getTrace().save(oss.str().c_str());
 		}
 	}
 	return 0;
