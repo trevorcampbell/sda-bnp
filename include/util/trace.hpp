@@ -29,11 +29,14 @@ class Trace{
 class MultiTrace{
 	public:
 		std::vector<double> globaltimes, globaltestlls;
+		std::vector<uint32_t> globalclusters, globalmatchings;
 		std::vector< std::vector<double> > localtimes, localobjs, localtestlls;
 		std::vector<double> localstarttimes;
 		void clear(){
 			globaltimes.clear();
 			globaltestlls.clear();
+			globalclusters.clear();
+			globalmatchings.clear();
 			localtimes.clear();
 			localobjs.clear();
 			localtestlls.clear();
@@ -48,7 +51,7 @@ class MultiTrace{
 			}
 			std::ofstream out_trc(name+"-globaltrace.log", std::ios_base::trunc);
 			for (uint32_t i = 0; i < globaltimes.size(); i++){
-				out_trc << globaltimes[i] << " " << globaltestlls[i] << std::endl;
+				out_trc << globaltimes[i] << " " << globaltestlls[i] << " " << globalclusters[i] << " " << globalmatchings[i] << std::endl;
 			}
 			out_trc.close();
 

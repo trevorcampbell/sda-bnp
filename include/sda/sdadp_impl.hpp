@@ -142,6 +142,13 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		std::lock_guard<std::mutex> lock(distmut);
 		mtrace.globaltimes.push_back(t0);
 		mtrace.globaltestlls.push_back(testll);
+		mtrace.globalclusters.push_back(dist.eta.rows());
+		uint32_t nm = mtrace.globalmatchings.back();
+		if (dist1.eta.rows() > dist0.eta.rows() && dist2.eta.rows() > dist0.eta.rows()){
+			mtrace.globalmatchings.push_back(nm+1);
+		} else {
+			mtrace.globalmatchings.push_back(nm);
+		}
 	} //release the lock
 
 	//done!
