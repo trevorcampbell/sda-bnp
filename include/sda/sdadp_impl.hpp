@@ -189,51 +189,42 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 
 template<class Model>
 typename VarDP<Model>::Distribution SDADP<Model>::mergeDistributions(typename VarDP<Model>::Distribution src, typename VarDP<Model>::Distribution dest, typename VarDP<Model>::Distribution prior){
-	uint32_t Kp = prior.a.size();
-	uint32_t Ks = src.a.size();
-	uint32_t Kd = dest.a.size();
+	uint32_t Kp = prior.K;
+	uint32_t Ks = src.K;
+	uint32_t Kd = dest.K;
+	uint32_t M = dest.eta.cols();
 	typename VarDP<Model>::Distribution out;
 	assert(Kd >= Kp && Ks >= Kp);
 	if (Ks == Kp){
 		//no new components created; just do the merge directly
 		//match the first Ks elements (one for each src component) to the dest
 		out = dest;
-		out.eta.block(0, 0, Ks, out.eta.cols()) += src.eta - prior.eta;
+		out.eta.block(0, 0, Ks, M) += src.eta - prior.eta;
 		out.nu.head(Ks) += src.nu - prior.nu;
-		out.zeta.conservativeResize(out.zeta.rows()+src.zeta.rows(), Eigen::NoChange);
-		out.zeta.block(out.zeta.rows()-src.zeta.rows(), 0, src.zeta.rows(), out.zeta.cols()) = Eigen::MatrixXd::Zero(src.zeta.rows(), out.zeta.cols());
-		out.zeta.block(out.zeta.rows()-src.zeta.rows(), 0, src.zeta.rows(), src.zeta.cols()) = src.zeta;
-		VXd sumz = VXd::Zero(out.eta.rows());
-		for (uint32_t k = 0; k < out.eta.rows(); k++){
-			sumz(k) = out.zeta.col(k).sum();
-		}
-		for (uint32_t k = 0; k < out.eta.rows(); k++){
-			out.a(k) = 1.0 + sumz(k);
+		out.sumz.head(Ks) += src.sumz;
+		out.logp0.head(Ks) += src.logp0;
+		for (uint32_t k = 0; k < Kd; k++){
+			out.a(k) = 1.0 + out.sumz(k);
 			out.b(k) = alpha;
-			for (uint32_t j = k+1; j < out.eta.rows(); j++){
-				out.b(k) += sumz(j);
+			for (uint32_t j = k+1; j < Kd; j++){
+				out.b(k) += out.sumz(j);
 			}
 		}
 	} else if (Kd == Kp) {
 		//new components were created in src, but dest is still the same size as prior
-		//just do the merge directly
+		//just do the merge directly from dest into src
 		out = src;
 		if (Kp > 0){
-			out.eta.block(0, 0, Kd, out.eta.cols()) += dest.eta - prior.eta;
+			out.eta.block(0, 0, Kd, M) += dest.eta - prior.eta;
 			out.nu.head(Kd) += dest.nu - prior.nu;
-			out.zeta.conservativeResize(out.zeta.rows()+dest.zeta.rows(), Eigen::NoChange);
-			out.zeta.block(out.zeta.rows()-dest.zeta.rows(), 0, dest.zeta.rows(), out.zeta.cols()) = Eigen::MatrixXd::Zero(dest.zeta.rows(), out.zeta.cols());
-			out.zeta.block(out.zeta.rows()-dest.zeta.rows(), 0, dest.zeta.rows(), dest.zeta.cols()) = dest.zeta;
+			out.sumz.head(Kd) += dest.sumz-prior.sumz;
+			out.logp0.head(Kd) += dest.logp0-prior.sumz;
 		}
-		VXd sumz = VXd::Zero(out.eta.rows());
-		for (uint32_t k = 0; k < out.eta.rows(); k++){
-			sumz(k) = out.zeta.col(k).sum();
-		}
-		for (uint32_t k = 0; k < out.eta.rows(); k++){
-			out.a(k) = 1.0 + sumz(k);
+		for (uint32_t k = 0; k < Ks; k++){
+			out.a(k) = 1.0 + out.sumz(k);
 			out.b(k) = alpha;
-			for (uint32_t j = k+1; j < out.eta.rows(); j++){
-				out.b(k) += sumz(j);
+			for (uint32_t j = k+1; j < Ks; j++){
+				out.b(k) += out.sumz(j);
 			}
 		}
 	} else {
@@ -243,30 +234,11 @@ typename VarDP<Model>::Distribution SDADP<Model>::mergeDistributions(typename Va
 		MXd costs = MXd::Zero(Ksp+Kdp, Ksp+Kdp);
 		MXi costsi = MXi::Zero(Ksp+Kdp, Ksp+Kdp);
 
-		//compute logp0 and Enk for d1 and d2
-		VXd logp0s = VXd::Zero(Ksp);
-		VXd logp0d = VXd::Zero(Kdp);
-		VXd Enks = VXd::Zero(Ksp);
-		VXd Enkd = VXd::Zero(Kdp);
-
-		for (uint32_t k = 0; k < Ksp; k++){
-			Enks(k) = src.zeta.col(Kp+k).sum();
-			for (uint32_t j = 0; j < src.zeta.rows(); j++){
-				logp0s(k) += log(1.0-src.zeta(j, Kp+k));
-			}
-			if (logp0s(k) < -800.0){
-				logp0s(k) = -800.0;
-			}
-		}
-		for (uint32_t k = 0; k < Kdp; k++){
-			Enkd(k) = dest.zeta.col(Kp+k).sum();
-			for (uint32_t j = 0; j < dest.zeta.rows(); j++){
-				logp0d(k) += log(1.0-dest.zeta(j, Kp+k));
-			}
-			if (logp0d(k) < -800.0){
-				logp0d(k) = -800.0;
-			}
-		}
+		//get logp0 and Enk for d1 and d2
+		VXd logp0s = src.logp0.tail(Ksp);
+		VXd logp0d = dest.logp0.tail(Kdp);
+		VXd Enks = src.sumz.tail(Ksp);
+		VXd Enkd = dest.sumz.tail(Kdp);
 
 		//compute costs
 		MXd etam = MXd::Zero(1, model.getEta0().size());
@@ -328,12 +300,11 @@ typename VarDP<Model>::Distribution SDADP<Model>::mergeDistributions(typename Va
 		out = dest;
 		//merge the first Kp elements directly (no matchings)
 		if (Kp > 0){ //if dest + src both have elements, but their common prior is empty this can happen
-			out.eta.block(0, 0, Kp, out.eta.cols()) += src.eta.block(0, 0, Kp, src.eta.cols()) - prior.eta;
-			out.nu.head(Ks) += src.nu.head(Kp) - prior.nu;
+			out.eta.block(0, 0, Kp, M) += src.eta.block(0, 0, Kp, M) - prior.eta;
+			out.nu.head(Kp) += src.nu.head(Kp) - prior.nu;
+			out.sumz.head(Kp) += src.sumz.head(Kp)-prior.sumz;
+			out.logp0.head(Kp) += src.logp0.head(Kp)-prior.logp0;
 		}
-		out.zeta.conservativeResize(out.zeta.rows()+src.zeta.rows(), Eigen::NoChange);
-		out.zeta.block(out.zeta.rows()-src.zeta.rows(), 0, src.zeta.rows(), out.zeta.cols()) = MXd::Zero(src.zeta.rows(), out.zeta.cols());
-		out.zeta.block(out.zeta.rows()-src.zeta.rows(), 0, src.zeta.rows(), Kp) = src.zeta.block(0, 0, src.zeta.rows(), Kp);
 
 		//merge the last Ksp elements using the matchings
 		for (uint32_t i = Kp; i < Ks; i++){
@@ -341,28 +312,27 @@ typename VarDP<Model>::Distribution SDADP<Model>::mergeDistributions(typename Va
 			if (toIdx < Kd){
 				out.eta.row(toIdx) += src.eta.row(i) - model.getEta0().transpose();
 				out.nu(toIdx) += src.nu(i) - model.getNu0();
-				out.zeta.block(out.zeta.rows()-src.zeta.rows(), toIdx, src.zeta.rows(), 1) = src.zeta.block(0, i, src.zeta.rows(), 1);
+				out.sumz(toIdx) += src.sumz(i);
+				out.logp0(toIdx) += src.logp0(i);
 			} else {
-				out.eta.conservativeResize(out.eta.rows()+1, Eigen::NoChange);
-				out.eta.row(out.eta.rows()-1) = src.eta.row(i);
-				out.nu.conservativeResize(out.nu.size()+1);
-				out.nu(out.nu.size()-1) = src.nu(i);
-				out.zeta.conservativeResize(Eigen::NoChange, out.zeta.cols()+1);
-				out.zeta.block(0, out.zeta.cols()-1, out.zeta.rows(), 1) = MXd::Zero(out.zeta.rows(), 1);
-				out.zeta.block(out.zeta.rows()-src.zeta.rows(), out.zeta.cols()-1, src.zeta.rows(), 1) = src.zeta.block(0, i, src.zeta.rows(), 1);
+				out.eta.conservativeResize(out.K+1, Eigen::NoChange);
+				out.nu.conservativeResize(out.K+1);
+				out.sumz.conservativeResize(out.K+1);
+				out.logp0.conservativeResize(out.K+1);
+				out.K++;
+				out.eta.row(out.K-1) = src.eta.row(i);
+				out.nu(out.K-1) = src.nu(i);
+				out.sumz(out.K-1) = src.sumz(i);
+				out.logp0(out.K-1) = src.logp0(i);
 			}
 		}
-		out.a.resize(out.eta.rows());
-		out.b.resize(out.eta.rows());
-		VXd sumz = VXd::Zero(out.eta.rows());
-		for (uint32_t k = 0; k < out.eta.rows(); k++){
-			sumz(k) = out.zeta.col(k).sum();
-		}
-		for (uint32_t k = 0; k < out.eta.rows(); k++){
-			out.a(k) = 1.0 + sumz(k);
+		out.a.resize(out.K);
+		out.b.resize(out.K);
+		for (uint32_t k = 0; k < out.K; k++){
+			out.a(k) = 1.0 + out.sumz(k);
 			out.b(k) = alpha;
-			for (uint32_t j = k+1; j < out.eta.rows(); j++){
-				out.b(k) += sumz(j);
+			for (uint32_t j = k+1; j < out.K; j++){
+				out.b(k) += out.sumz(j);
 			}
 		}
 	}
