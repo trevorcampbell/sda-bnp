@@ -133,7 +133,7 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 	//update the global distribution
 	{
 		std::lock_guard<std::mutex> lock(distmut);
-		mtrace.localmergetimes.push_back(mergetime);
+		mtrace.localmergetimes.push_back(mergeTime);
 		dist = distm;
 	} //release the lock
 
