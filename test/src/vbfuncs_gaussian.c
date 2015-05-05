@@ -8,9 +8,9 @@
 #include "../include/vbfuncs_gaussian.h"
 
 /*A couple functions that are private to this c file*/
-double multivariateLnGamma(double, uint32_t); /*Computes the multivariate Gamma*/
-double multivariatePsi(double x, uint32_t p); /*Computes the multivariate Psi*/
-uint32_t choleskyLDetAndInversion1D(double *, uint32_t, double *, double*, bool); /*inverts matrix, computes logdet via cholesky*/
+double mvLnGamma(double, uint32_t); /*Computes the multivariate Gamma*/
+double mvPsi(double x, uint32_t p); /*Computes the multivariate Psi*/
+uint32_t choleskyLDetAndInversion1D(const double * const, uint32_t, double *, double*, bool); /*inverts matrix, computes logdet via cholesky*/
 
 void getStatGaussian(double* stat, const double* const y, const uint32_t D){
 	uint32_t i, j;
@@ -81,7 +81,7 @@ void getLogHGaussian(double* logh, double* const dlogh_deta, double* const dlogh
 
 	/*compute logh*/
 	//printf("eta3frc: %f D: %d eta3: %f ", eta3frc, D, eta[D*D+D]);
-	*logh = -1.0*D/2.0*log(2.0*M_PI/nu) +eta3frc*(ldet- 1.0*D*log(2.0))-multivariateLnGamma(eta3frc, D);
+	*logh = -1.0*D/2.0*log(2.0*M_PI/nu) +eta3frc*(ldet- 1.0*D*log(2.0))-mvLnGamma(eta3frc, D);
 
 	if (doDeriv){
 
@@ -99,7 +99,7 @@ void getLogHGaussian(double* logh, double* const dlogh_deta, double* const dlogh
 		}
 
 		/*compute dlogh_deta3*/
-		dlogh_deta[D*D+D] = 0.5*(ldet-D*log(2.0) - multivariatePsi(eta[D*D+D], D));	
+		dlogh_deta[D*D+D] = 0.5*(ldet-D*log(2.0) - mvPsi(eta[D*D+D], D));	
 
 		/*compute dlogh_dnu*/
 		*dlogh_dnu = 0.5*D/nu;
@@ -113,7 +113,7 @@ void getLogHGaussian(double* logh, double* const dlogh_deta, double* const dlogh
 }
 
 
-double multivariateLnGamma(double x, uint32_t p){
+double mvLnGamma(double x, uint32_t p){
 	double ret = p*(p-1)/4.0*log(M_PI);
 	uint32_t i = 0;
 	for (i = 0; i < p; i++){
@@ -122,7 +122,7 @@ double multivariateLnGamma(double x, uint32_t p){
 	return ret;
 }
 
-double multivariatePsi(double x, uint32_t p){
+double mvPsi(double x, uint32_t p){
 	double ret = 0;
 	uint32_t i = 0;
 	for (i = 0; i < p; i++){

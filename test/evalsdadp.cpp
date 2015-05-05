@@ -7,12 +7,12 @@
 #include <iostream>
 #include <sstream>
 
-extern "C"{
+//extern "C"{
 #include "include/vb.h"
 #include "include/vbfuncs_gaussian.h"
 #include "include/costfcn.h"
 #include "include/updates.h"
-}
+//}
 
 typedef Eigen::MatrixXd MXd;
 typedef Eigen::VectorXd VXd;
