@@ -92,6 +92,8 @@ void Pool<Job>::worker(uint32_t id){
 		jobs.pop();
 		busy[id] = true;
 
+		lk.unlock();
+
 		job();//do the job
 	}
 }

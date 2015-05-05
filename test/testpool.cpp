@@ -9,10 +9,14 @@ class Foo{
 			a = 0;
 		}
 		void incrementBy(int n){
-			std::lock_guard<std::mutex> lock(m);
-			//really dumb way to simulate a thread doing work
+			std::unique_lock<std::mutex> lock(m);
+			lock.unlock();
 			for (uint32_t i = 0; i < n; i++){
+				lock.lock();
 				a += 1;
+				std::cout << "Incremented a: " << i+1 << "/" << n << std::endl;
+				lock.unlock();
+				std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(1000));
 			}
 		}
 		void submit(int n){
@@ -34,12 +38,12 @@ class Foo{
 int main(int argc, char** argv){
 
 	Foo f;
-	int Njobs = 1000;
+	int Njobs = 10;
 	std::vector<int> jobs;
 	std::random_device rd;
 	std::mt19937 rng;
 	rng.seed(rd());
-	std::uniform_int_distribution<int> uintgen(0, 50000);
+	std::uniform_int_distribution<int> uintgen(0, 10);
 
 	int sum = 0;
 	for (uint32_t i = 0; i < Njobs; i++){
