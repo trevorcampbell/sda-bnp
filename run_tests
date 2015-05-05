@@ -50,18 +50,18 @@
 #    echo "Error experienced during compilation, test was not run."
 #fi
 
-###TEST 4: Thread pool test
-echo "Compiling pool test..."
-g++ -std=c++11 -O3 -I/usr/local/include test/testpool.cpp -lpthread -o testpool
-if [ -e "testpool" ]
-then
-    echo "Done compiling, running test..."
-	./testpool
-	rm testpool
-	echo "Done pool test!"
-else
-    echo "Error experienced during compilation, test was not run."
-fi
+####TEST 4: Thread pool test
+#echo "Compiling pool test..."
+#g++ -std=c++11 -O3 -I/usr/local/include test/testpool.cpp -lpthread -o testpool
+#if [ -e "testpool" ]
+#then
+#    echo "Done compiling, running test..."
+#	./testpool
+#	rm testpool
+#	echo "Done pool test!"
+#else
+#    echo "Error experienced during compilation, test was not run."
+#fi
 #
 ####TEST 5: Matching test
 #echo "Compiling matching test..."
@@ -112,16 +112,16 @@ fi
 
 ##TEST 8: SDA DP Evaluation
 #echo "Compiling sda dp eval..."
-#g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/evalsda.cpp -lboost_system -lpthread -o evalsda
-#if [ -e "evalsda" ]
+#g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/evalsdadp.cpp -lboost_system -lpthread -o evalsdadp
+#if [ -e "evalsdadp" ]
 #then
 #    echo "Done compiling, running test..."
-#	./evalsda
-#	rm evalsda
+#	./evalsdadp
+#	rm evalsdadp
 #	mkdir sdaresults
-#	cp test/evalsdaplot.py sdaresults
+#	cp test/evalsdadpplot.py sdaresults
 #	mv *.log sdaresults
-#	echo "Done SDA DP Evaluation! Go to ./sdaresults and run python evalsdaplot.py to visualize the results."
+#	echo "Done SDA DP Evaluation! Go to ./sdaresults and run python evalsdadpplot.py to visualize the results."
 #else
 #    echo "Error experienced during compilation, test was not run."
 #fi
