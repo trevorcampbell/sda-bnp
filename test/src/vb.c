@@ -6,7 +6,8 @@
 #include <costfcn.h>
 #include <updates.h>
 #include <vb.h>
-#include <specialFunctions.h>
+#include <gsl/gsl_sf_psi.h>
+#include <gsl/gsl_sf_gamma.h>
 #include <sdabnp/util/timer.hpp>
 
 double computeTestLogLikelihood(

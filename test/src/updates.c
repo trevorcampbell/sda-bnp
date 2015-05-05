@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <specialFunctions.h>
+#include <gsl/gsl_sf_psi.h>
+#include <gsl/gsl_sf_gamma.h>
 #include "updates.h"
 
 void updateLabelDist(double* const zeta,

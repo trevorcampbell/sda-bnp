@@ -112,7 +112,7 @@
 
 #TEST 8: SDA DP Evaluation
 echo "Compiling sda dp eval..."
-g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/evalsdadp.cpp -lboost_system -lpthread -o evalsdadp
+g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/evalsdadp.cpp test/src/vb.c test/src/updates.c test/src/costfcn.c test/src/vbfuncs_gaussian.c -lboost_system -lpthread -o evalsdadp
 if [ -e "evalsdadp" ]
 then
     echo "Done compiling, running test..."

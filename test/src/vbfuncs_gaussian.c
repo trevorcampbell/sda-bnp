@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
-#include <specialFunctions.h>
+#include <gsl/gsl_sf_psi.h>
+#include <gsl/gsl_sf_gamma.h>
 #include <stdint.h>
 #include "vbfuncs_gaussian.h"
 
