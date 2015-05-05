@@ -5,8 +5,8 @@
 #include <stdbool.h>
 #include <gsl/gsl_sf_psi.h>
 #include <gsl/gsl_sf_gamma.h>
-#include "costfcn.h"
-#include "updates.h"
+#include "../include/costfcn.h"
+#include "../include/updates.h"
 
 /* This file contains the cost function computations for varDP
  * The computations are split into the negative variational entropies,

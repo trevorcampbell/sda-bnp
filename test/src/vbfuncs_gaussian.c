@@ -5,7 +5,7 @@
 #include <gsl/gsl_sf_psi.h>
 #include <gsl/gsl_sf_gamma.h>
 #include <stdint.h>
-#include "vbfuncs_gaussian.h"
+#include "../include/vbfuncs_gaussian.h"
 
 /*A couple functions that are private to this c file*/
 double multivariateLnGamma(double, uint32_t); /*Computes the multivariate Gamma*/
@@ -131,7 +131,7 @@ double multivariatePsi(double x, uint32_t p){
 	return ret;
 }
 
-uint32_t choleskyLDetAndInversion1D(double *mat, uint32_t n, double* ldet, double * inv, bool doInv)
+uint32_t choleskyLDetAndInversion1D(const double * const mat, uint32_t n, double* ldet, double * inv, bool doInv)
      /* 
 	Do the augmented cholesky decomposition as described in FA Graybill
 	(1976) Theory and Application of the Linear Model with 1-dimensional
@@ -258,7 +258,7 @@ double getLogPostPredGaussian(const double* const x, const double* const etak, c
 			scale[i*D+j] = (k_post+1.0)/(k_post*dof)*psi_post[i*D+j];
 		}
 	}
-	double mvtll = multivariateTLogLike(x, mu_post, scale, dof);
+	double mvtll = multivariateTLogLike(x, mu_post, scale, dof, D);
 	free(psi_post); free(scale); free(mu_post);
 	return mvtll;
 }

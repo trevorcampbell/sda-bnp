@@ -2,13 +2,14 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
+#include <time.h>
+#include <unistd.h>
 
-#include <costfcn.h>
-#include <updates.h>
-#include <vb.h>
+#include "../include/costfcn.h"
+#include "../include/updates.h"
+#include "../include/vb.h"
 #include <gsl/gsl_sf_psi.h>
 #include <gsl/gsl_sf_gamma.h>
-#include <sdabnp/util/timer.hpp>
 
 double computeTestLogLikelihood(
 		const double* const T, 
@@ -16,6 +17,7 @@ double computeTestLogLikelihood(
 		double (*getLogPostPred)(const double* const, const double* const, const double, const uint32_t),
 		const uint32_t Nt, 
 		const uint32_t D,
+		const uint32_t M,
 		uint32_t K);
 		
 /* Private function in this c file (not exposed in h) */
@@ -200,8 +202,8 @@ double varDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 	int i, j, k;
 
 	*out_nTrace = 0;
-	Timer tmr;
-	tmr.start();
+	struct timeval ts, tf;
+	gettimeofday(&ts, NULL);
 
 	/*Initialize zeta randomly for K clusters*/
 	initializeZeta(zeta, sumzeta, sumzetaT, T, getStat, N, M, D, K);
@@ -254,8 +256,9 @@ double varDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 		prevobj = obj;
 //		printf("@id %d: Obj %f\tdelta %f\n", id,obj,diff);
 		
-		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, K);
-		times[*out_nTrace] = tmr.get();
+		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
+		gettimeofday(&tf, NULL);
+		times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_usec - ts.tv_usec)/1.0e6;
 		(*out_nTrace)++;
 	}
 
@@ -494,9 +497,11 @@ double svaDP(double** out_zeta, double** out_eta, double** out_nu, double** out_
 	K = 1;
 	double* times = (double*) malloc(sizeof(double)*2*N); /*stores trace times*/
 	double* testlls = (double*) malloc(sizeof(double)*2*N); /*stores testll trace*/
+
 	*out_nTrace = 0;
-	Timer tmr;
-	tmr.start();
+	struct timeval ts, tf;
+	gettimeofday(&ts, NULL);
+
 
 	double* eta = (double*) malloc(sizeof(double)*K*M); /*Stores the natural params*/
 	double* nu = (double*) malloc(sizeof(double)*K); /*Stores the natural param strengths*/
@@ -644,8 +649,8 @@ double svaDP(double** out_zeta, double** out_eta, double** out_nu, double** out_
 		convertSVAtoVB(zeta, sumzeta, sumzetaT, a, b, logh, dlogh_deta, dlogh_dnu, T, w, eta, nu, getLogH, getStat,getLogPostPred, alpha, M, D, N, K);
 		//Remove empty clusters
 		removeEmptyClustersX(zeta, sumzeta, sumzetaT, eta, nu, logh, dlogh_deta, dlogh_dnu, nu0, a, b, &K, N, M, K, false);
-		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, K);
-		times[*out_nTrace] = tmr.get();
+		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
+		times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_usec - ts.tv_usec)/1.0e6;
 		(*out_nTrace)++;
 	}
 
@@ -786,8 +791,9 @@ double moVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 	getLogH(&logh0, NULL, NULL, eta0, nu0, D, false);
 
 	*out_nTrace = 0;
-	Timer tmr;
-	tmr.start();
+	struct timeval ts, tf;
+	gettimeofday(&ts, NULL);
+
 
 	for (i = 0; i < K*B; i++){
 		sumzetaB[i] = 0.0;
@@ -867,8 +873,8 @@ double moVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 		diff = fabs( (obj-prevobj)/obj);
 		prevobj = obj;
 
-		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, K);
-		times[*out_nTrace] = tmr.get();
+		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
+		times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_usec - ts.tv_usec)/1.0e6;
 		(*out_nTrace)++;
 
 	}
@@ -1007,8 +1013,9 @@ double soVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 	}
 
 	*out_nTrace = 0;
-	Timer tmr;
-	tmr.start();
+	struct timeval ts, tf;
+	gettimeofday(&ts, NULL);
+
 
 
 	/*Proceed to the VB iteration*/
@@ -1086,8 +1093,8 @@ double soVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 		diff = fabs( (obj-prevobj)/obj);
 		prevobj = obj;
 
-		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, K);
-		times[*out_nTrace] = tmr.get();
+		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
+		times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_usec - ts.tv_usec)/1.0e6;
 		(*out_nTrace)++;
 
 
@@ -1188,10 +1195,11 @@ double computeTestLogLikelihood(
 		double (*getLogPostPred)(const double* const, const double* const, const double, const uint32_t),
 		const uint32_t Nt, 
 		const uint32_t D,
+		const uint32_t M,
 		uint32_t K){
 
 	if (Nt == 0){
-		std::cout << "WARNING: Test Log Likelihood = NaN since Nt = 0" << std::endl;
+		printf("WARNING: Test Log Likelihood = NaN since Nt = 0");
 	}
 	//first get average weights
 	double stick = 1.0;

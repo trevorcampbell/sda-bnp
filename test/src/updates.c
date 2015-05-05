@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <gsl/gsl_sf_psi.h>
 #include <gsl/gsl_sf_gamma.h>
-#include "updates.h"
+#include "../include/updates.h"
 
 void updateLabelDist(double* const zeta,
 		const double * const stat, 
