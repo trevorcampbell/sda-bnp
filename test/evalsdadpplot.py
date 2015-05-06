@@ -196,7 +196,7 @@ for j in range(len(mcmc_run_tags)):
     mtag = mcmc_run_tags[j]
     tr = np.genfromtxt(batchbasename+'-'+mtag+'-trace.log')
     batch_times.append(tr[:, 0])
-    batch_testlls.append(tr[:, 1])
+    batch_testlls.append(tr[:, 2]) #2 for this one since 1 is obj
 minTime = np.amin(np.array(map(np.amin, batch_times)))
 maxTime = np.amax(np.array(map(np.amax, batch_times)))
 t = np.logspace(np.log10(minTime), np.log10(maxTime), num=100)
