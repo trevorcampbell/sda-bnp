@@ -91,12 +91,15 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		return;
 	}
 
+
 	//lock the mutex, get the distribution, unlock
 	typename VarDP<Model>::Distribution dist0;
 	{
 		std::lock_guard<std::mutex> lock(distmut);
 		dist0 = dist;
 	} //release the lock
+
+
 
 	//do minibatch inference
 	typename VarDP<Model>::Distribution dist1;
