@@ -86,8 +86,8 @@ double SDADP<Model>::computeTestLogLikelihood(){
 
 template<class Model>
 void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
-	static int jobNum = 0;
-	int ljn = 0;
+	//static int jobNum = 0;
+	//int ljn = 0;
 
 	if (train_data.size() == 0){
 		return;
@@ -98,15 +98,15 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 	typename VarDP<Model>::Distribution dist0;
 	{
 		std::lock_guard<std::mutex> lock(distmut);
-		ljn = jobNum++;
-		std::cout << "Starting job " << ljn << std::endl;
+		//ljn = jobNum++;
+		//std::cout << "Starting job " << ljn << std::endl;
 		dist0 = dist;
 	} //release the lock
 
-	std::ostringstream oss;
-	oss << "dist0-" << ljn;
-	dist0.save(oss.str().c_str());
-	oss.str(""); oss.clear();
+	//std::ostringstream oss;
+	//oss << "dist0-" << ljn;
+	//dist0.save(oss.str().c_str());
+	//oss.str(""); oss.clear();
 
 
 	//do minibatch inference
@@ -124,9 +124,9 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 	 	dist1 = vdp.getDistribution();
 	 	tr = vdp.getTrace();
 	}
-	oss << "dist1-" << ljn;
-	dist1.save(oss.str().c_str());
-	oss.str(""); oss.clear();
+	//oss << "dist1-" << ljn;
+	//dist1.save(oss.str().c_str());
+	//oss.str(""); oss.clear();
 
 
 
@@ -162,9 +162,9 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		return;
 	}
 
-	oss << "dist1r-" << ljn;
-	dist1.save(oss.str().c_str());
-	oss.str(""); oss.clear();
+	//oss << "dist1r-" << ljn;
+	//dist1.save(oss.str().c_str());
+	//oss.str(""); oss.clear();
 
 
 	//lock mutex, store the local trace, merge the minibatch distribution, unlock
@@ -173,9 +173,9 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		std::lock_guard<std::mutex> lock(distmut);
 		dist2 = dist;
 
-		oss << "dist2-" << ljn;
-		dist2.save(oss.str().c_str());
-		oss.str(""); oss.clear();
+		//oss << "dist2-" << ljn;
+		//dist2.save(oss.str().c_str());
+		//oss.str(""); oss.clear();
 
 
 
@@ -189,9 +189,9 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		dist = mergeDistributions(dist1, dist, dist0);
 		mtrace.localmergetimes.push_back(timer.get()-t0);
 
-		oss << "distf-" << ljn;
-		dist.save(oss.str().c_str());
-		oss.str(""); oss.clear();
+		//oss << "distf-" << ljn;
+		//dist.save(oss.str().c_str());
+		//oss.str(""); oss.clear();
 
 
 	} //release the lock
