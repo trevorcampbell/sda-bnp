@@ -34,15 +34,15 @@ int main(int argc, char** argv){
 	Nthr.push_back(2);
 	Nthr.push_back(4);
 	Nthr.push_back(8);
-	Nthr.push_back(16);
-	Nthr.push_back(32);
+	//Nthr.push_back(16);
+	//Nthr.push_back(32);
 	VXd mu0 = VXd::Zero(D);
 	MXd psi0 = MXd::Identity(D, D);
 	double kappa0 = 1e-6;
 	double xi0 = D+2;
 
 	double minMu = -50.0, maxMu = 50.0;
-	double sigMagnitude =5.0;
+	double sigMagnitude =1.0;
 	double pi0 = 0.0;
 
 	std::mt19937 rng;
