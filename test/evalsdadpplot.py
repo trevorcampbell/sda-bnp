@@ -13,7 +13,12 @@ matplotlib.rc('font', **font)
 
 
 #create the plot output directory
-basename = 'sdadpmix'
+sdabasename = 'sdadpmix'
+batchbasename = 'vardpmix'
+oldbatchbasename = 'vardpmixold'
+svabasename = 'svadpmix'
+svibasename = 'svidpmix'
+movbbasename = 'movbdpmix'
 outdir = 'plots'
 if not os.path.exists(outdir):
     os.makedirs(outdir)
@@ -25,7 +30,7 @@ for f in os.listdir('.'):
     if f[:6] == 'model-':
         mcmc_run_tags.append(f[6:-4])
 for f in os.listdir('.'):
-    if f[:14] == basename+'-nThr_' and f[-7:] == '-ab.log':
+    if f[:14] == sdabasename+'-nThr_' and f[-7:] == '-ab.log':
         for tag in mcmc_run_tags:
             if len(tag) < len(f[14:-7]) and f[-7-len(tag):-7] == tag:
                 nthr_tags.append(f[14:-7-len(tag)-1])
@@ -67,7 +72,7 @@ for i in range(len(nthr_tags)):
     ntag = nthr_tags[i]
     for j in range(len(mcmc_run_tags)):
         mtag = mcmc_run_tags[j]
-        gt = np.genfromtxt(basename+'-nThr_'+ntag+'-'+mtag+'-globaltrace.log')
+        gt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-globaltrace.log')
         final_cpu_times[i, j] = gt[-1, 0]
         final_testlls[i, j] = gt[-1, 1]
         final_nclus[i, j] = gt[-1, 2]
@@ -110,7 +115,7 @@ nmatch_traces = []
 ntag = nthr_tags[-1]
 for j in range(len(mcmc_run_tags)):
     mtag = mcmc_run_tags[j]
-    gt = np.genfromtxt(basename+'-nThr_'+ntag+'-'+mtag+'-globaltrace.log')
+    gt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-globaltrace.log')
     nclus_traces.append(gt[:, 2])
     nmatch_traces.append(gt[:, 3])
 
@@ -140,15 +145,15 @@ plt.savefig(outdir+'/nclusmatch-lines.pdf')
 #use the 32thread / 1st mcmc run (totally fine to change these)
 ntag = nthr_tags[-1]
 mtag = mcmc_run_tags[-1]
-gt = np.genfromtxt(basename+'-nThr_'+ntag+'-'+mtag+'-globaltrace.log')
+gt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-globaltrace.log')
 global_times = gt[:, 0]
 global_testlls = gt[:, 1]
-lt = np.genfromtxt(basename+'-nThr_'+ntag+'-'+mtag+'-localtimes.log')
+lt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-localtimes.log')
 local_start_times = lt[:, 0]
 local_testlls = []
 local_times = []
 for i in range(lt.shape[0]):
-    lt = np.genfromtxt(basename+'-nThr_'+ntag+'-'+mtag+'-localtrace-'+str(i)+'.log')
+    lt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-localtrace-'+str(i)+'.log')
     local_testlls.append(lt[:,2])
     local_times.append(lt[:,0])
 
@@ -160,4 +165,133 @@ plt.xlabel('Time (s)')
 plt.ylabel('Test Log Likelihood')
 plt.savefig(outdir+'/testll-trace.pdf')
 plt.show()
+
+
+plt.figure()
+#Plot 6: Test log likelihood vs time with mean/std
+for i in range(len(nthr_tags)):
+    ntag = nthr_tags[i]
+    sda_times = []
+    sda_testlls = []
+    for j in range(len(mcmc_run_tags)):
+        mtag = mcmc_run_tags[j]
+        tr = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-globaltrace.log')
+        sda_times.append(tr[:, 0])
+        sda_testlls.append(tr[:, 1])
+    minTime = np.amin(np.array(map(np.amin, sda_times)))
+    maxTime = np.amax(np.array(map(np.amax, sda_times)))
+    t = np.logspace(np.log10(minTime), np.log10(maxTime), num=100)
+    tllp = np.zeros((len(sda_times), t.shape[0]))
+    for j in range(len(sda_times)):
+        tllp[j, :] = np.interp(t, sda_times[j], sda_testlls[j])
+    tll_mean = np.mean(tllp, axis=0)
+    tll_std = np.std(tllp, axis=0)
+    plt.plot(t, tll_mean, c='b', lw=2)
+    plt.plot(t, tll_mean+tll_std, 'b--', lw=2, alpha=0.4)
+    plt.plot(t, tll_mean-tll_std, 'b--', lw=2, alpha=0.4)
+    plt.fillbetween(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='b', alpha=0.3)
+
+batch_times =[]
+batch_testlls =[]
+for j in range(len(mcmc_run_tags)):
+    mtag = mcmc_run_tags[j]
+    tr = np.genfromtxt(batchbasename+'-'+mtag+'-trace.log')
+    batch_times.append(tr[:, 0])
+    batch_testlls.append(tr[:, 1])
+minTime = np.amin(np.array(map(np.amin, batch_times)))
+maxTime = np.amax(np.array(map(np.amax, batch_times)))
+t = np.logspace(np.log10(minTime), np.log10(maxTime), num=100)
+tllp = np.zeros((len(batch_times), t.shape[0]))
+for j in range(len(batch_times)):
+    tllp[j, :] = np.interp(t, batch_times[j], batch_testlls[j])
+tll_mean = np.mean(tllp, axis=0)
+tll_std = np.std(tllp, axis=0)
+plt.plot(t, tll_mean, c='k', lw=2)
+plt.plot(t, tll_mean+tll_std, 'k--', lw=2, alpha=0.4)
+plt.plot(t, tll_mean-tll_std, 'k--', lw=2, alpha=0.4)
+plt.fillbetween(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='k', alpha=0.3)
+
+
+oldbatch_times = []
+oldbatch_testlls = []
+for j in range(len(mcmc_run_tags)):
+    mtag = mcmc_run_tags[j]
+    tr = np.genfromtxt(oldbatchbasename+'-'+mtag+'-trace.log')
+    oldbatch_times.append(tr[:, 0])
+    oldbatch_testlls.append(tr[:, 1])
+minTime = np.amin(np.array(map(np.amin, oldbatch_times)))
+maxTime = np.amax(np.array(map(np.amax, oldbatch_times)))
+t = np.logspace(np.log10(minTime), np.log10(maxTime), num=100)
+tllp = np.zeros((len(oldbatch_times), t.shape[0]))
+for j in range(len(oldbatch_times)):
+    tllp[j, :] = np.interp(t, oldbatch_times[j], oldbatch_testlls[j])
+tll_mean = np.mean(tllp, axis=0)
+tll_std = np.std(tllp, axis=0)
+plt.plot(t, tll_mean, c='r', lw=2)
+plt.plot(t, tll_mean+tll_std, 'r--', lw=2, alpha=0.4)
+plt.plot(t, tll_mean-tll_std, 'r--', lw=2, alpha=0.4)
+plt.fillbetween(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='r', alpha=0.3)
+
+
+sva_times = []
+sva_testlls =[]
+for j in range(len(mcmc_run_tags)):
+    mtag = mcmc_run_tags[j]
+    tr = np.genfromtxt(svabasename+'-'+mtag+'-trace.log')
+    sva_times.append(tr[:, 0])
+    sva_testlls.append(tr[:, 1])
+minTime = np.amin(np.array(map(np.amin, sva_times)))
+maxTime = np.amax(np.array(map(np.amax, sva_times)))
+t = np.logspace(np.log10(minTime), np.log10(maxTime), num=100)
+tllp = np.zeros((len(sva_times), t.shape[0]))
+for j in range(len(sva_times)):
+    tllp[j, :] = np.interp(t, sva_times[j], sva_testlls[j])
+tll_mean = np.mean(tllp, axis=0)
+tll_std = np.std(tllp, axis=0)
+plt.plot(t, tll_mean, c='g', lw=2)
+plt.plot(t, tll_mean+tll_std, 'g--', lw=2, alpha=0.4)
+plt.plot(t, tll_mean-tll_std, 'g--', lw=2, alpha=0.4)
+plt.fillbetween(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='g', alpha=0.3)
+
+
+svi_times = []
+svi_testlls = []
+for j in range(len(mcmc_run_tags)):
+    mtag = mcmc_run_tags[j]
+    tr = np.genfromtxt(svibasename+'-'+mtag+'-trace.log')
+    svi_times.append(tr[:, 0])
+    svi_testlls.append(tr[:, 1])
+minTime = np.amin(np.array(map(np.amin, svi_times)))
+maxTime = np.amax(np.array(map(np.amax, svi_times)))
+t = np.logspace(np.log10(minTime), np.log10(maxTime), num=100)
+tllp = np.zeros((len(svi_times), t.shape[0]))
+for j in range(len(svi_times)):
+    tllp[j, :] = np.interp(t, svi_times[j], svi_testlls[j])
+tll_mean = np.mean(tllp, axis=0)
+tll_std = np.std(tllp, axis=0)
+plt.plot(t, tll_mean, c='y', lw=2)
+plt.plot(t, tll_mean+tll_std, 'y--', lw=2, alpha=0.4)
+plt.plot(t, tll_mean-tll_std, 'y--', lw=2, alpha=0.4)
+plt.fillbetween(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='y', alpha=0.3)
+
+
+movb_times = []
+movb_testlls = []
+for j in range(len(mcmc_run_tags)):
+    mtag = mcmc_run_tags[j]
+    tr = np.genfromtxt(movbbasename+'-'+mtag+'-trace.log')
+    movb_times.append(tr[:, 0])
+    movb_testlls.append(tr[:, 1])
+minTime = np.amin(np.array(map(np.amin, movb_times)))
+maxTime = np.amax(np.array(map(np.amax, movb_times)))
+t = np.logspace(np.log10(minTime), np.log10(maxTime), num=100)
+tllp = np.zeros((len(movb_times), t.shape[0]))
+for j in range(len(movb_times)):
+    tllp[j, :] = np.interp(t, movb_times[j], movb_testlls[j])
+tll_mean = np.mean(tllp, axis=0)
+tll_std = np.std(tllp, axis=0)
+plt.plot(t, tll_mean, c='m', lw=2)
+plt.plot(t, tll_mean+tll_std, 'm--', lw=2, alpha=0.4)
+plt.plot(t, tll_mean-tll_std, 'm--', lw=2, alpha=0.4)
+plt.fillbetween(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='m', alpha=0.3)
 

@@ -186,7 +186,7 @@ int main(int argc, char** argv){
 		//    &getStatGaussian, &getLogPostPredGaussian, N, Nt, M, D, K); 
 		////output results
 		//std::ostringstream oss5;
-		//oss5 << "vardpmixold-" << std::setfill('0') << std::setw(3) << nMC << ".log";
+		//oss5 << "vardpmixold-" << std::setfill('0') << std::setw(3) << nMC << "-trace.log";
 		//std::ofstream fout1(oss5.str().c_str());
 		//for (uint32_t i = 0; i < Ntll; i++){
 		//	fout1 << times[i] << " " << testlls[i] << std::endl;
@@ -201,7 +201,7 @@ int main(int argc, char** argv){
     	    &getStatGaussian,&getLogPostPredGaussian, N, Nt, M, D, K, Nmini); 
 		//output results
 		std::ostringstream oss6;
-		oss6 << "svidpmix-" << std::setfill('0') << std::setw(3) << nMC << ".log";
+		oss6 << "svidpmix-" << std::setfill('0') << std::setw(3) << nMC << "-trace.log";
 		std::ofstream fout2(oss6.str().c_str());
 		for (uint32_t i = 0; i < Ntll; i++){
 			fout2 << times[i] << " " << testlls[i] << std::endl;
@@ -216,7 +216,7 @@ int main(int argc, char** argv){
     	    &getStatGaussian,&getLogPostPredGaussian, N, Nt, M, D, K, Nmini); 
 		//output results
 		std::ostringstream oss7;
-		oss7 << "movbdpmix-" << std::setfill('0') << std::setw(3) << nMC << ".log";
+		oss7 << "movbdpmix-" << std::setfill('0') << std::setw(3) << nMC << "-trace.log";
 		std::ofstream fout3(oss7.str().c_str());
 		for (uint32_t i = 0; i < Ntll; i++){
 			fout3 << times[i] << " " << testlls[i] << std::endl;
@@ -231,7 +231,7 @@ int main(int argc, char** argv){
 		    &getStatGaussian, &getLogPostPredGaussian, N, Nt, M, D, K); 
 		//output results
 		std::ostringstream oss8;
-		oss8 << "svadpmix-" << std::setfill('0') << std::setw(3) << nMC << ".log";
+		oss8 << "svadpmix-" << std::setfill('0') << std::setw(3) << nMC << "-trace.log";
 		std::ofstream fout4(oss8.str().c_str());
 		for (uint32_t i = 0; i < Ntll; i++){
 			fout4 << times[i] << " " << testlls[i] << std::endl;
