@@ -189,7 +189,7 @@ for i in range(len(nthr_tags)):
     plt.plot(t, tll_mean, c='b', lw=2)
     plt.plot(t, tll_mean+tll_std, 'b--', lw=2, alpha=0.4)
     plt.plot(t, tll_mean-tll_std, 'b--', lw=2, alpha=0.4)
-    plt.fillbetween(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='b', alpha=0.3)
+    plt.fill_between(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='b', alpha=0.3)
 
 batch_times =[]
 batch_testlls =[]
@@ -209,7 +209,7 @@ tll_std = np.std(tllp, axis=0)
 plt.plot(t, tll_mean, c='k', lw=2)
 plt.plot(t, tll_mean+tll_std, 'k--', lw=2, alpha=0.4)
 plt.plot(t, tll_mean-tll_std, 'k--', lw=2, alpha=0.4)
-plt.fillbetween(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='k', alpha=0.3)
+plt.fill_between(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='k', alpha=0.3)
 
 
 oldbatch_times = []
@@ -230,7 +230,7 @@ tll_std = np.std(tllp, axis=0)
 plt.plot(t, tll_mean, c='r', lw=2)
 plt.plot(t, tll_mean+tll_std, 'r--', lw=2, alpha=0.4)
 plt.plot(t, tll_mean-tll_std, 'r--', lw=2, alpha=0.4)
-plt.fillbetween(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='r', alpha=0.3)
+plt.fill_between(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='r', alpha=0.3)
 
 
 sva_times = []
@@ -251,7 +251,7 @@ tll_std = np.std(tllp, axis=0)
 plt.plot(t, tll_mean, c='g', lw=2)
 plt.plot(t, tll_mean+tll_std, 'g--', lw=2, alpha=0.4)
 plt.plot(t, tll_mean-tll_std, 'g--', lw=2, alpha=0.4)
-plt.fillbetween(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='g', alpha=0.3)
+plt.fill_between(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='g', alpha=0.3)
 
 
 svi_times = []
@@ -272,7 +272,7 @@ tll_std = np.std(tllp, axis=0)
 plt.plot(t, tll_mean, c='y', lw=2)
 plt.plot(t, tll_mean+tll_std, 'y--', lw=2, alpha=0.4)
 plt.plot(t, tll_mean-tll_std, 'y--', lw=2, alpha=0.4)
-plt.fillbetween(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='y', alpha=0.3)
+plt.fill_between(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='y', alpha=0.3)
 
 
 movb_times = []
@@ -293,5 +293,5 @@ tll_std = np.std(tllp, axis=0)
 plt.plot(t, tll_mean, c='m', lw=2)
 plt.plot(t, tll_mean+tll_std, 'm--', lw=2, alpha=0.4)
 plt.plot(t, tll_mean-tll_std, 'm--', lw=2, alpha=0.4)
-plt.fillbetween(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='m', alpha=0.3)
+plt.fill_between(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='m', alpha=0.3)
 

@@ -149,6 +149,7 @@ int main(int argc, char** argv){
 		//BATCH DP (new) TEST:
 		std::cout << "Running Batch VarDP ..." << std::endl;
 		VarDP<NIWModel> vardp(train_data, test_data, niw, alpha, K);
+		vardp.run(true);
 		std::ostringstream oss4;
 		oss4  << "vardpmix-" << std::setfill('0') << std::setw(3) << nMC;
 		vardp.getDistribution().save(oss4.str().c_str());
