@@ -95,9 +95,9 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 			double testll = computeTestLogLikelihood();
 			trace.testlls.push_back(testll);
 			cpuTime.start();
-			std::cout << "obj: " << obj << " testll: " << testll << std::endl;
+			//std::cout << "obj: " << obj << " testll: " << testll << std::endl;
 		} else {
-			std::cout << "obj: " << obj << std::endl;
+			//std::cout << "obj: " << obj << std::endl;
 		}
 	}
 	//done!
