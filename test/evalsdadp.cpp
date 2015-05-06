@@ -31,9 +31,9 @@ int main(int argc, char** argv){
 	uint32_t monteCarloTrials = 1;
 	std::vector<uint32_t> Nthr;
 	Nthr.push_back(1);
-	Nthr.push_back(2);
-	Nthr.push_back(4);
-	Nthr.push_back(8);
+	//Nthr.push_back(2);
+	//Nthr.push_back(4);
+	//Nthr.push_back(8);
 	//Nthr.push_back(16);
 	//Nthr.push_back(32);
 	VXd mu0 = VXd::Zero(D);
@@ -41,7 +41,7 @@ int main(int argc, char** argv){
 	double kappa0 = 1e-6;
 	double xi0 = D+2;
 
-	double minMu = -50.0, maxMu = 50.0;
+	double minMu = -100.0, maxMu = 100.0;
 	double sigMagnitude =1.0;
 	double pi0 = 0.0;
 
@@ -146,14 +146,14 @@ int main(int argc, char** argv){
 			sdadp.getTrace().save(oss.str().c_str());
 		}
 
-		//BATCH DP (new) TEST:
-		std::cout << "Running Batch VarDP ..." << std::endl;
-		VarDP<NIWModel> vardp(train_data, test_data, niw, alpha, K);
-		vardp.run(true);
-		std::ostringstream oss4;
-		oss4  << "vardpmix-" << std::setfill('0') << std::setw(3) << nMC;
-		vardp.getDistribution().save(oss4.str().c_str());
-		vardp.getTrace().save(oss4.str().c_str());
+		////BATCH DP (new) TEST:
+		//std::cout << "Running Batch VarDP ..." << std::endl;
+		//VarDP<NIWModel> vardp(train_data, test_data, niw, alpha, K);
+		//vardp.run(true);
+		//std::ostringstream oss4;
+		//oss4  << "vardpmix-" << std::setfill('0') << std::setw(3) << nMC;
+		//vardp.getDistribution().save(oss4.str().c_str());
+		//vardp.getTrace().save(oss4.str().c_str());
 
 
 		////Convert the parameters/data/etc to the old c code format 
