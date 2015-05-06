@@ -317,9 +317,10 @@ void removeEmptyClustersX(double* zeta, double* sumzeta, double* sumzetaT, doubl
 	uint32_t j;
 	while(kr > kl){
 		//find first nonempty cluster from the right
-		do{kr--;} while(nu[kr] - nu0 < 1.0 && kr > kl);
+		do{kr--;} while(kr > kl && nu[kr] - nu0 < 1.0);
+	
 		//find first empty cluster from the left
-		do{kl++;} while(nu[kl] - nu0 >= 1.0 && kl <= kr);
+		do{kl++;} while(kl <= kr && nu[kl] - nu0 >= 1.0);
 
 		if (kl < kr){
 			//swap
@@ -492,6 +493,7 @@ double svaDP(double** out_zeta, double** out_eta, double** out_nu, double** out_
 		uint32_t K){
 
 	int i, j, k, kk, m;
+	uint32_t Ktmp;
 
 	/*Initialize*/
 	K = 1;
@@ -534,6 +536,7 @@ double svaDP(double** out_zeta, double** out_eta, double** out_nu, double** out_
 	double* dlogh_deta = (double*) malloc(sizeof(double)*K*M); /*Stores d(logh)/d(eta) for each cluster*/
 	double* dlogh_dnu = (double*) malloc(sizeof(double)*K);/*Stores d(logh)/d(nu) for each cluster*/
 	double* logh = (double*) malloc(sizeof(double)*K);/*Stores logh for each cluster*/
+	uint32_t csz = K;
 	double logh0; getLogH(&logh0, NULL, NULL, eta0, nu0, D, false);
 
 	for(i=1; i < N; i++){
@@ -607,7 +610,9 @@ double svaDP(double** out_zeta, double** out_eta, double** out_nu, double** out_
 						ndiffsum[kk-1][j] = ndiffsum[kk][j];
 					}
 				}
-				if(k==K-1){k--;} K--;
+				k--;
+				//if(k==K-1){k--;} 
+				K--;
 			}
 		}
 		//merge similar clusters
@@ -615,19 +620,20 @@ double svaDP(double** out_zeta, double** out_eta, double** out_nu, double** out_
 		for(kk=k+1; kk < K; kk++){
 			if(rdiffsum[k][kk]/ndiffsum[k][kk] < epspm && K>1){
 				nu[k] += nu[kk]-nu0;
-				w[k] = w[k]+w[kk];
+				w[k] += w[kk];
 				for(j=0; j < M; j++){
 					eta[k*M+j] += eta[kk*M+j] - eta0[j];
 				}
 				for(m=kk+1; m < K; m++){
 					for(j=0; j < K; j++){
-						rdiffsum[j][kk-1] = rdiffsum[j][kk];
-						ndiffsum[j][kk-1] = ndiffsum[j][kk];
-						rdiffsum[kk-1][j] = rdiffsum[kk][j];
-						ndiffsum[kk-1][j] = ndiffsum[kk][j];
+						rdiffsum[j][m-1] = rdiffsum[j][m];
+						ndiffsum[j][m-1] = ndiffsum[j][m];
+						rdiffsum[m-1][j] = rdiffsum[m][j];
+						ndiffsum[m-1][j] = ndiffsum[m][j];
 					}
 				}
-				if(kk==K-1){kk--;} K--;
+				kk--;// if(kk==K-1){kk--;} 
+				K--;
 			}
 		}
 		}
@@ -639,36 +645,51 @@ double svaDP(double** out_zeta, double** out_eta, double** out_nu, double** out_
 			for(k=K; k < oldK; k++){
 				free(rdiffsum[k]); free(ndiffsum[k]);
 			}
+			rdiffsum = (double**) realloc(rdiffsum, sizeof(double*)*K); /*Stores normalized marginal log likelihoods*/
+			ndiffsum = (double**) realloc(ndiffsum, sizeof(double*)*K); /*Stores normalized marginal log likelihoods*/
 			for(k=0; k < K; k++){
 				rdiffsum[k] = (double*) realloc(rdiffsum[k], sizeof(double)*K);
 				ndiffsum[k] = (double*) realloc(ndiffsum[k], sizeof(double)*K);
 			}
 		}
 
+		if (csz != K){
+			zeta = (double*) realloc(zeta, sizeof(double)*N*K); /*Stores sum over all data(zeta) for each cluster*/
+			sumzeta = (double*) realloc(sumzeta, sizeof(double)*K);
+			sumzetaT = (double*) realloc(sumzetaT, sizeof(double)*K*M);
+			a = (double*) realloc(a, sizeof(double)*K); /*Stores 1st beta parameters for weights*/
+			b = (double*) realloc(b, sizeof(double)*K); /*Stores 2nd beta parameters for weights*/
+			dlogh_deta = (double*) realloc(dlogh_deta, sizeof(double)*K*M); /*Stores d(logh)/d(eta) for each cluster*/
+			dlogh_dnu = (double*) realloc(dlogh_dnu, sizeof(double)*K);/*Stores d(logh)/d(nu) for each cluster*/
+			logh = (double*) realloc(logh, sizeof(double)*K);/*Stores logh for each cluster*/
+			csz = K;
+		}
 		//compute test log likelihood
 		convertSVAtoVB(zeta, sumzeta, sumzetaT, a, b, logh, dlogh_deta, dlogh_dnu, T, w, eta, nu, getLogH, getStat,getLogPostPred, alpha, M, D, N, K);
 		//Remove empty clusters
-		removeEmptyClustersX(zeta, sumzeta, sumzetaT, eta, nu, logh, dlogh_deta, dlogh_dnu, nu0, a, b, &K, N, M, K, false);
-		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
+		removeEmptyClustersX(zeta, sumzeta, sumzetaT, eta, nu, logh, dlogh_deta, dlogh_dnu, nu0, a, b, &Ktmp, N, M, K, false);
+		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, Ktmp);
+		gettimeofday(&tf, NULL);
 		times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_usec - ts.tv_usec)/1.0e6;
 		(*out_nTrace)++;
 	}
 
-	
 	convertSVAtoVB(zeta, sumzeta, sumzetaT, a, b, logh, dlogh_deta, dlogh_dnu, T, w, eta, nu, getLogH, getStat,getLogPostPred, alpha, M, D, N, K);
 	//Remove empty clusters
-	removeEmptyClustersX(zeta, sumzeta, sumzetaT, eta, nu, logh, dlogh_deta, dlogh_dnu, nu0, a, b, &K, N, M, K, false);
-	double finalobj= varBayesCost(zeta, sumzeta, sumzetaT, a, b, eta, eta0, nu, nu0, logh, logh0, dlogh_deta, dlogh_dnu, alpha, N, M, K);
-	*out_K = K;
-
-
-
-	double obj= varBayesCost(zeta, sumzeta, sumzetaT, a, b, eta, eta0, nu, nu0, logh, logh0, dlogh_deta, dlogh_dnu, alpha, N, M, K);
+	removeEmptyClustersX(zeta, sumzeta, sumzetaT, eta, nu, logh, dlogh_deta, dlogh_dnu, nu0, a, b, &Ktmp, N, M, K, false);
+	double finalobj= varBayesCost(zeta, sumzeta, sumzetaT, a, b, eta, eta0, nu, nu0, logh, logh0, dlogh_deta, dlogh_dnu, alpha, N, M, Ktmp);
+	*out_K = Ktmp;
 
 	/*Free non-output memory*/
 	free(w); free(r); free(stat); free(etatmp); 
 	free(sumzeta); free(sumzetaT);
 	free(dlogh_deta); free(dlogh_dnu); free(logh);
+	for(k=0; k < K; k++){
+		free(rdiffsum[k]);
+		free(ndiffsum[k]);
+	}
+	free(rdiffsum); free(ndiffsum);
+
 
 	/*output*/
 	*out_zeta = zeta;
@@ -680,7 +701,7 @@ double svaDP(double** out_zeta, double** out_eta, double** out_nu, double** out_
 	*out_testlls = testlls;
 	*out_times = times;
 
-  	return obj;
+  	return finalobj;
 }
 
 void convertSVAtoVB(double*const zeta, double*const sumzeta, double*const sumzetaT, double*const a, double*const b, 
@@ -874,6 +895,7 @@ double moVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 		prevobj = obj;
 
 		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
+		gettimeofday(&tf, NULL);
 		times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_usec - ts.tv_usec)/1.0e6;
 		(*out_nTrace)++;
 
@@ -1016,8 +1038,6 @@ double soVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 	struct timeval ts, tf;
 	gettimeofday(&ts, NULL);
 
-
-
 	/*Proceed to the VB iteration*/
 	double prevobj = INFINITY;
 	double tol = 1e-8;
@@ -1094,11 +1114,10 @@ double soVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 		prevobj = obj;
 
 		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
+		gettimeofday(&tf, NULL);
 		times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_usec - ts.tv_usec)/1.0e6;
 		(*out_nTrace)++;
-
-
-    printf("obj %f\t step %d",obj,step);
+    //printf("obj %f\t step %d",obj,step);
 	}
 
 	//Remove empty clusters
@@ -1137,6 +1156,7 @@ double soVBDP_noAlloc(double* zeta, double* eta, double* nu, double* a, double* 
   double obj = soVBDP_noAllocSumZeta(zeta, sumzeta, sumzetaT, eta, nu, a, b, out_K, times, testlls, out_nTrace, T, Ttest,
     alpha, eta0, nu0, getLogH, getStat,getLogPostPred, N, Nt, M, D, K, NBatch,id);
 
+
 	free(sumzeta); free(sumzetaT);
   return obj;
 }
@@ -1165,6 +1185,7 @@ double soVBDP(double** out_zeta, double** out_eta, double** out_nu, double** out
 	double* testlls = (double*) malloc(sizeof(double)*10000); /*Stores 2nd beta parameters for weights*/
 
   double obj = soVBDP_noAlloc(zeta,eta,nu,a,b,out_K,times,testlls,out_nTrace,T,Ttest,alpha,eta0,nu0,getLogH,getStat,getLogPostPred,N,Nt,M,D,K,NBatch,0);
+  
 
 	/*output*/
 	*out_zeta = zeta;
@@ -1212,9 +1233,9 @@ double computeTestLogLikelihood(
 
 	//now loop over all test data
 	double loglike = 0.0;
+	double* loglikes = (double*) malloc(sizeof(double)*K);
 	for(uint32_t i = 0; i < Nt; i++){
 		//get the log likelihoods for all clusters
-		double* loglikes = (double*) malloc(sizeof(double)*K);
 		for (uint32_t k = 0; k < K; k++){
 			loglikes[k] = log(weights[k]) + getLogPostPred(&(T[i*D]), &(eta[k*M]), nu[k], D);
 		}
@@ -1230,7 +1251,7 @@ double computeTestLogLikelihood(
 		//now multiply by exp(max), take the log, and add to running loglike total
 		loglike += loglikes[K-1] + log(like);
 	}
-	free(weights);
+	free(weights); free(loglikes);
 	return loglike/Nt; //should return NaN if Nt == 0
 }
 
