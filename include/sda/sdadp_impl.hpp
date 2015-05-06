@@ -51,7 +51,6 @@ double SDADP<Model>::computeTestLogLikelihood(){
 
 	if (Nt == 0){
  		std::cout << "WARNING: Test Log Likelihood = NaN since Nt = 0" << std::endl;
-		return 0;
 	}
 
 	//first get average weights
