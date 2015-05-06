@@ -146,14 +146,14 @@ int main(int argc, char** argv){
 			sdadp.getTrace().save(oss.str().c_str());
 		}
 
-		////BATCH DP (new) TEST:
-		//std::cout << "Running Batch VarDP ..." << std::endl;
-		//VarDP<NIWModel> vardp(train_data, test_data, niw, alpha, K);
-		//vardp.run(true);
-		//std::ostringstream oss4;
-		//oss4  << "vardpmix-" << std::setfill('0') << std::setw(3) << nMC;
-		//vardp.getDistribution().save(oss4.str().c_str());
-		//vardp.getTrace().save(oss4.str().c_str());
+		//BATCH DP (new) TEST:
+		std::cout << "Running Batch VarDP ..." << std::endl;
+		VarDP<NIWModel> vardp(train_data, test_data, niw, alpha, K);
+		vardp.run(true);
+		std::ostringstream oss4;
+		oss4  << "vardpmix-" << std::setfill('0') << std::setw(3) << nMC;
+		vardp.getDistribution().save(oss4.str().c_str());
+		vardp.getTrace().save(oss4.str().c_str());
 
 
 		////Convert the parameters/data/etc to the old c code format 
