@@ -86,6 +86,8 @@ double SDADP<Model>::computeTestLogLikelihood(){
 
 template<class Model>
 void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
+	static int jobNum = 0;
+	int ljn = 0;
 
 	if (train_data.size() == 0){
 		return;
@@ -96,9 +98,15 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 	typename VarDP<Model>::Distribution dist0;
 	{
 		std::lock_guard<std::mutex> lock(distmut);
+		ljn = jobNum++;
+		std::cout << "Starting job " << ljn << std::endl;
 		dist0 = dist;
 	} //release the lock
 
+	std::ostringstream oss;
+	oss << "dist0-" << ljn;
+	dist0.save(oss.str().c_str());
+	oss.str(""); oss.clear();
 
 
 	//do minibatch inference
@@ -116,6 +124,12 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 	 	dist1 = vdp.getDistribution();
 	 	tr = vdp.getTrace();
 	}
+	oss << "dist1-" << ljn;
+	dist1.save(oss.str().c_str());
+	oss.str(""); oss.clear();
+
+
+
 	//remove empty clusters
 	for (uint32_t k = dist0.K; k < dist1.K; k++){
 		if (dist1.sumz(k) < 1.0 && k < dist1.K-1){
@@ -148,11 +162,23 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		return;
 	}
 
+	oss << "dist1r-" << ljn;
+	dist1.save(oss.str().c_str());
+	oss.str(""); oss.clear();
+
+
 	//lock mutex, store the local trace, merge the minibatch distribution, unlock
 	typename VarDP<Model>::Distribution dist2; //dist2 is used to check if a matching was solved later
 	{
 		std::lock_guard<std::mutex> lock(distmut);
 		dist2 = dist;
+
+		oss << "dist2-" << ljn;
+		dist2.save(oss.str().c_str());
+		oss.str(""); oss.clear();
+
+
+
 		//add the result of the job to the multitrace
 		mtrace.localstarttimes.push_back(t0);
 		mtrace.localtimes.push_back(tr.times);
@@ -162,6 +188,12 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		t0 = timer.get(); //reuse t0 -- already stored it above
 		dist = mergeDistributions(dist1, dist, dist0);
 		mtrace.localmergetimes.push_back(timer.get()-t0);
+
+		oss << "distf-" << ljn;
+		dist.save(oss.str().c_str());
+		oss.str(""); oss.clear();
+
+
 	} //release the lock
 
 	//compute the test log likelihood of the global model
@@ -220,8 +252,8 @@ typename VarDP<Model>::Distribution SDADP<Model>::mergeDistributions(typename Va
 		if (Kp > 0){
 			out.eta.block(0, 0, Kd, M) += dest.eta - prior.eta;
 			out.nu.head(Kd) += dest.nu - prior.nu;
-			out.sumz.head(Kd) += dest.sumz-prior.sumz;
-			out.logp0.head(Kd) += dest.logp0-prior.sumz;
+			out.sumz.head(Kd) += dest.sumz;
+			out.logp0.head(Kd) += dest.logp0;
 		}
 		for (uint32_t k = 0; k < Ks; k++){
 			out.a(k) = 1.0 + out.sumz(k);
@@ -305,8 +337,8 @@ typename VarDP<Model>::Distribution SDADP<Model>::mergeDistributions(typename Va
 		if (Kp > 0){ //if dest + src both have elements, but their common prior is empty this can happen
 			out.eta.block(0, 0, Kp, M) += src.eta.block(0, 0, Kp, M) - prior.eta;
 			out.nu.head(Kp) += src.nu.head(Kp) - prior.nu;
-			out.sumz.head(Kp) += src.sumz.head(Kp)-prior.sumz;
-			out.logp0.head(Kp) += src.logp0.head(Kp)-prior.logp0;
+			out.sumz.head(Kp) += src.sumz.head(Kp);
+			out.logp0.head(Kp) += src.logp0.head(Kp);
 		}
 
 		//merge the last Ksp elements using the matchings
