@@ -164,7 +164,6 @@ for  i in range(len(local_times)):
 plt.xlabel('Time (s)')
 plt.ylabel('Test Log Likelihood')
 plt.savefig(outdir+'/testll-trace.pdf')
-plt.show()
 
 
 plt.figure()
@@ -295,3 +294,4 @@ plt.plot(t, tll_mean+tll_std, 'm--', lw=2, alpha=0.4)
 plt.plot(t, tll_mean-tll_std, 'm--', lw=2, alpha=0.4)
 plt.fill_between(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='m', alpha=0.3)
 
+plt.show()
