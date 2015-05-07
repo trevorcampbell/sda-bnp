@@ -24,16 +24,7 @@ double multivariatePsi(double x, uint32_t p){
 	return ret;
 }
 
-double multivariateTLogLike(VXd x, VXd mu, MXd cov, double dof){
-	uint32_t D = cov.rows();
-	Eigen::LDLT<MXd, Eigen::Upper> ldlt(cov);
-	VXd diag = ldlt.vectorD();
-	double ldet = 0.0;
-	for (uint32_t i = 0; i < D; i++){
-		ldet += log(diag(i));
-	}
-	return lgamma( (dof+D)/2.0 ) - lgamma( dof/2.0 ) - D/2.0*log(dof) - D/2*log(M_PI) - 0.5*ldet - (dof+D)/2.0*log(1.0+1.0/dof*(x-mu).transpose()*ldlt.solve(x-mu));
-}
+
 
 class NIWModel{
 	public:
@@ -182,26 +173,43 @@ void NIWModel::getLogH(MXd eta, VXd nu, VXd& logh, MXd& dlogh_deta, VXd& dlogh_d
 	//std::cout << "dlogh_dnu: " << std::endl << dlogh_dnu << std::endl;
 }
 
-double NIWModel::getLogPosteriorPredictive(VXd x, VXd etak, double nuk){
-	//convert etak to regular parameters of NIW
-	MXd psi_post = MXd::Zero(D, D);
-	VXd mu_post = VXd::Zero(D);
-	double k_post = 0;
-	double xi_post = 0;
+MXd NIWModel::getLogPosteriorPredictive(MXd x, MXd eta, VXd nu){
 
-	for(uint32_t i = 0; i < D; i++){
-		for(uint32_t j = 0; j < D; j++){
-			psi_post(i, j) = etak(i*D+j) - etak(D*D+i)*etak(D*D+j)/nuk;
+	MXd loglike(x.cols(), eta.rows());
+	for (uint32_t k = 0; k < eta.rows(); k++){
+		//convert etak to regular parameters of NIW
+		MXd psi_post = MXd::Zero(D, D);
+		VXd mu_post = VXd::Zero(D);
+		double k_post = 0;
+		double xi_post = 0;
+
+		for(uint32_t i = 0; i < D; i++){
+			for(uint32_t j = 0; j < D; j++){
+				psi_post(i, j) = eta(k, i*D+j) - eta(k, D*D+i)*eta(k, D*D+j)/nu(k);
+			}
+			mu_post(i) = eta(k, D*D+i)/nu(k);
 		}
-		mu_post(i) = etak(D*D+i)/nuk;
-	}
-	xi_post = etak(D*D+D)-D-2.0;
-	k_post = nuk;
+		xi_post = eta(k, D*D+D)-D-2.0;
+		k_post = nu(k);
 
-	//get multivariate t parameters
-	double dof = xi_post - D + 1.0;
-	MXd scale = psi_post*(k_post+1)/(k_post*dof);
-	return multivariateTLogLike(x, mu_post, scale, dof);
+		//get multivariate t parameters
+		double dof = xi_post - D + 1.0;
+		MXd scale = psi_post*(k_post+1)/(k_post*dof);
+
+		//compute the multivariate T log likelihood
+		Eigen::LDLT<MXd, Eigen::Upper> ldlt(scale);
+		VXd diag = ldlt.vectorD();
+		double ldet = 0.0;
+		for (uint32_t i = 0; i < D; i++){
+			ldet += log(diag(i));
+		}
+		loglike.col(k).rowwise() = lgamma( (dof+D)/2.0 ) - lgamma( dof/2.0 ) - D/2.0*log(dof) - D/2*log(M_PI) - 0.5*ldet;
+		MXd xm = x.colwise()-mu_post;
+		VXd logprod = ((1.0/dof*((((xm.array())*(ldlt.solve(xm).array())).colwise().sum()).transpose())).rowwise() + 1.0).log();
+		loglike.col(k) -= (dof+D)/2.0*logprod;
+	}
+	return loglike;
+	//return lgamma( (dof+D)/2.0 ) - lgamma( dof/2.0 ) - D/2.0*log(dof) - D/2*log(M_PI) - 0.5*ldet - (dof+D)/2.0*log(1.0+1.0/dof*(x-mu).transpose()*ldlt.solve(x-mu));
 }
 
 double NIWModel::naturalParameterDistSquared(VXd& stat1, VXd& stat2){

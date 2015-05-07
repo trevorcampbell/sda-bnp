@@ -4,16 +4,13 @@
 #include<sstream>
 #include<iostream>
 
-template<class Dist>
 class Trace{
 	public:
 		std::vector<double> times, objs, testlls;
-		std::vector<Dist> dists;
 		void clear(){
 			times.clear();
 			objs.clear();
 			testlls.clear();
-			dists.clear();
 		}
 		void save(std::string name){
 			std::ofstream out_trc(name+"-trace.log", std::ios_base::trunc);
@@ -30,27 +27,22 @@ class Trace{
 		}
 };
 
-template<class Dist>
 class MultiTrace{
 	public:
 		std::vector<double> globaltimes, globaltestlls;
-		std::vector<Dist> globaldists;
 		std::vector<uint32_t> globalclusters, globalmatchings;
 		std::vector< std::vector<double> > localtimes, localobjs, localtestlls;
-		std::vector< std::vector<Dist> > localdists;
 		std::vector<double> localstarttimes, localmergetimes;
 		void clear(){
 			globaltimes.clear();
 			globaltestlls.clear();
 			globalclusters.clear();
 			globalmatchings.clear();
-			globaldists.clear();
 			localmergetimes.clear();
 			localtimes.clear();
 			localobjs.clear();
 			localtestlls.clear();
 			localstarttimes.clear();
-			localdists.clear();
 		}
 		void save(std::string name){
 			//for a multitrace, the only thing to output is testll

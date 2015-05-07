@@ -13,6 +13,11 @@ VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& 
 		train_stats.row(i) = this->model.getStat(train_data[i]).transpose();
 	}
 
+	test_mxd = MXd::Zero(test_data[0].size(), Nt);
+	for (uint32_t i =0; i < Nt; i++){
+		test_mxd.col(i) = test_data[i];
+	}
+
 	//initialize the random device
 	std::random_device rd;
 	rng.seed(rd());
@@ -56,7 +61,7 @@ VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& 
 }
 
 template<class Model>
-void VarDP<Model>::run(double tol){
+void VarDP<Model>::run(bool computeTestLL, double tol){
 	//clear any previously stored results
 	trace.clear();
 
@@ -89,7 +94,9 @@ void VarDP<Model>::run(double tol){
 		//save the objective
 		trace.objs.push_back(obj);
 		//save the current distribution 
-		trace.dists.push_back(getDistributionForTLL());
+		if (computeTestLL){
+			trace.testlls.push_back(computeTestLogLikelihood());
+		}
 		//std::cout << "obj: " << obj << " testll: " << testll << std::endl;
 		//restart the clock
 		cpuTime.start(); 
@@ -292,24 +299,7 @@ typename VarDP<Model>::Distribution VarDP<Model>::getDistribution(){
 }
 
 template<class Model>
-typename VarDP<Model>::Distribution VarDP<Model>::getDistributionForTLL(){
-	VarDP<Model>::Distribution d;
-	d.K = this->K;
-	d.a = this->a;
-	d.b = this->b;
-	d.eta = this->eta;
-	d.nu = this->nu;
-	return d;
-}
-
-template<class Model>
-Trace<typename VarDP<Model>::Distribution> VarDP<Model>::getTrace(bool computeTestLL){
-	if (computeTestLL){
-		trace.testlls.clear();
-		for (uint32_t i = 0; i < trace.dists.size(); i++){
-			trace.testlls.push_back(computeTestLogLikelihood(trace.dists[i]));
-		}
-	}
+Trace VarDP<Model>::getTrace(){
 	return trace;
 }
 
@@ -393,83 +383,75 @@ double VarDP<Model>::computeObjective(){
 
 
 template<class Model>
-double VarDP<Model>::computeTestLogLikelihood(typename VarDP<Model>::Distribution dist0){
-	uint32_t K = dist0.K;
-	uint32_t Nt = test_data.size();
+double VarDP<Model>::computeTestLogLikelihood(){
 
 	if (Nt == 0){
- 		std::cout << "WARNING: Test Log Likelihood = NaN since Nt = 0" << std::endl;
+		std::cout << "WARNING: Test Log Likelihood = NaN since Nt = 0" << std::endl;
 	}
 
-	//first get average weights
-	double stick = 1.0;
-	VXd weights = VXd::Zero(K);
-	for(uint32_t k = 0; k < K-1; k++){
-		weights(k) = stick*dist0.a(k)/(dist0.a(k)+dist0.b(k));
-		stick *= dist0.b(k)/(dist0.a(k)+dist0.b(k));
+	//first find out how many empty clusters we have
+	uint32_t firstEmptyK = K;
+	for (uint32_t k = K-1; k >= 0; k--){
+		if ( fabs(a(k)-1.0) < 1.0e-3){
+			firstEmptyK = k;
+		} else {
+			break;
+		}
 	}
-	weights(K-1) = stick;
 
-	//now loop over all test data and get weighted avg likelihood
-	double loglike = 0.0;
-	for(uint32_t i = 0; i < Nt; i++){
-		std::vector<double> loglikes;
-		for (uint32_t k = 0; k < K; k++){
-			loglikes.push_back(log(weights(k)) + model.getLogPosteriorPredictive(test_data[i], dist0.eta.row(k), dist0.nu(k)));
+	if (firstEmptyK < K){
+		//first get average weights -- compress the last empty clusters
+		double stick = 1.0;
+		VXd weights = VXd::Zero(firstEmptyK+1);
+		for(uint32_t k = 0; k < firstEmptyK; k++){
+			weights(k) = stick*a(k)/(a(k)+b(k));
+			stick *= b(k)/(a(k)+b(k));
 		}
-		//numerically stable sum
-		//first sort in increasing order
-		std::sort(loglikes.begin(), loglikes.end());
-		//then sum in increasing order
-		double like = 0.0;
-		for (uint32_t k = 0; k < K; k++){
-			//subtract off the max first
-			like += exp(loglikes[k] - loglikes.back());
+		weights(firstEmptyK) = stick;
+
+		MXd logp = (model.getLogPosteriorPredictive(test_mxd, eta.block(0, 0, firstEmptyK+1, eta.cols()), nu.head(firstEmptyK+1))).rowwise() + (weights.transpose()).log();
+		VXd llmaxs = logp.rowwise().maxCoeff();
+		logp.rowwise() -= llmaxs;
+		return (((logp.exp()).rowwise().sum()).log() + llmaxs).sum()/Nt;
+	} else {
+		//first get average weights -- no compression
+		double stick = 1.0;
+		VXd weights = VXd::Zero(K);
+		for(uint32_t k = 0; k < K-1; k++){
+			weights(k) = stick*a(k)/(a(k)+b(k));
+			stick *= b(k)/(a(k)+b(k));
 		}
-		//now multiply by exp(max), take the log, and add to running loglike total
-		loglike += loglikes.back() + log(like);
+		weights(K-1) = stick;
+
+		MXd logp = (model.getLogPosteriorPredictive(test_mxd, eta, nu).rowwise() + (weights.transpose()).log();
+		VXd llmaxs = logp.rowwise().maxCoeff();
+		logp.rowwise() -= llmaxs;
+		return (((logp.exp()).rowwise().sum()).log() + llmaxs).sum()/Nt;
 	}
-	return loglike/Nt;
+
+
+	////now loop over all test data
+	//double loglike = 0.0;
+	//for(uint32_t i = 0; i < Nt; i++){
+	//	//get the log likelihoods for all clusters
+	//	std::vector<double> loglikes;
+	//	for (uint32_t k = 0; k < K; k++){
+	//		loglikes.push_back(log(weights(k)) + model.getLogPosteriorPredictive(test_data[i], eta.row(k), nu(k)));
+	//	}
+	//	//numerically stable sum
+	//	//first sort in increasing order
+	//	std::sort(loglikes.begin(), loglikes.end());
+	//	//then sum in increasing order
+	//	double like = 0.0;
+	//	for (uint32_t k = 0; k < K; k++){
+	//		//subtract off the max first
+	//		like += exp(loglikes[k] - loglikes.back());
+	//	}
+	//	//now multiply by exp(max), take the log, and add to running loglike total
+	//	loglike += loglikes.back() + log(like);
+	//}
+	//return loglike/Nt; //should return NaN if Nt == 0
 }
-
-//old compute testll code
-//template<class Model>
-//double VarDP<Model>::computeTestLogLikelihood(){
-//
-//	if (Nt == 0){
-//		std::cout << "WARNING: Test Log Likelihood = NaN since Nt = 0" << std::endl;
-//	}
-//	//first get average weights
-//	double stick = 1.0;
-//	VXd weights = VXd::Zero(K);
-//	for(uint32_t k = 0; k < K-1; k++){
-//		weights(k) = stick*a(k)/(a(k)+b(k));
-//		stick *= b(k)/(a(k)+b(k));
-//	}
-//	weights(K-1) = stick;
-//
-//	//now loop over all test data
-//	double loglike = 0.0;
-//	for(uint32_t i = 0; i < Nt; i++){
-//		//get the log likelihoods for all clusters
-//		std::vector<double> loglikes;
-//		for (uint32_t k = 0; k < K; k++){
-//			loglikes.push_back(log(weights(k)) + model.getLogPosteriorPredictive(test_data[i], eta.row(k), nu(k)));
-//		}
-//		//numerically stable sum
-//		//first sort in increasing order
-//		std::sort(loglikes.begin(), loglikes.end());
-//		//then sum in increasing order
-//		double like = 0.0;
-//		for (uint32_t k = 0; k < K; k++){
-//			//subtract off the max first
-//			like += exp(loglikes[k] - loglikes.back());
-//		}
-//		//now multiply by exp(max), take the log, and add to running loglike total
-//		loglike += loglikes.back() + log(like);
-//	}
-//	return loglike/Nt; //should return NaN if Nt == 0
-//}
 
 
 double boost_lbeta(double a, double b){

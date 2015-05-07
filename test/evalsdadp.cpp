@@ -144,7 +144,9 @@ int main(int argc, char** argv){
 			std::cout << "Saving output..." << std::endl;
 			std::ostringstream oss;
 			oss  << "sdadpmix-nThr_" << std::setfill('0') << std::setw(3) << Nthr[i] << "-" << std::setfill('0') << std::setw(3) << nMC;
+			std::cout << "Saving dist..." << std::endl;
 			sdadp.getDistribution().save(oss.str().c_str());
+			std::cout << "Saving trace..." << std::endl;
 			sdadp.getTrace().save(oss.str().c_str());
 		}
 

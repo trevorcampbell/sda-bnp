@@ -2,9 +2,13 @@
 
 template<class Model>
 SDADP<Model>::SDADP(const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t Knew, uint32_t nthr):
-test_data(test_data), model(model), alpha(alpha), Knew(Knew), pool(nthr){
-	timer.start(); //start the clock -- used for tracking performance
+model(model), alpha(alpha), Knew(Knew), pool(nthr){
+	test_mxd = MXd::Zero(test_data[0].size(), test_data.size());
+	for (uint32_t i =0; i < Nt; i++){
+		test_mxd.col(i) = test_data[i];
+	}
 	dist.K = 0;
+	timer.start(); //start the clock -- used for tracking performance
 }
 
 template<class Model>
@@ -29,24 +33,11 @@ typename VarDP<Model>::Distribution SDADP<Model>::getDistribution(){
 }
 
 template<class Model>
-MultiTrace<typename VarDP<Model>::Distribution> SDADP<Model>::getTrace(bool computeTestLL){
-	MultiTrace<typename VarDP<Model>::Distribution> mt;
+MultiTrace SDADP<Model>::getTrace(){
+	MultiTrace mt;
 	{
 		std::lock_guard<std::mutex> lock(distmut);
 		mt = mtrace;
-	}
-	if (computeTestLL){
-		mt.globaltestlls.clear();
-		for (uint32_t i = 0; i < mt.globaldists.size(); i++){
-			mt.globaltestlls.push_back(computeTestLogLikelihood(mt.globaldists[i]));
-		}
-		mt.localtestlls.clear();
-		for (uint32_t i = 0; i < mt.localdists.size(); i++){
-			mt.localtestlls.push_back(std::vector<double>());
-			for (uint32_t j = 0; j < mt.localdists[i].size(); j++){
-				mt.localtestlls[i].push_back(computeTestLogLikelihood(mt.localdists[i][j]));
-			}
-		}
 	}
 	return mt;
 }
@@ -60,7 +51,7 @@ double SDADP<Model>::computeTestLogLikelihood(typename VarDP<Model>::Distributio
  		std::cout << "WARNING: Test Log Likelihood = NaN since Nt = 0" << std::endl;
 	}
 
-	//first get average weights
+	//first get average weights -- no compression
 	double stick = 1.0;
 	VXd weights = VXd::Zero(K);
 	for(uint32_t k = 0; k < K-1; k++){
@@ -69,26 +60,41 @@ double SDADP<Model>::computeTestLogLikelihood(typename VarDP<Model>::Distributio
 	}
 	weights(K-1) = stick;
 
-	//now loop over all test data and get weighted avg likelihood
-	double loglike = 0.0;
-	for(uint32_t i = 0; i < Nt; i++){
-		std::vector<double> loglikes;
-		for (uint32_t k = 0; k < K; k++){
-			loglikes.push_back(log(weights(k)) + model.getLogPosteriorPredictive(test_data[i], dist0.eta.row(k), dist0.nu(k)));
-		}
-		//numerically stable sum
-		//first sort in increasing order
-		std::sort(loglikes.begin(), loglikes.end());
-		//then sum in increasing order
-		double like = 0.0;
-		for (uint32_t k = 0; k < K; k++){
-			//subtract off the max first
-			like += exp(loglikes[k] - loglikes.back());
-		}
-		//now multiply by exp(max), take the log, and add to running loglike total
-		loglike += loglikes.back() + log(like);
-	}
-	return loglike/Nt;
+	MXd logp = (model.getLogPosteriorPredictive(test_mxd, dist0.eta, dist0.nu).rowwise() + (weights.transpose()).log();
+	VXd llmaxs = logp.rowwise().maxCoeff();
+	logp.rowwise() -= llmaxs;
+	return (((logp.exp()).rowwise().sum()).log() + llmaxs).sum()/Nt;
+
+
+	////first get average weights
+	//double stick = 1.0;
+	//VXd weights = VXd::Zero(K);
+	//for(uint32_t k = 0; k < K-1; k++){
+	//	weights(k) = stick*dist0.a(k)/(dist0.a(k)+dist0.b(k));
+	//	stick *= dist0.b(k)/(dist0.a(k)+dist0.b(k));
+	//}
+	//weights(K-1) = stick;
+
+	////now loop over all test data and get weighted avg likelihood
+	//double loglike = 0.0;
+	//for(uint32_t i = 0; i < Nt; i++){
+	//	std::vector<double> loglikes;
+	//	for (uint32_t k = 0; k < K; k++){
+	//		loglikes.push_back(log(weights(k)) + model.getLogPosteriorPredictive(test_data[i], dist0.eta.row(k), dist0.nu(k)));
+	//	}
+	//	//numerically stable sum
+	//	//first sort in increasing order
+	//	std::sort(loglikes.begin(), loglikes.end());
+	//	//then sum in increasing order
+	//	double like = 0.0;
+	//	for (uint32_t k = 0; k < K; k++){
+	//		//subtract off the max first
+	//		like += exp(loglikes[k] - loglikes.back());
+	//	}
+	//	//now multiply by exp(max), take the log, and add to running loglike total
+	//	loglike += loglikes.back() + log(like);
+	//}
+	//return loglike/Nt;
 }
 
 template<class Model>

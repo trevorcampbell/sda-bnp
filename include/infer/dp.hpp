@@ -32,9 +32,9 @@ class VarDP{
 		};
 		VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t K);
 		VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Distribution& prior, const Model& model, double alpha, uint32_t K);
-		void run(double tol = 1e-6);
+		void run(bool computeTestLL, double tol = 1e-6);
 		Distribution getDistribution();
-		Trace<Distribution> getTrace(bool computeTestLL = true);
+		Trace getTrace();
 
 	private:
 		void init();
@@ -42,8 +42,7 @@ class VarDP{
 		void updateLabelDist();
 		void updateParamDist();
 		double computeObjective();
-		double computeTestLogLikelihood(Distribution dist0);
-		Distribution getDistributionForTLL();
+		double computeTestLogLikelihood();
 
 		std::mt19937 rng;
 
@@ -51,11 +50,11 @@ class VarDP{
 		uint32_t K0, K, M, N, Nt; //K0 is number of nonstandard prior components, K is the # components in the model, M is the dimension of the statistic
 		Model model;
 		MXd zeta, sumzetaT, dlogh_deta, eta, train_stats;
+		MXd test_mxd;
 		VXd a, b, psisum, nu, logh, dlogh_dnu, sumzeta;
 		VXd a0, b0, nu0, logh0;
 		MXd eta0;
-		std::vector<VXd> test_data;
-		Trace<Distribution> trace;
+		Trace trace;
 };
 
 #include "dp_impl.hpp"
