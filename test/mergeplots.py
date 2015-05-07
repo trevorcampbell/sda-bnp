@@ -14,22 +14,6 @@ model = np.genfromtxt('model-000.log')
 train_data = np.genfromtxt('train-000.log')
 test_data = np.genfromtxt('test-000.log')
 D = int((-1 + np.sqrt(1-4*(1-model.shape[1])))/2)
-plt.figure()
-plt.scatter(train_data[:, 0], train_data[:, 1], c='b')
-plt.scatter(test_data[:, 0], test_data[:, 1], c='g')
-for k in range(model.shape[0]):
-    mu = model[k, 0:D]
-    sig = np.zeros((D, D))
-    for j in range(D):
-        sig[j, :] = model[k, (j+1)*D:(j+2)*D]
-    wt = model[k, -1]
-    xy  = mu[:, np.newaxis] + np.dot(np.linalg.cholesky(sig), np.vstack((np.cos(np.linspace(0, 2*np.pi, 100)), np.sin(np.linspace(0, 2*np.pi, 100)))))
-    plt.plot(xy[0, :], xy[1, :], lw=5, alpha=np.sqrt(wt), c='r')
-plt.axes().set_aspect('equal')
-plt.xlim((-100, 100))
-plt.ylim((-100, 100))
-plt.title('True Data/Model')
-
 
 
 #get the name tags
@@ -75,6 +59,24 @@ for i in range(len(dist_tags)):
         plt.title('Dist'+dtype[j]+'-'+dist_tags[i])
         plt.xlim((-100, 100))
         plt.ylim((-100, 100))
+
+
+plt.figure()
+plt.scatter(train_data[:, 0], train_data[:, 1], c='b')
+plt.scatter(test_data[:, 0], test_data[:, 1], c='g')
+for k in range(model.shape[0]):
+    mu = model[k, 0:D]
+    sig = np.zeros((D, D))
+    for j in range(D):
+        sig[j, :] = model[k, (j+1)*D:(j+2)*D]
+    wt = model[k, -1]
+    xy  = mu[:, np.newaxis] + np.dot(np.linalg.cholesky(sig), np.vstack((np.cos(np.linspace(0, 2*np.pi, 100)), np.sin(np.linspace(0, 2*np.pi, 100)))))
+    plt.plot(xy[0, :], xy[1, :], lw=5, alpha=np.sqrt(wt), c='r')
+plt.axes().set_aspect('equal')
+plt.xlim((-100, 100))
+plt.ylim((-100, 100))
+plt.title('True Data/Model')
+
 
 
 plt.show()

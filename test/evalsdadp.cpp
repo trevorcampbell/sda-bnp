@@ -30,8 +30,8 @@ int main(int argc, char** argv){
 	double alpha = 1.0;
 	uint32_t monteCarloTrials = 1;
 	std::vector<uint32_t> Nthr;
-	Nthr.push_back(1);
-	//Nthr.push_back(2);
+	//Nthr.push_back(1);
+	Nthr.push_back(2);
 	//Nthr.push_back(4);
 	//Nthr.push_back(8);
 	//Nthr.push_back(16);
@@ -42,7 +42,7 @@ int main(int argc, char** argv){
 	double xi0 = D+2;
 
 	double minMu = -100.0, maxMu = 100.0;
-	double sigMagnitude = 3.0;
+	double sigMagnitude = 5.0;
 	double pi0 = 0.0;
 
 	std::mt19937 rng;

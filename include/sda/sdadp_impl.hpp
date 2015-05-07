@@ -194,6 +194,7 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 
 		//merge
 		double t0 = timer.get(); //reuse t0 -- already stored it above
+		std::cout << "Job " << ljn << std::endl;
 		dist = mergeDistributions(dist1, dist, dist0);
 		mergetime = timer.get()- t0;
 		t0 = timer.get();
@@ -342,10 +343,12 @@ typename VarDP<Model>::Distribution SDADP<Model>::mergeDistributions(typename Va
 			}
 		}
 
+		std::cout << "Cost matrix: " << std::endl << costs << std::endl;
+
 		//now all costs have been computed, and max/min are known
 		//subtract off the minimum from everything and remap to integers between 0 and INT_MAX/1000 
 		double mincost = costs.minCoeff();
-		double maxcost = costs.minCoeff();
+		double maxcost = costs.maxCoeff();
 		maxcost -= mincost;
 		double fctr = ((double)INT_MAX/1000.0)/maxcost;
 		for (uint32_t i = 0; i < Ksp+Kdp; i++){
@@ -354,8 +357,16 @@ typename VarDP<Model>::Distribution SDADP<Model>::mergeDistributions(typename Va
 			}
 		}
 
+		std::cout << "costsi: " << std::endl << costsi << std::endl;
+
 		std::vector<int> matchings;
 		int cost = hungarian(costsi, matchings);
+
+
+		std::cout << "matchings: " << std::endl;
+		for (uint32_t i = 0; i < matchings.size(); i++){
+			std::cout << i << "->" << matchings[i] << std::endl;
+		}
 
 		out = dest;
 		//merge the first Kp elements directly (no matchings)
