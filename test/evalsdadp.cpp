@@ -22,13 +22,13 @@ typedef Eigen::VectorXd VXd;
 int main(int argc, char** argv){
 	//constants
 	uint32_t K = 40;
-	uint32_t Knew = 10;
+	uint32_t Knew = 40;
 	uint32_t N = 100000;
 	uint32_t Nmini = 1000;
 	uint32_t Nt = 10000;
 	uint32_t D = 2;
 	double alpha = 1.0;
-	uint32_t monteCarloTrials = 1;
+	uint32_t monteCarloTrials = 3;
 	std::vector<uint32_t> Nthr;
 	Nthr.push_back(1);
 	//Nthr.push_back(2);
