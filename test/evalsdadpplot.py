@@ -66,17 +66,19 @@ nthr_tags = sorted(list(set(nthr_tags)))
 #collect traces/final statistics/etc
 final_cpu_times = np.zeros((len(nthr_tags), len(mcmc_run_tags)))
 final_testlls = np.zeros((len(nthr_tags), len(mcmc_run_tags)))
+final_merge_times = np.zeros((len(nthr_tags), len(mcmc_run_tags)))
 final_nclus = np.zeros((len(nthr_tags), len(mcmc_run_tags)))
 final_nmatch = np.zeros((len(nthr_tags), len(mcmc_run_tags)))
 for i in range(len(nthr_tags)):
     ntag = nthr_tags[i]
     for j in range(len(mcmc_run_tags)):
         mtag = mcmc_run_tags[j]
-        gt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-globaltrace.log')
+        gt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-trace.log')
         final_cpu_times[i, j] = gt[-1, 0]
         final_testlls[i, j] = gt[-1, 1]
-        final_nclus[i, j] = gt[-1, 2]
-        final_nmatch[i, j] = gt[-1, 3]
+        final_merge_times[i, j] = gt[-1, 3]
+        final_nclus[i, j] = gt[-1, 4]
+        final_nmatch[i, j] = gt[-1, 5]
 
 
 #Plot 2: bar graph across all mcmc runs, x axis nThr, y axis model quality and cpu time with merge time stacked onto it
@@ -95,6 +97,8 @@ axr.set_ylim((-10, -4))
 plt.savefig(outdir+'/cput-testll-bars.pdf')
 
 
+
+
 #Plot 3: Number of clusters (one line for each nThr) & number of matchings solved vs # merged minibatch posteriors
 plt.figure()
 ax = plt.axes()
@@ -107,17 +111,25 @@ ax.set_xticklabels( map(str, map(int, nthr_tags)) )
 plt.legend([r'\# Clusters', r'\# Matchings'])
 plt.savefig(outdir+'/nclusmatch-bars.pdf')
 
+#Plot 3a: Merge times
+plt.figure()
+fmtf = final_merge_times.flatten()
+plt.hist(fmtf, bins=np.logspace(np.log10(np.amin(fmtf)), np.log10(np.amax(fmtf)), 40), facecolor='b', alpha=0.4)
+ax.set_xlabel(r'Merge Time (s)')
+ax.set_ylabel(r'Count')
+plt.xscale('log')
+plt.savefig(outdir+'/merget-hist.pdf')
 
 
-#Plot 4: Trace of number of clusters/matchings vs number of merged minibatch posteriors for 32 threads
+#Plot 4: Trace of number of clusters/matchings vs number of merged minibatch posteriors for the max # threads
 nclus_traces = []
 nmatch_traces = []
 ntag = nthr_tags[-1]
 for j in range(len(mcmc_run_tags)):
     mtag = mcmc_run_tags[j]
-    gt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-globaltrace.log')
-    nclus_traces.append(gt[:, 2])
-    nmatch_traces.append(gt[:, 3])
+    gt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-trace.log')
+    nclus_traces.append(gt[:, 4])
+    nmatch_traces.append(gt[:, 5])
 
 plt.figure()
 ctrace_mean = np.mean(np.array(nclus_traces), axis=0)
@@ -143,29 +155,28 @@ plt.savefig(outdir+'/nclusmatch-lines.pdf')
 
 #Plot 5: Global/minibatch likelihood traces for a single MCMC run
 #use the 32thread / 1st mcmc run (totally fine to change these)
-ntag = nthr_tags[-1]
-mtag = mcmc_run_tags[-1]
-gt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-globaltrace.log')
-global_times = gt[:, 0]
-global_testlls = gt[:, 1]
-lt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-localtimes.log')
-local_start_times = lt[:, 0]
-local_testlls = []
-local_times = []
-for i in range(lt.shape[0]):
-    lt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-localtrace-'+str(i)+'.log')
-    local_testlls.append(lt[:,2])
-    local_times.append(lt[:,0])
-
-plt.figure()
-plt.plot(global_times, global_testlls, 'b', lw=2)
-for  i in range(len(local_times)):
-    plt.plot(local_start_times[i]+local_times[i], local_testlls[i], 'c', lw=1)
-plt.xlabel('Time (s)')
-plt.ylabel('Test Log Likelihood')
-plt.xscale('log')
-plt.savefig(outdir+'/testll-trace.pdf')
-
+#ntag = nthr_tags[-1]
+#mtag = mcmc_run_tags[-1]
+#gt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-globaltrace.log')
+#global_times = gt[:, 0]
+#global_testlls = gt[:, 1]
+#lt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-localtimes.log')
+#local_start_times = lt[:, 0]
+#local_testlls = []
+#local_times = []
+#for i in range(lt.shape[0]):
+#    lt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-localtrace-'+str(i)+'.log')
+#    local_testlls.append(lt[:,2])
+#    local_times.append(lt[:,0])
+#
+#plt.figure()
+#plt.plot(global_times, global_testlls, 'b', lw=2)
+#for  i in range(len(local_times)):
+#    plt.plot(local_start_times[i]+local_times[i], local_testlls[i], 'c', lw=1)
+#plt.xlabel('Time (s)')
+#plt.ylabel('Test Log Likelihood')
+#plt.xscale('log')
+#plt.savefig(outdir+'/testll-trace.pdf')
 
 plt.figure()
 #Plot 6: Test log likelihood vs time with mean/std
@@ -175,7 +186,7 @@ for i in range(len(nthr_tags)):
     sda_testlls = []
     for j in range(len(mcmc_run_tags)):
         mtag = mcmc_run_tags[j]
-        tr = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-globaltrace.log')
+        tr = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-trace.log')
         sda_times.append(tr[:, 0])
         sda_testlls.append(tr[:, 1])
     minTime = np.amin(np.array(map(np.amin, sda_times)))
