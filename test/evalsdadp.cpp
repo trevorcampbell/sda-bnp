@@ -23,9 +23,9 @@ int main(int argc, char** argv){
 	//constants
 	uint32_t K = 40;
 	uint32_t Knew = 40;
-	uint32_t N = 100000;
+	uint32_t N = 1000;
 	uint32_t Nmini = 1000;
-	uint32_t Nt = 10000;
+	uint32_t Nt = 100;
 	uint32_t D = 2;
 	double alpha = 1.0;
 	uint32_t monteCarloTrials = 20;

@@ -306,7 +306,7 @@ template<class Model>
 Trace<typename VarDP<Model>::Distribution> VarDP<Model>::getTrace(bool computeTestLL){
 	if (computeTestLL){
 		trace.testlls.clear();
-		for (uint32_t i = 0; i < mt.globaldists.size(); i++){
+		for (uint32_t i = 0; i < trace.dists.size(); i++){
 			trace.testlls.push_back(computeTestLogLikelihood(trace.dists[i]));
 		}
 	}
