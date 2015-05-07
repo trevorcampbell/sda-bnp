@@ -140,13 +140,10 @@ int main(int argc, char** argv){
 				Nctr += Nmini;
 			}
 			sdadp.waitUntilDone();
-			std::cout << "VarDP with " << Nthr[i] << " threads done!" << std::endl;
 			std::cout << "Saving output..." << std::endl;
 			std::ostringstream oss;
 			oss  << "sdadpmix-nThr_" << std::setfill('0') << std::setw(3) << Nthr[i] << "-" << std::setfill('0') << std::setw(3) << nMC;
-			std::cout << "Saving dist..." << std::endl;
 			sdadp.getDistribution().save(oss.str().c_str());
-			std::cout << "Saving trace..." << std::endl;
 			sdadp.getTrace().save(oss.str().c_str());
 		}
 
@@ -154,6 +151,7 @@ int main(int argc, char** argv){
 		std::cout << "Running Batch VarDP ..." << std::endl;
 		VarDP<NIWModel> vardp(train_data, test_data, niw, alpha, K);
 		vardp.run(true);
+		std::cout << "Saving output..." << std::endl;
 		std::ostringstream oss4;
 		oss4  << "vardpmix-" << std::setfill('0') << std::setw(3) << nMC;
 		vardp.getDistribution().save(oss4.str().c_str());

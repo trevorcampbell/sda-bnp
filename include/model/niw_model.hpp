@@ -1,5 +1,6 @@
 #ifndef __NIW_MODEL_HPP
 #include <Eigen/Dense>
+#include <Eigen/Core>
 #include <boost/math/special_functions/gamma.hpp>
 #include <boost/math/special_functions/digamma.hpp>
 
@@ -35,7 +36,7 @@ class NIWModel{
 		VXd getStat(VXd data);
 		double getLogH0();
 		void getLogH(MXd eta, VXd nu, VXd& logh, MXd& dlogh_deta, VXd& dlogh_dnu);
-		double getLogPosteriorPredictive(VXd stat, VXd etak, double nuk);
+		MXd getLogPosteriorPredictive(MXd data, MXd eta, VXd nu);
 		double naturalParameterDistSquared(VXd& stat1, VXd& stat2);
 	private:
 		uint32_t D;
@@ -175,7 +176,7 @@ void NIWModel::getLogH(MXd eta, VXd nu, VXd& logh, MXd& dlogh_deta, VXd& dlogh_d
 
 MXd NIWModel::getLogPosteriorPredictive(MXd x, MXd eta, VXd nu){
 
-	MXd loglike(x.cols(), eta.rows());
+	MXd loglike = MXd::Zero(x.cols(), eta.rows());
 	for (uint32_t k = 0; k < eta.rows(); k++){
 		//convert etak to regular parameters of NIW
 		MXd psi_post = MXd::Zero(D, D);
@@ -203,9 +204,10 @@ MXd NIWModel::getLogPosteriorPredictive(MXd x, MXd eta, VXd nu){
 		for (uint32_t i = 0; i < D; i++){
 			ldet += log(diag(i));
 		}
-		loglike.col(k).rowwise() = lgamma( (dof+D)/2.0 ) - lgamma( dof/2.0 ) - D/2.0*log(dof) - D/2*log(M_PI) - 0.5*ldet;
+		loglike.col(k).array() += lgamma( (dof+D)/2.0 ) - lgamma( dof/2.0 ) - D/2.0*log(dof) - D/2*log(M_PI) - 0.5*ldet;
 		MXd xm = x.colwise()-mu_post;
-		VXd logprod = ((1.0/dof*((((xm.array())*(ldlt.solve(xm).array())).colwise().sum()).transpose())).rowwise() + 1.0).log();
+		VXd prod = 1.0/dof*((((xm.array())*(ldlt.solve(xm).array())).colwise().sum()).transpose());
+		VXd logprod = (prod.array()+1.0).log();
 		loglike.col(k) -= (dof+D)/2.0*logprod;
 	}
 	return loglike;

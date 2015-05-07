@@ -1,7 +1,7 @@
 #ifndef __DP_IMPL_HPP
 
 template<class Model>
-VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t K) : model(model), test_data(test_data), alpha(alpha), K(K){
+VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t K) : model(model), alpha(alpha), K(K){
 	M = this->model.getStatDimension();
 	N = train_data.size();
 	Nt = test_data.size();
@@ -30,7 +30,7 @@ VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& 
 
 template<class Model>
 VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Distribution& prior, const Model& model, 
-		double alpha, uint32_t K) : model(model), test_data(test_data), alpha(alpha), K(K){
+		double alpha, uint32_t K) : model(model), alpha(alpha), K(K){
 	M = this->model.getStatDimension();
 	N = train_data.size();
 	Nt = test_data.size();
@@ -42,6 +42,13 @@ VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& 
 	for (uint32_t i = 0; i < N; i++){
 		train_stats.row(i) = this->model.getStat(train_data[i]).transpose();
 	}
+
+	test_mxd = MXd::Zero(test_data[0].size(), Nt);
+	for (uint32_t i =0; i < Nt; i++){
+		test_mxd.col(i) = test_data[i];
+	}
+
+
 
 	//initialize the random device
 	std::random_device rd;
@@ -409,10 +416,11 @@ double VarDP<Model>::computeTestLogLikelihood(){
 		}
 		weights(firstEmptyK) = stick;
 
-		MXd logp = (model.getLogPosteriorPredictive(test_mxd, eta.block(0, 0, firstEmptyK+1, eta.cols()), nu.head(firstEmptyK+1))).rowwise() + (weights.transpose()).log();
+		MXd logp = model.getLogPosteriorPredictive(test_mxd, eta.block(0, 0, firstEmptyK+1, eta.cols()), nu.head(firstEmptyK+1)).array().rowwise() + (weights.transpose()).array().log();
 		VXd llmaxs = logp.rowwise().maxCoeff();
-		logp.rowwise() -= llmaxs;
-		return (((logp.exp()).rowwise().sum()).log() + llmaxs).sum()/Nt;
+		logp.colwise() -= llmaxs;
+		VXd lls = ((logp.array().exp()).rowwise().sum()).log();
+		return (lls + llmaxs).sum()/Nt;
 	} else {
 		//first get average weights -- no compression
 		double stick = 1.0;
@@ -423,10 +431,11 @@ double VarDP<Model>::computeTestLogLikelihood(){
 		}
 		weights(K-1) = stick;
 
-		MXd logp = (model.getLogPosteriorPredictive(test_mxd, eta, nu).rowwise() + (weights.transpose()).log();
+		MXd logp = model.getLogPosteriorPredictive(test_mxd, eta, nu).array().rowwise() + (weights.transpose()).array().log();
 		VXd llmaxs = logp.rowwise().maxCoeff();
-		logp.rowwise() -= llmaxs;
-		return (((logp.exp()).rowwise().sum()).log() + llmaxs).sum()/Nt;
+		logp.colwise() -= llmaxs;
+		VXd lls = ((logp.array().exp()).rowwise().sum()).log();
+		return (lls + llmaxs).sum()/Nt;
 	}
 
 

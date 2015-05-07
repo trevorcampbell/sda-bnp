@@ -43,6 +43,7 @@ class SDADP{
 		std::mutex distmut;
 		MultiTrace mtrace;
 		MXd test_mxd;
+		std::vector<VXd> test_data;
 
 		void varDPJob(const std::vector<VXd>& train_data);
 		Pool<std::function<void()> > pool;

@@ -2,9 +2,9 @@
 
 template<class Model>
 SDADP<Model>::SDADP(const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t Knew, uint32_t nthr):
-model(model), alpha(alpha), Knew(Knew), pool(nthr){
+test_data(test_data), model(model), alpha(alpha), Knew(Knew), pool(nthr){
 	test_mxd = MXd::Zero(test_data[0].size(), test_data.size());
-	for (uint32_t i =0; i < Nt; i++){
+	for (uint32_t i =0; i < test_data.size(); i++){
 		test_mxd.col(i) = test_data[i];
 	}
 	dist.K = 0;
@@ -45,7 +45,7 @@ MultiTrace SDADP<Model>::getTrace(){
 template<class Model>
 double SDADP<Model>::computeTestLogLikelihood(typename VarDP<Model>::Distribution dist0){
 	uint32_t K = dist0.K;
-	uint32_t Nt = test_data.size();
+	uint32_t Nt = test_mxd.cols();
 
 	if (Nt == 0){
  		std::cout << "WARNING: Test Log Likelihood = NaN since Nt = 0" << std::endl;
@@ -60,10 +60,12 @@ double SDADP<Model>::computeTestLogLikelihood(typename VarDP<Model>::Distributio
 	}
 	weights(K-1) = stick;
 
-	MXd logp = (model.getLogPosteriorPredictive(test_mxd, dist0.eta, dist0.nu).rowwise() + (weights.transpose()).log();
+	MXd logp = model.getLogPosteriorPredictive(test_mxd, dist0.eta, dist0.nu).array().rowwise() + (weights.transpose()).array().log();
 	VXd llmaxs = logp.rowwise().maxCoeff();
-	logp.rowwise() -= llmaxs;
-	return (((logp.exp()).rowwise().sum()).log() + llmaxs).sum()/Nt;
+	logp.colwise() -= llmaxs;
+	VXd lls = ((logp.array().exp()).rowwise().sum()).log();
+	return (lls + llmaxs).sum()/Nt;
+
 
 
 	////first get average weights
@@ -124,18 +126,15 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 
 	//do minibatch inference
 	typename VarDP<Model>::Distribution dist1;
-	Trace<typename VarDP<Model>::Distribution> tr;
-	double t0 = timer.get();
+	double starttime = timer.get();
 	if(dist0.K == 0){ //if there is no prior to work off of
 		VarDP<Model> vdp(train_data, test_data, model, alpha, Knew);
 		vdp.run(false);
 	 	dist1 = vdp.getDistribution();
-	 	tr = vdp.getTrace(false);
 	} else { //if there is a prior
 		VarDP<Model> vdp(train_data, test_data, dist0, model, alpha, dist0.K+Knew);
 		vdp.run(false);
 	 	dist1 = vdp.getDistribution();
-	 	tr = vdp.getTrace(false);
 	}
 	//oss << "dist1-" << ljn;
 	//dist1.save(oss.str().c_str());
@@ -181,7 +180,8 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 
 
 	//lock mutex, store the local trace, merge the minibatch distribution, unlock
-	typename VarDP<Model>::Distribution dist2; //dist2 is used to check if a matching was solved later
+	double mergetime;
+	typename VarDP<Model>::Distribution dist2, distf; //dist2 is used to check if a matching was solved later
 	{
 		std::lock_guard<std::mutex> lock(distmut);
 		dist2 = dist;
@@ -190,33 +190,34 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		//dist2.save(oss.str().c_str());
 		//oss.str(""); oss.clear();
 
-
-
-		//add the result of the job to the multitrace
-		mtrace.localstarttimes.push_back(t0);
-		mtrace.localtimes.push_back(tr.times);
-		mtrace.localobjs.push_back(tr.objs);
-		mtrace.localdists.push_back(tr.dists);
 		//merge
-		t0 = timer.get(); //reuse t0 -- already stored it above
+		double t0 = timer.get(); //reuse t0 -- already stored it above
 		dist = mergeDistributions(dist1, dist, dist0);
-		mtrace.localmergetimes.push_back(timer.get()-t0);
+		mergetime = timer.get()- t0;
+		distf = dist;
+	} //release the lock
 
 		//oss << "distf-" << ljn;
 		//dist.save(oss.str().c_str());
 		//oss.str(""); oss.clear();
 
-		mtrace.globaltimes.push_back(t0);
-		mtrace.globaldists.push_back(dist);
-		mtrace.globalclusters.push_back(dist.eta.rows());
-		if (mtrace.globalmatchings.size() == 0){
-			mtrace.globalmatchings.push_back(0); // the first merge never needs to do a matching since all components are new
+	double t0 = timer.get();
+	double testll = computeTestLogLikelihood(distf);
+	{
+		std::lock_guard<std::mutex> lock(distmut);
+		mtrace.starttimes.push_back(starttime);
+		mtrace.mergetimes.push_back(mergetime);
+		mtrace.times.push_back(t0);
+		mtrace.testlls.push_back(testll);
+		mtrace.clusters.push_back(dist.eta.rows());
+		if (mtrace.matchings.size() == 0){
+			mtrace.matchings.push_back(0); // the first merge never needs to do a matching since all components are new
 		} else {
-			uint32_t nm = mtrace.globalmatchings.back();
+			uint32_t nm = mtrace.matchings.back();
 			if (dist1.K > dist0.K && dist2.K > dist0.K){
-				mtrace.globalmatchings.push_back(nm+1);
+				mtrace.matchings.push_back(nm+1);
 			} else {
-				mtrace.globalmatchings.push_back(nm);
+				mtrace.matchings.push_back(nm);
 			}
 		}
 	} //release the lock
