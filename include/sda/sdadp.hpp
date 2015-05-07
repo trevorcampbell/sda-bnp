@@ -44,6 +44,7 @@ class SDADP{
 		MultiTrace mtrace;
 		MXd test_mxd;
 		std::vector<VXd> test_data;
+		std::vector< typename VarDP<Model>::Distribution > dists;
 
 		void varDPJob(const std::vector<VXd>& train_data);
 		Pool<std::function<void()> > pool;

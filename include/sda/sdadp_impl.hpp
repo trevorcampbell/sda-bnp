@@ -39,6 +39,10 @@ MultiTrace SDADP<Model>::getTrace(){
 		std::lock_guard<std::mutex> lock(distmut);
 		mt = mtrace;
 	}
+
+	for (uint32_t i = 0; i < dists.size(); i++){
+		mt.testlls.push_back(computeTestLogLikelihood(dists[i]));
+	}
 	return mt;
 }
 
@@ -65,8 +69,6 @@ double SDADP<Model>::computeTestLogLikelihood(typename VarDP<Model>::Distributio
 	logp.colwise() -= llmaxs;
 	VXd lls = ((logp.array().exp()).rowwise().sum()).log();
 	return (lls + llmaxs).sum()/Nt;
-
-
 
 	////first get average weights
 	//double stick = 1.0;
@@ -181,7 +183,7 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 
 	//lock mutex, store the local trace, merge the minibatch distribution, unlock
 	double mergetime;
-	typename VarDP<Model>::Distribution dist2, distf; //dist2 is used to check if a matching was solved later
+	typename VarDP<Model>::Distribution dist2; //dist2 is used to check if a matching was solved later
 	{
 		std::lock_guard<std::mutex> lock(distmut);
 		dist2 = dist;
@@ -194,21 +196,12 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		double t0 = timer.get(); //reuse t0 -- already stored it above
 		dist = mergeDistributions(dist1, dist, dist0);
 		mergetime = timer.get()- t0;
-		distf = dist;
-	} //release the lock
-
-		//oss << "distf-" << ljn;
-		//dist.save(oss.str().c_str());
-		//oss.str(""); oss.clear();
-
-	double t0 = timer.get();
-	double testll = computeTestLogLikelihood(distf);
-	{
-		std::lock_guard<std::mutex> lock(distmut);
+		t0 = timer.get();
+		dists.push_back(dist);
 		mtrace.starttimes.push_back(starttime);
 		mtrace.mergetimes.push_back(mergetime);
 		mtrace.times.push_back(t0);
-		mtrace.testlls.push_back(testll);
+		//mtrace.testlls.push_back(testll);
 		mtrace.clusters.push_back(dist.eta.rows());
 		if (mtrace.matchings.size() == 0){
 			mtrace.matchings.push_back(0); // the first merge never needs to do a matching since all components are new
@@ -221,6 +214,33 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 			}
 		}
 	} //release the lock
+
+	//} //release the lock
+
+		//oss << "distf-" << ljn;
+		//dist.save(oss.str().c_str());
+		//oss.str(""); oss.clear();
+
+	//double t0 = timer.get();
+	//double testll = computeTestLogLikelihood(distf);
+	//{
+	//	std::lock_guard<std::mutex> lock(distmut);
+	//	mtrace.starttimes.push_back(starttime);
+	//	mtrace.mergetimes.push_back(mergetime);
+	//	mtrace.times.push_back(t0);
+	//	mtrace.testlls.push_back(testll);
+	//	mtrace.clusters.push_back(dist.eta.rows());
+	//	if (mtrace.matchings.size() == 0){
+	//		mtrace.matchings.push_back(0); // the first merge never needs to do a matching since all components are new
+	//	} else {
+	//		uint32_t nm = mtrace.matchings.back();
+	//		if (dist1.K > dist0.K && dist2.K > dist0.K){
+	//			mtrace.matchings.push_back(nm+1);
+	//		} else {
+	//			mtrace.matchings.push_back(nm);
+	//		}
+	//	}
+	//} //release the lock
 
 	//done!
 	return;
