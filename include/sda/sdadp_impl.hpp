@@ -29,26 +29,30 @@ typename VarDP<Model>::Distribution SDADP<Model>::getDistribution(){
 }
 
 template<class Model>
-MultiTrace<typename VarDP<Model>::Distribution> SDADP<Model>::getTrace(){
+MultiTrace<typename VarDP<Model>::Distribution> SDADP<Model>::getTrace(bool computeTestLL){
 	MultiTrace<typename VarDP<Model>::Distribution> mt;
 	{
 		std::lock_guard<std::mutex> lock(distmut);
 		mt = mtrace;
 	}
-	for (uint32_t i = 0; i < mt.globaldists.size(); i++){
-		mt.globaltestlls.push_back(computeTestLogLikelihood(mt.globaldists[i]));
-	}
-	for (uint32_t i = 0; i < mt.localdists.size(); i++){
-		mt.localtestlls.push_back(std::vector<double>());
-		for (uint32_t j = 0; j < mt.localdists[i].size(); j++){
-			mt.localtestlls[i].push_back(computeTestLogLikelihood(mt.localdists[i][j]));
+	if (computeTestLL){
+		mt.globaltestlls.clear();
+		for (uint32_t i = 0; i < mt.globaldists.size(); i++){
+			mt.globaltestlls.push_back(computeTestLogLikelihood(mt.globaldists[i]));
+		}
+		mt.localtestlls.clear();
+		for (uint32_t i = 0; i < mt.localdists.size(); i++){
+			mt.localtestlls.push_back(std::vector<double>());
+			for (uint32_t j = 0; j < mt.localdists[i].size(); j++){
+				mt.localtestlls[i].push_back(computeTestLogLikelihood(mt.localdists[i][j]));
+			}
 		}
 	}
 	return mt;
 }
 
 template<class Model>
-double SDADP<Model>::computeTestLogLikelihood(VarDP<Model>::Distribution dist0){
+double SDADP<Model>::computeTestLogLikelihood(typename VarDP<Model>::Distribution dist0){
 	uint32_t K = dist0.K;
 	uint32_t Nt = test_data.size();
 
@@ -120,12 +124,12 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		VarDP<Model> vdp(train_data, test_data, model, alpha, Knew);
 		vdp.run(false);
 	 	dist1 = vdp.getDistribution();
-	 	tr = vdp.getTrace();
+	 	tr = vdp.getTrace(false);
 	} else { //if there is a prior
 		VarDP<Model> vdp(train_data, test_data, dist0, model, alpha, dist0.K+Knew);
 		vdp.run(false);
 	 	dist1 = vdp.getDistribution();
-	 	tr = vdp.getTrace();
+	 	tr = vdp.getTrace(false);
 	}
 	//oss << "dist1-" << ljn;
 	//dist1.save(oss.str().c_str());

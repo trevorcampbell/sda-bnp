@@ -32,9 +32,9 @@ class VarDP{
 		};
 		VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t K);
 		VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Distribution& prior, const Model& model, double alpha, uint32_t K);
-		void run(bool computeTestLL = false, double tol = 1e-6);
+		void run(double tol = 1e-6);
 		Distribution getDistribution();
-		Trace getTrace();
+		Trace<Distribution> getTrace(bool computeTestLL = true);
 
 	private:
 		void init();
@@ -42,7 +42,7 @@ class VarDP{
 		void updateLabelDist();
 		void updateParamDist();
 		double computeObjective();
-		double computeTestLogLikelihood();
+		double computeTestLogLikelihood(Distribution dist0);
 		Distribution getDistributionForTLL();
 
 		std::mt19937 rng;
@@ -55,7 +55,7 @@ class VarDP{
 		VXd a0, b0, nu0, logh0;
 		MXd eta0;
 		std::vector<VXd> test_data;
-		Trace trace;
+		Trace<Distribution> trace;
 };
 
 #include "dp_impl.hpp"
