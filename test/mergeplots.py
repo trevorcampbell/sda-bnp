@@ -73,5 +73,8 @@ for i in range(len(dist_tags)):
             xy  = mu[:, np.newaxis] + np.dot(np.linalg.cholesky(sig), np.vstack((np.cos(np.linspace(0, 2*np.pi, 100)), np.sin(np.linspace(0, 2*np.pi, 100)))))
             plt.plot(xy[0, :], xy[1, :], lw=5, alpha=np.sqrt(wt), c='r')
         plt.title('Dist'+dtype[j]+'-'+dist_tags[i])
+        plt.xlim((-100, 100))
+        plt.ylim((-100, 100))
+
 
 plt.show()
