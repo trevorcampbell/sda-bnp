@@ -38,29 +38,29 @@ mcmc_run_tags = sorted(mcmc_run_tags)
 nthr_tags = sorted(list(set(nthr_tags)))
 
 
-#Plot 1: data and model for each mcmc run
-for mtag in mcmc_run_tags:
-    model = np.genfromtxt('model-'+mtag+'.log')
-    train_data = np.genfromtxt('train-'+mtag+'.log')
-    test_data = np.genfromtxt('test-'+mtag+'.log')
-
-    D = int((-1 + np.sqrt(1-4*(1-model.shape[1])))/2)
-
-    plt.figure()
-    plt.scatter(train_data[:, 0], train_data[:, 1], c='b')
-    plt.scatter(test_data[:, 0], test_data[:, 1], c='g')
-    for k in range(model.shape[0]):
-        mu = model[k, 0:D]
-        sig = np.zeros((D, D))
-        for j in range(D):
-            sig[j, :] = model[k, (j+1)*D:(j+2)*D]
-        wt = model[k, -1]
-        xy  = mu[:, np.newaxis] + np.dot(np.linalg.cholesky(sig), np.vstack((np.cos(np.linspace(0, 2*np.pi, 100)), np.sin(np.linspace(0, 2*np.pi, 100)))))
-        plt.plot(xy[0, :], xy[1, :], lw=5, alpha=np.sqrt(wt), c='r')
-    plt.axes().set_aspect('equal')
-    plt.xlim((-100, 100))
-    plt.ylim((-100, 100))
-    plt.savefig(outdir+'/model-'+mtag+'.pdf')
+##Plot 1: data and model for each mcmc run
+#for mtag in mcmc_run_tags:
+#    model = np.genfromtxt('model-'+mtag+'.log')
+#    train_data = np.genfromtxt('train-'+mtag+'.log')
+#    test_data = np.genfromtxt('test-'+mtag+'.log')
+#
+#    D = int((-1 + np.sqrt(1-4*(1-model.shape[1])))/2)
+#
+#    plt.figure()
+#    plt.scatter(train_data[:, 0], train_data[:, 1], c='b')
+#    plt.scatter(test_data[:, 0], test_data[:, 1], c='g')
+#    for k in range(model.shape[0]):
+#        mu = model[k, 0:D]
+#        sig = np.zeros((D, D))
+#        for j in range(D):
+#            sig[j, :] = model[k, (j+1)*D:(j+2)*D]
+#        wt = model[k, -1]
+#        xy  = mu[:, np.newaxis] + np.dot(np.linalg.cholesky(sig), np.vstack((np.cos(np.linspace(0, 2*np.pi, 100)), np.sin(np.linspace(0, 2*np.pi, 100)))))
+#        plt.plot(xy[0, :], xy[1, :], lw=5, alpha=np.sqrt(wt), c='r')
+#    plt.axes().set_aspect('equal')
+#    plt.xlim((-100, 100))
+#    plt.ylim((-100, 100))
+#    plt.savefig(outdir+'/model-'+mtag+'.pdf')
 
 
 #collect traces/final statistics/etc
@@ -163,6 +163,7 @@ for  i in range(len(local_times)):
     plt.plot(local_start_times[i]+local_times[i], local_testlls[i], 'c', lw=1)
 plt.xlabel('Time (s)')
 plt.ylabel('Test Log Likelihood')
+plt.xscale('log')
 plt.savefig(outdir+'/testll-trace.pdf')
 
 

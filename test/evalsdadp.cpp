@@ -28,12 +28,12 @@ int main(int argc, char** argv){
 	uint32_t Nt = 10000;
 	uint32_t D = 2;
 	double alpha = 1.0;
-	uint32_t monteCarloTrials = 3;
+	uint32_t monteCarloTrials = 20;
 	std::vector<uint32_t> Nthr;
 	Nthr.push_back(1);
-	//Nthr.push_back(2);
-	//Nthr.push_back(4);
-	//Nthr.push_back(8);
+	Nthr.push_back(2);
+	Nthr.push_back(4);
+	Nthr.push_back(8);
 	//Nthr.push_back(16);
 	//Nthr.push_back(32);
 	VXd mu0 = VXd::Zero(D);
