@@ -103,8 +103,8 @@ double SDADP<Model>::computeTestLogLikelihood(typename VarDP<Model>::Distributio
 
 template<class Model>
 void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
-	//static int jobNum = 0;
-	//int ljn = 0;
+	static int jobNum = 0;
+	int ljn = 0;
 
 	if (train_data.size() == 0){
 		return;
@@ -115,15 +115,15 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 	typename VarDP<Model>::Distribution dist0;
 	{
 		std::lock_guard<std::mutex> lock(distmut);
-		//ljn = jobNum++;
+		ljn = jobNum++;
 		//std::cout << "Starting job " << ljn << std::endl;
 		dist0 = dist;
 	} //release the lock
 
-	//std::ostringstream oss;
-	//oss << "dist0-" << ljn;
-	//dist0.save(oss.str().c_str());
-	//oss.str(""); oss.clear();
+	std::ostringstream oss;
+	oss << "dist0-" << ljn;
+	dist0.save(oss.str().c_str());
+	oss.str(""); oss.clear();
 
 
 	//do minibatch inference
@@ -138,9 +138,9 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		vdp.run(false);
 	 	dist1 = vdp.getDistribution();
 	}
-	//oss << "dist1-" << ljn;
-	//dist1.save(oss.str().c_str());
-	//oss.str(""); oss.clear();
+	oss << "dist1-" << ljn;
+	dist1.save(oss.str().c_str());
+	oss.str(""); oss.clear();
 
 
 
@@ -176,9 +176,9 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		return;
 	}
 
-	//oss << "dist1r-" << ljn;
-	//dist1.save(oss.str().c_str());
-	//oss.str(""); oss.clear();
+	oss << "dist1r-" << ljn;
+	dist1.save(oss.str().c_str());
+	oss.str(""); oss.clear();
 
 
 	//lock mutex, store the local trace, merge the minibatch distribution, unlock
@@ -188,9 +188,9 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		std::lock_guard<std::mutex> lock(distmut);
 		dist2 = dist;
 
-		//oss << "dist2-" << ljn;
-		//dist2.save(oss.str().c_str());
-		//oss.str(""); oss.clear();
+		oss << "dist2-" << ljn;
+		dist2.save(oss.str().c_str());
+		oss.str(""); oss.clear();
 
 		//merge
 		double t0 = timer.get(); //reuse t0 -- already stored it above
@@ -213,13 +213,13 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 				mtrace.matchings.push_back(nm);
 			}
 		}
+
+		oss << "distf-" << ljn;
+		dist.save(oss.str().c_str());
+		oss.str(""); oss.clear();
 	} //release the lock
 
 	//} //release the lock
-
-		//oss << "distf-" << ljn;
-		//dist.save(oss.str().c_str());
-		//oss.str(""); oss.clear();
 
 	//double t0 = timer.get();
 	//double testll = computeTestLogLikelihood(distf);

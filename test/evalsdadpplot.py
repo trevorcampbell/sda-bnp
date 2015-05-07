@@ -153,30 +153,30 @@ plt.ylabel(r'Count')
 plt.savefig(outdir+'/nclusmatch-lines.pdf')
 
 
-#Plot 5: Global/minibatch likelihood traces for a single MCMC run
-#use the 32thread / 1st mcmc run (totally fine to change these)
-#ntag = nthr_tags[-1]
-#mtag = mcmc_run_tags[-1]
-#gt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-globaltrace.log')
-#global_times = gt[:, 0]
-#global_testlls = gt[:, 1]
-#lt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-localtimes.log')
-#local_start_times = lt[:, 0]
-#local_testlls = []
-#local_times = []
-#for i in range(lt.shape[0]):
-#    lt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-localtrace-'+str(i)+'.log')
-#    local_testlls.append(lt[:,2])
-#    local_times.append(lt[:,0])
-#
-#plt.figure()
-#plt.plot(global_times, global_testlls, 'b', lw=2)
-#for  i in range(len(local_times)):
-#    plt.plot(local_start_times[i]+local_times[i], local_testlls[i], 'c', lw=1)
-#plt.xlabel('Time (s)')
-#plt.ylabel('Test Log Likelihood')
-#plt.xscale('log')
-#plt.savefig(outdir+'/testll-trace.pdf')
+####Plot 5: Global/minibatch likelihood traces for a single MCMC run
+####use the 32thread / 1st mcmc run (totally fine to change these)
+####ntag = nthr_tags[-1]
+####mtag = mcmc_run_tags[-1]
+####gt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-globaltrace.log')
+####global_times = gt[:, 0]
+####global_testlls = gt[:, 1]
+####lt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-localtimes.log')
+####local_start_times = lt[:, 0]
+####local_testlls = []
+####local_times = []
+####for i in range(lt.shape[0]):
+####    lt = np.genfromtxt(sdabasename+'-nThr_'+ntag+'-'+mtag+'-localtrace-'+str(i)+'.log')
+####    local_testlls.append(lt[:,2])
+####    local_times.append(lt[:,0])
+####
+####plt.figure()
+####plt.plot(global_times, global_testlls, 'b', lw=2)
+####for  i in range(len(local_times)):
+####    plt.plot(local_start_times[i]+local_times[i], local_testlls[i], 'c', lw=1)
+####plt.xlabel('Time (s)')
+####plt.ylabel('Test Log Likelihood')
+####plt.xscale('log')
+####plt.savefig(outdir+'/testll-trace.pdf')
 
 plt.figure()
 #Plot 6: Test log likelihood vs time with mean/std
@@ -202,25 +202,25 @@ for i in range(len(nthr_tags)):
     plt.plot(t, tll_mean-tll_std, 'b--', lw=2, alpha=0.4)
     plt.fill_between(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='b', alpha=0.3)
 
-batch_times =[]
-batch_testlls =[]
-for j in range(len(mcmc_run_tags)):
-    mtag = mcmc_run_tags[j]
-    tr = np.genfromtxt(batchbasename+'-'+mtag+'-trace.log')
-    batch_times.append(tr[:, 0])
-    batch_testlls.append(tr[:, 2]) #2 for this one since 1 is obj
-minTime = np.amin(np.array(map(np.amin, batch_times)))
-maxTime = np.amax(np.array(map(np.amax, batch_times)))
-t = np.logspace(np.log10(minTime), np.log10(maxTime), num=100)
-tllp = np.zeros((len(batch_times), t.shape[0]))
-for j in range(len(batch_times)):
-    tllp[j, :] = np.interp(t, batch_times[j], batch_testlls[j])
-tll_mean = np.mean(tllp, axis=0)
-tll_std = np.std(tllp, axis=0)
-plt.plot(t, tll_mean, c='k', lw=2)
-plt.plot(t, tll_mean+tll_std, 'k--', lw=2, alpha=0.4)
-plt.plot(t, tll_mean-tll_std, 'k--', lw=2, alpha=0.4)
-plt.fill_between(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='k', alpha=0.3)
+#batch_times =[]
+#batch_testlls =[]
+#for j in range(len(mcmc_run_tags)):
+#    mtag = mcmc_run_tags[j]
+#    tr = np.genfromtxt(batchbasename+'-'+mtag+'-trace.log')
+#    batch_times.append(tr[:, 0])
+#    batch_testlls.append(tr[:, 2]) #2 for this one since 1 is obj
+#minTime = np.amin(np.array(map(np.amin, batch_times)))
+#maxTime = np.amax(np.array(map(np.amax, batch_times)))
+#t = np.logspace(np.log10(minTime), np.log10(maxTime), num=100)
+#tllp = np.zeros((len(batch_times), t.shape[0]))
+#for j in range(len(batch_times)):
+#    tllp[j, :] = np.interp(t, batch_times[j], batch_testlls[j])
+#tll_mean = np.mean(tllp, axis=0)
+#tll_std = np.std(tllp, axis=0)
+#plt.plot(t, tll_mean, c='k', lw=2)
+#plt.plot(t, tll_mean+tll_std, 'k--', lw=2, alpha=0.4)
+#plt.plot(t, tll_mean-tll_std, 'k--', lw=2, alpha=0.4)
+#plt.fill_between(t, tll_mean-tll_std, tll_mean+tll_std, facecolor='k', alpha=0.3)
 
 
 #oldbatch_times = []
