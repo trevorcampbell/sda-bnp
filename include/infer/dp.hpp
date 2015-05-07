@@ -35,6 +35,7 @@ class VarDP{
 		void run(bool computeTestLL = false, double tol = 1e-6);
 		Distribution getDistribution();
 		Trace getTrace();
+		std::vector<Distribution> getDistributionTrace();
 
 	private:
 		void init();
@@ -43,6 +44,7 @@ class VarDP{
 		void updateParamDist();
 		double computeObjective();
 		double computeTestLogLikelihood();
+		Distribution getDistributionForTLL();
 
 		std::mt19937 rng;
 
@@ -55,6 +57,7 @@ class VarDP{
 		MXd eta0;
 		std::vector<VXd> test_data;
 		Trace trace;
+		std::vector<Distribution> disttrace;
 };
 
 #include "dp_impl.hpp"

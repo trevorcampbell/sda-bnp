@@ -59,6 +59,7 @@ template<class Model>
 void VarDP<Model>::run(bool computeTestLL, double tol){
 	//clear any previously stored results
 	trace.clear();
+	disttrace.clear();
 
 	//create objective tracking vars
 	double diff = 10.0*tol + 1.0;
@@ -66,14 +67,12 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 	double prevobj = std::numeric_limits<double>::infinity();
 
 	//start the timer
-	Timer cpuTime, wallTime;
+	Timer cpuTime;
 	cpuTime.start();
-	wallTime.start();
 
 	//initialize the variables
 	init();
 
-	
 	//loop on variational updates
 	while(diff > tol){
 		updateWeightDist();
@@ -81,24 +80,24 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 		updateLabelDist();
 
 		prevobj = obj;
-		//store the current time
-		trace.times.push_back(cpuTime.get());
 		//compute the objective
 		obj = computeObjective();
-		//save the objective
-		trace.objs.push_back(obj);
 		//compute the obj diff
 		diff = fabs((obj - prevobj)/obj);
-		//if test likelihoods were requested, compute those (but pause the timer first)
+
+		//store the results -- stop the clock
+		cpuTime.stop();
+		//store the current time
+		trace.times.push_back(cpuTime.get());
+		//save the objective
+		trace.objs.push_back(obj);
 		if (computeTestLL){
-			cpuTime.stop();
-			double testll = computeTestLogLikelihood();
-			trace.testlls.push_back(testll);
-			cpuTime.start();
-			//std::cout << "obj: " << obj << " testll: " << testll << std::endl;
-		} else {
-			//std::cout << "obj: " << obj << std::endl;
+			trace.testlls.push_back(computeTestLogLikelihood());
 		}
+		//save the current distribution 
+		disttrace.push_back(getDistributionForTLL());
+		//std::cout << "obj: " << obj << " testll: " << testll << std::endl;
+		cpuTime.start(); //--restart the clock
 	}
 	//done!
 	return;
@@ -298,8 +297,24 @@ typename VarDP<Model>::Distribution VarDP<Model>::getDistribution(){
 }
 
 template<class Model>
+typename VarDP<Model>::Distribution VarDP<Model>::getDistributionForTLL(){
+	VarDP<Model>::Distribution d;
+	d.K = this->K;
+	d.a = this->a;
+	d.b = this->b;
+	d.eta = this->eta;
+	d.nu = this->nu;
+	return d;
+}
+
+template<class Model>
 Trace VarDP<Model>::getTrace(){
 	return trace;
+}
+
+template<class Model>
+std::vector<Distribution> VarDP<Model>::getDistributionTrace(){
+	return disttrace;
 }
 
 
