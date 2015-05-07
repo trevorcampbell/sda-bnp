@@ -30,9 +30,9 @@ class SDADP{
 		void submitMinibatch(const std::vector<VXd>& train_data); 
 		void waitUntilDone();
 		typename VarDP<Model>::Distribution getDistribution();
-		MultiTrace getTrace();
+		MultiTrace<typename VarDP<Model>::Distribution> getTrace();
 	private:
-		double computeTestLogLikelihood();
+		double computeTestLogLikelihood(VarDP<Model>::Distribution dist0);
 		typename VarDP<Model>::Distribution mergeDistributions(typename VarDP<Model>::Distribution d1, typename VarDP<Model>::Distribution d2, typename VarDP<Model>::Distribution d0);
 
 		Timer timer;
@@ -42,7 +42,7 @@ class SDADP{
 		Model model;
 		typename VarDP<Model>::Distribution dist;
 		std::mutex distmut;
-		MultiTrace mtrace;
+		MultiTrace<typename VarDP<Model>::Distribution> mtrace;
 
 		void varDPJob(const std::vector<VXd>& train_data);
 		Pool<std::function<void()> > pool;

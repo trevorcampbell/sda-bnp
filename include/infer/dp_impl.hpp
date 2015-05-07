@@ -59,7 +59,6 @@ template<class Model>
 void VarDP<Model>::run(bool computeTestLL, double tol){
 	//clear any previously stored results
 	trace.clear();
-	disttrace.clear();
 
 	//create objective tracking vars
 	double diff = 10.0*tol + 1.0;
@@ -85,19 +84,19 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 		//compute the obj diff
 		diff = fabs((obj - prevobj)/obj);
 
-		//store the results -- stop the clock
-		cpuTime.stop();
 		//store the current time
-		trace.times.push_back(cpuTime.get());
+		trace.times.push_back(cpuTime.stop());
 		//save the objective
 		trace.objs.push_back(obj);
+		//save test log likelihood
 		if (computeTestLL){
 			trace.testlls.push_back(computeTestLogLikelihood());
 		}
 		//save the current distribution 
-		disttrace.push_back(getDistributionForTLL());
+		trace.dists(getDistributionForTLL());
 		//std::cout << "obj: " << obj << " testll: " << testll << std::endl;
-		cpuTime.start(); //--restart the clock
+		//restart the clock
+		cpuTime.start(); 
 	}
 	//done!
 	return;
