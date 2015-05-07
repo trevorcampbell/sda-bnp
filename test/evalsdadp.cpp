@@ -24,11 +24,11 @@ int main(int argc, char** argv){
 	uint32_t K = 40;
 	uint32_t Knew = 40;
 	uint32_t N = 1000;
-	uint32_t Nmini = 1000;
+	uint32_t Nmini = 100;
 	uint32_t Nt = 100;
 	uint32_t D = 2;
 	double alpha = 1.0;
-	uint32_t monteCarloTrials = 20;
+	uint32_t monteCarloTrials = 1;
 	std::vector<uint32_t> Nthr;
 	Nthr.push_back(1);
 	Nthr.push_back(2);
@@ -140,6 +140,8 @@ int main(int argc, char** argv){
 				Nctr += Nmini;
 			}
 			sdadp.waitUntilDone();
+			std::cout << "VarDP with " << Nthr[i] << " threads done!" << std::endl;
+			std::cout << "Saving output..." << std::endl;
 			std::ostringstream oss;
 			oss  << "sdadpmix-nThr_" << std::setfill('0') << std::setw(3) << Nthr[i] << "-" << std::setfill('0') << std::setw(3) << nMC;
 			sdadp.getDistribution().save(oss.str().c_str());
