@@ -42,7 +42,7 @@ int main(int argc, char** argv){
 	double xi0 = D+2;
 
 	double minMu = -100.0, maxMu = 100.0;
-	double sigMagnitude =1.0;
+	double sigMagnitude = 3.0;
 	double pi0 = 0.0;
 
 	std::mt19937 rng;
