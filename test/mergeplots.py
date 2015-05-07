@@ -43,14 +43,16 @@ for f in os.listdir('.'):
         dist_tags.append(f[first_dash+1:second_dash+first_dash+1])
 
 dist_tags = sorted(list(set(dist_tags)))
-dtype = ['0', '1', '1r', '2', 'f']
+
+dist_tags = dist_tags[:3]
+dtype = ['1r', '2', 'f']# ['0', '1', '1r', '2', 'f']
 
 for i in range(len(dist_tags)):
     for j in range(len(dtype)):
         plt.figure()
-        eta = np.genfromtxt('dist'+dtype[j]+'-'+dist_tags[i]+'-eta.log'))
-        nu = np.genfromtxt('dist'+dtype[j]+'-'+dist_tags[i]+'-nu.log'))
-        ab = np.genfromtxt('dist'+dtype[j]+'-'+dist_tags[i]+'-ab.log'))
+        eta = np.genfromtxt('dist'+dtype[j]+'-'+dist_tags[i]+'-eta.log')
+        nu = np.genfromtxt('dist'+dtype[j]+'-'+dist_tags[i]+'-nu.log')
+        ab = np.genfromtxt('dist'+dtype[j]+'-'+dist_tags[i]+'-ab.log')
 
         stick = 1.0
         for k in range(eta.shape[0]):
@@ -71,3 +73,5 @@ for i in range(len(dist_tags)):
             xy  = mu[:, np.newaxis] + np.dot(np.linalg.cholesky(sig), np.vstack((np.cos(np.linspace(0, 2*np.pi, 100)), np.sin(np.linspace(0, 2*np.pi, 100)))))
             plt.plot(xy[0, :], xy[1, :], lw=5, alpha=np.sqrt(wt), c='r')
         plt.title('Dist'+dtype[j]+'-'+dist_tags[i])
+
+plt.show()

@@ -21,10 +21,10 @@ typedef Eigen::VectorXd VXd;
 
 int main(int argc, char** argv){
 	//constants
-	uint32_t K = 40;
-	uint32_t Knew = 40;
-	uint32_t N = 1000;
-	uint32_t Nmini = 100;
+	uint32_t K = 4;
+	uint32_t Knew = 4;
+	uint32_t N = 100;
+	uint32_t Nmini = 20;
 	uint32_t Nt = 100;
 	uint32_t D = 2;
 	double alpha = 1.0;
