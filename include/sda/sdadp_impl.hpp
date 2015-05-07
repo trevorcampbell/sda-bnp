@@ -103,8 +103,8 @@ double SDADP<Model>::computeTestLogLikelihood(typename VarDP<Model>::Distributio
 
 template<class Model>
 void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
-	static int jobNum = 0;
-	int ljn = 0;
+	//static int jobNum = 0;
+	//int ljn = 0;
 
 	if (train_data.size() == 0){
 		return;
@@ -115,15 +115,15 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 	typename VarDP<Model>::Distribution dist0;
 	{
 		std::lock_guard<std::mutex> lock(distmut);
-		ljn = jobNum++;
+		//ljn = jobNum++;
 		//std::cout << "Starting job " << ljn << std::endl;
 		dist0 = dist;
 	} //release the lock
 
-	std::ostringstream oss;
-	oss << "dist0-" << ljn;
-	dist0.save(oss.str().c_str());
-	oss.str(""); oss.clear();
+	//std::ostringstream oss;
+	//oss << "dist0-" << ljn;
+	//dist0.save(oss.str().c_str());
+	//oss.str(""); oss.clear();
 
 
 	//do minibatch inference
@@ -138,9 +138,9 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		vdp.run(false);
 	 	dist1 = vdp.getDistribution();
 	}
-	oss << "dist1-" << ljn;
-	dist1.save(oss.str().c_str());
-	oss.str(""); oss.clear();
+	//oss << "dist1-" << ljn;
+	//dist1.save(oss.str().c_str());
+	//oss.str(""); oss.clear();
 
 
 
@@ -176,9 +176,9 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		return;
 	}
 
-	oss << "dist1r-" << ljn;
-	dist1.save(oss.str().c_str());
-	oss.str(""); oss.clear();
+	//oss << "dist1r-" << ljn;
+	//dist1.save(oss.str().c_str());
+	//oss.str(""); oss.clear();
 
 
 	//lock mutex, store the local trace, merge the minibatch distribution, unlock
@@ -188,13 +188,13 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		std::lock_guard<std::mutex> lock(distmut);
 		dist2 = dist;
 
-		oss << "dist2-" << ljn;
-		dist2.save(oss.str().c_str());
-		oss.str(""); oss.clear();
+		//oss << "dist2-" << ljn;
+		//dist2.save(oss.str().c_str());
+		//oss.str(""); oss.clear();
 
 		//merge
 		double t0 = timer.get(); //reuse t0 -- already stored it above
-		std::cout << "Job " << ljn << std::endl;
+		//std::cout << "Job " << ljn << std::endl;
 		dist = mergeDistributions(dist1, dist, dist0);
 		mergetime = timer.get()- t0;
 		t0 = timer.get();
@@ -215,9 +215,9 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 			}
 		}
 
-		oss << "distf-" << ljn;
-		dist.save(oss.str().c_str());
-		oss.str(""); oss.clear();
+		//oss << "distf-" << ljn;
+		//dist.save(oss.str().c_str());
+		//oss.str(""); oss.clear();
 	} //release the lock
 
 	//} //release the lock
@@ -343,7 +343,7 @@ typename VarDP<Model>::Distribution SDADP<Model>::mergeDistributions(typename Va
 			}
 		}
 
-		std::cout << "Cost matrix: " << std::endl << costs << std::endl;
+		//std::cout << "Cost matrix: " << std::endl << costs << std::endl;
 
 		//now all costs have been computed, and max/min are known
 		//subtract off the minimum from everything and remap to integers between 0 and INT_MAX/1000 
@@ -357,16 +357,16 @@ typename VarDP<Model>::Distribution SDADP<Model>::mergeDistributions(typename Va
 			}
 		}
 
-		std::cout << "costsi: " << std::endl << costsi << std::endl;
+		//std::cout << "costsi: " << std::endl << costsi << std::endl;
 
 		std::vector<int> matchings;
 		int cost = hungarian(costsi, matchings);
 
 
-		std::cout << "matchings: " << std::endl;
-		for (uint32_t i = 0; i < matchings.size(); i++){
-			std::cout << i << "->" << matchings[i] << std::endl;
-		}
+		//std::cout << "matchings: " << std::endl;
+		//for (uint32_t i = 0; i < matchings.size(); i++){
+		//	std::cout << i << "->" << matchings[i] << std::endl;
+		//}
 
 		out = dest;
 		//merge the first Kp elements directly (no matchings)
