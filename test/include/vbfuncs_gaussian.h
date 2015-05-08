@@ -9,4 +9,4 @@ void getLogHGaussian(double* logh, double* const dlogh_deta, double* const dlogh
 	const uint32_t D, bool doDeriv);
 
 
-double getLogPostPredGaussian(const double* const x, const double* const etak, const double nuk, const uint32_t D);
+double* getLogPostPredGaussian(const double* const x, const double* const eta, const double* const nu, const uint32_t K, const uint32_t D, const uint32_t N);

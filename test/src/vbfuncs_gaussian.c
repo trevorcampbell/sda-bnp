@@ -236,7 +236,7 @@ double* getLogPostPredGaussian(const double* const x, const double* const eta, c
 	for (uint32_t k = 0; k < K; k++){
 		for(uint32_t i = 0; i < D; i++){
 			for(uint32_t j = 0; j < D; j++){
-				psi_post[i*D+j] = eta[M*k+i*D+j] - eta[M*k+D*D+i]*eta[M*k+D*D+j]/nuk;
+				psi_post[i*D+j] = eta[M*k+i*D+j] - eta[M*k+D*D+i]*eta[M*k+D*D+j]/nu[k];
 			}
 			mu_post[i] = eta[M*k+D*D+i]/nu[k];
 		}
@@ -262,7 +262,7 @@ double* getLogPostPredGaussian(const double* const x, const double* const eta, c
 			double prod = 0;
 			for (uint32_t j = 0; j < D; j++){
 				for (uint32_t l = 0; l < D; l++){
-					prod += (x[j]-mu_post[j])*cinv[j*D+l]*(x[l]-mu_post[l]);
+					prod += (x[D*i+j]-mu_post[j])*cinv[j*D+l]*(x[D*i+l]-mu_post[l]);
 				}
 			}
 			loglike[K*i + k] = gsl_sf_lngamma( (dof+D)/2.0 ) - gsl_sf_lngamma( dof/2.0 ) - D/2.0*log(dof) - D/2*log(M_PI) - 0.5*ldet - (dof+D)/2.0*log(1.0+1.0/dof*prod);

@@ -48,6 +48,26 @@ MultiTrace SDADP<Model>::getTrace(){
 
 template<class Model>
 double SDADP<Model>::computeTestLogLikelihood(typename VarDP<Model>::Distribution dist0){
+	//TESTING CODE FOR DEBUGGING -- similar values appear in vb.c test code
+	//dist0.eta = MXd::Zero(3, 7);
+	//dist0.nu = VXd::Ones(3);
+    //dist0.eta << 518081,      -421473,      -421473,       346853,     -15409.5,      12600.5,      467.401,
+    //  			   402553,       949145,       949145,  2.24606e+06,      10554.7,      24983.3,          286,
+    //  				411719,       388877,       388877,       367628,      8890.26,      8394.19,          200;
+	//dist0.nu(0) = 459.401;
+	//dist0.nu(1) = 278;
+	//dist0.nu(2) = 192;
+
+
+	//dist0.a = VXd::Ones(3);
+	//dist0.b = VXd::Zero(3);
+	//dist0.b(0) = alpha+dist0.a(1)+dist0.a(2);
+	//dist0.b(1) = alpha+dist0.a(2);
+	//dist0.b(2) = alpha;
+
+	//dist0.K = 3;
+
+
 	uint32_t K = dist0.K;
 	uint32_t Nt = test_mxd.cols();
 

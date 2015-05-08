@@ -1219,6 +1219,46 @@ double computeTestLogLikelihood(
 		const uint32_t M,
 		uint32_t K){
 
+	//DEBUGGING CODE -- similar found in sdadp_impl.hpp
+    //double eta0[21] = { 518081,      -421473,      -421473,       346853,     -15409.5,      12600.5,      467.401,
+    //  			   402553,       949145,       949145,  2.24606e+06,      10554.7,      24983.3,          286,
+    //  				411719,       388877,       388877,       367628,      8890.26,      8394.19,          200 };
+    //double nu0[3] = {459.401, 278, 192};
+	//double a0[3] = {1.0, 1.0, 1.0};
+	//double b0[3] = {3.0, 2.0, 1.0};
+
+
+	//if (Nt == 0){
+	//	printf("WARNING: Test Log Likelihood = NaN since Nt = 0");
+	//}
+	////first get average weights
+	//double stick = 1.0;
+	//double* weights = (double*) malloc(sizeof(double)*3);
+	//for(uint32_t k = 0; k < 3-1; k++){
+	//	weights[k] = stick*a0[k]/(a0[k]+b0[k]);
+	//	stick *= b0[k]/(a0[k]+b0[k]);
+	//}
+	//weights[3-1] = stick;
+
+	////now get the log likelihoods for all data
+	//double loglike = 0.0;
+	//double* loglikes = getLogPostPred(T, eta0, nu0, 3, 2, Nt);
+	//for(uint32_t i = 0; i < Nt; i++){
+	//	for (uint32_t k = 0; k < 3; k++){
+	//		loglikes[3*i+k] += log(weights[k]);
+	//	}
+	//	qsort(&(loglikes[3*i]), 3, sizeof(double), cmpfunc);
+	//	double like = 0.0;
+	//	for (uint32_t k = 0; k < 3; k++){
+	//		//subtract off the max first
+	//		like += exp(loglikes[3*i+k] - loglikes[3*i+(3-1)]);
+	//	}
+	//	loglike += log(like)+loglikes[3*i+(3-1)];
+	//}
+	//printf("VB.C LOG LIKE: %f\n", loglike/Nt);
+
+
+
 	if (Nt == 0){
 		printf("WARNING: Test Log Likelihood = NaN since Nt = 0");
 	}
@@ -1247,6 +1287,7 @@ double computeTestLogLikelihood(
 		loglike += log(like)+loglikes[K*i+(K-1)];
 	}
 
+	/////////////////OLD WAY
 	//double* loglikes = (double*) malloc(sizeof(double)*K);
 	//for(uint32_t i = 0; i < Nt; i++){
 	//	//get the log likelihoods for all clusters
