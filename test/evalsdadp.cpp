@@ -230,7 +230,7 @@ int main(int argc, char** argv){
 		//SVA DP TEST
 		std::cout << "Running SVA ..." << std::endl;
 		svaDP(&zeta, &eta, &nu, &a, &b, &Kf, &times, &testlls, &Ntll,
-		    x.data(), xt.data(), alpha, 1.0e-1, 1.0e-2, eta0.data(), nu0, &getLogHGaussian,
+		    x.data(), xt.data(), alpha, 5.0e-3, 5.0e-3, eta0.data(), nu0, &getLogHGaussian,
 		    &getStatGaussian, &getLogPostPredGaussian, N, Nt, M, D, K); 
 		//output results
 		std::ostringstream oss8;

@@ -2,8 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
-#include <sys/time.h>
-#include <unistd.h>
+#include <time.h>
 
 #include "../include/costfcn.h"
 #include "../include/updates.h"
@@ -202,8 +201,8 @@ double varDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 	int i, j, k;
 
 	*out_nTrace = 0;
-	struct timeval ts, tf;
-	gettimeofday(&ts, NULL);
+	struct timespec ts, tf;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
 
 	/*Initialize zeta randomly for K clusters*/
 	initializeZeta(zeta, sumzeta, sumzetaT, T, getStat, N, M, D, K);
@@ -256,10 +255,15 @@ double varDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 		prevobj = obj;
 //		printf("@id %d: Obj %f\tdelta %f\n", id,obj,diff);
 		
+		clock_gettime(CLOCK_MONOTONIC, &tf);
+		if (*out_nTrace == 0){
+			times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+		} else {
+			times[*out_nTrace] = times[*out_nTrace - 1] + (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+		}
 		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
-		gettimeofday(&tf, NULL);
-		times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_usec - ts.tv_usec)/1.0e6;
 		(*out_nTrace)++;
+		clock_gettime(CLOCK_MONOTONIC, &ts);
 	}
 
 	//Remove empty clusters
@@ -501,8 +505,8 @@ double svaDP(double** out_zeta, double** out_eta, double** out_nu, double** out_
 	double* testlls = (double*) malloc(sizeof(double)*2*N); /*stores testll trace*/
 
 	*out_nTrace = 0;
-	struct timeval ts, tf;
-	gettimeofday(&ts, NULL);
+	struct timespec ts, tf;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
 
 
 	double* eta = (double*) malloc(sizeof(double)*K*M); /*Stores the natural params*/
@@ -664,14 +668,20 @@ double svaDP(double** out_zeta, double** out_eta, double** out_nu, double** out_
 			logh = (double*) realloc(logh, sizeof(double)*K);/*Stores logh for each cluster*/
 			csz = K;
 		}
+
+		clock_gettime(CLOCK_MONOTONIC, &tf);
+		if (*out_nTrace == 0){
+			times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+		} else {
+			times[*out_nTrace] = times[*out_nTrace - 1] + (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+		}
 		//compute test log likelihood
 		convertSVAtoVB(zeta, sumzeta, sumzetaT, a, b, logh, dlogh_deta, dlogh_dnu, T, w, eta, nu, getLogH, getStat,getLogPostPred, alpha, M, D, N, K);
 		//Remove empty clusters
 		removeEmptyClustersX(zeta, sumzeta, sumzetaT, eta, nu, logh, dlogh_deta, dlogh_dnu, nu0, a, b, &Ktmp, N, M, K, false);
-		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, Ktmp);
-		gettimeofday(&tf, NULL);
-		times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_usec - ts.tv_usec)/1.0e6;
+		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
 		(*out_nTrace)++;
+		clock_gettime(CLOCK_MONOTONIC, &ts);
 	}
 
 	convertSVAtoVB(zeta, sumzeta, sumzetaT, a, b, logh, dlogh_deta, dlogh_dnu, T, w, eta, nu, getLogH, getStat,getLogPostPred, alpha, M, D, N, K);
@@ -812,8 +822,8 @@ double moVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 	getLogH(&logh0, NULL, NULL, eta0, nu0, D, false);
 
 	*out_nTrace = 0;
-	struct timeval ts, tf;
-	gettimeofday(&ts, NULL);
+	struct timespec ts, tf;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
 
 
 	for (i = 0; i < K*B; i++){
@@ -894,10 +904,15 @@ double moVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 		diff = fabs( (obj-prevobj)/obj);
 		prevobj = obj;
 
+		clock_gettime(CLOCK_MONOTONIC, &tf);
+		if (*out_nTrace == 0){
+			times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+		} else {
+			times[*out_nTrace] = times[*out_nTrace - 1] + (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+		}
 		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
-		gettimeofday(&tf, NULL);
-		times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_usec - ts.tv_usec)/1.0e6;
 		(*out_nTrace)++;
+		clock_gettime(CLOCK_MONOTONIC, &ts);
 
 	}
 
@@ -1035,8 +1050,8 @@ double soVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 	}
 
 	*out_nTrace = 0;
-	struct timeval ts, tf;
-	gettimeofday(&ts, NULL);
+	struct timespec ts, tf;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
 
 	/*Proceed to the VB iteration*/
 	double prevobj = INFINITY;
@@ -1113,10 +1128,15 @@ double soVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 		diff = fabs( (obj-prevobj)/obj);
 		prevobj = obj;
 
+		clock_gettime(CLOCK_MONOTONIC, &tf);
+		if (*out_nTrace == 0){
+			times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+		} else {
+			times[*out_nTrace] = times[*out_nTrace - 1] + (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+		}
 		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
-		gettimeofday(&tf, NULL);
-		times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_usec - ts.tv_usec)/1.0e6;
 		(*out_nTrace)++;
+		clock_gettime(CLOCK_MONOTONIC, &ts);
     //printf("obj %f\t step %d",obj,step);
 	}
 
