@@ -992,167 +992,167 @@ double moVBDP(double** out_zeta, double** out_eta, double** out_nu, double** out
   return obj;
 }
 
-double soVBDP_noAllocSumZetaOld(double* zeta, double* sumzeta, double* sumzetaT,
-    double* eta, double* nu, double* a, double* b, unsigned int* out_K,
-		double* times, double* testlls, uint32_t* out_nTrace,
-		const double* const T, 
-		const double* const Ttest, 
-		const double alpha, 
-		const double* const eta0, 
-		const double nu0,
-		void (*getLogH)(double*, double* const, double* const, const double * const, const double, const uint32_t, bool),
-		void (*getStat)(double*, const double* const, const uint32_t),
-		double* (*getLogPostPred)(const double* const, const double* const, const double* const, const uint32_t, const uint32_t, const uint32_t),
-		const uint32_t N, const uint32_t Nt, 
-		const uint32_t M,
-		const uint32_t D,
-		uint32_t K, uint32_t NBatch, uint32_t id)
-{
-
-	// get NBatch/finalNBatch
-	uint32_t B = ceil((double)N/(double)NBatch);
-	uint32_t finalNBatch = N % NBatch;
-	if (finalNBatch == 0){
-		finalNBatch = NBatch;
-	}
-
-
-	double* dlogh_deta = (double*) malloc(sizeof(double)*K*M); /*Stores d(logh)/d(eta) for each cluster*/
-	double* dlogh_dnu = (double*) malloc(sizeof(double)*K);/*Stores d(logh)/d(nu) for each cluster*/
-	double* logh = (double*) malloc(sizeof(double)*K);/*Stores logh for each cluster*/
-	double logh0 = 0.0;
-	double* stat = (double*) malloc(sizeof(double)*M);
-	double* psisum = (double*) malloc(sizeof(double)*K);
-
-	double* sumzetaB = (double*) malloc(sizeof(double)*K);
-	double* sumzetaBT = (double*) malloc(sizeof(double)*K*M);
-	double* tmpa = (double*) malloc(sizeof(double)*K);
-	double* tmpb = (double*) malloc(sizeof(double)*K);
-	double* tmpnu = (double*) malloc(sizeof(double)*K);
-	double* tmpeta = (double*) malloc(sizeof(double)*K*M);
-
-	int i, j, k, bb;
-
-	/*Initialize zeta randomly for K clusters*/
-	initializeZeta(zeta, sumzeta, sumzetaT, T, getStat, N, M, D, K);
-
-	/*Get the prior logh*/
-	getLogH(&logh0, NULL, NULL, eta0, nu0, D, false);
-
-	//initialize global parameters
-	updateWeightDist(a, b, psisum, sumzeta, alpha, K);
-	
-	/*Update the exponential family parameter distributions*/
-	/*Compute the values of logh, derivatives*/
-	for (k=0; k< K; k++){
-		updateParamDist(&(eta[k*M]), &(nu[k]), eta0, nu0, sumzeta[k], &(sumzetaT[k*M]), M);
-		getLogH(&(logh[k]), &(dlogh_deta[M*k]), &(dlogh_dnu[k]), &(eta[M*k]), nu[k], D, true);
-	}
-
-	*out_nTrace = 0;
-	struct timespec ts, tf;
-	clock_gettime(CLOCK_MONOTONIC, &ts);
-
-	/*Proceed to the VB iteration*/
-	double prevobj = INFINITY;
-	double tol = 1e-8;
-	double diff = 1.0;
-	uint32_t step = 0;
-	while(diff > tol){
-		//initialize the full global stats to 0 before iterating over 
-		//subbatches and accumulating zeta
-		for(k=0; k < K; k++){
-			sumzeta[k] = 0.0;
-			for(j=0; j < M; j++){
-				sumzetaT[k*M+j] = 0.0;
-			}
-		}
-		//iterate over subbatches
-		for(bb = 0; bb < B; bb++){
-			//first initialize subbatch stats to 0
-			for(k = 0; k < K; k++){
-				sumzetaB[k] = 0.0;
-				for(j = 0; j < M; j++){
-					sumzetaBT[k*M+j] = 0.0;
-				}
-			}
-			//compute the subbatch label distribution using the current global parameters
-			uint32_t NBatchb = (bb == B-1 ? finalNBatch : NBatch); 
-			for (i=bb*NBatch; i < bb*NBatch+NBatchb; i++){
-				/*Compute the statistic for datapoint*/
-				getStat(stat, &(T[i*D]), D);
-				/*Get the new label distribution*/
-				updateLabelDist(&(zeta[i*K]), stat, dlogh_deta, dlogh_dnu, psisum, M,  K);
-				/*Update the batch sumzetaB*/
-				for(k = 0; k < K; k++){
-					sumzetaB[k] += zeta[i*K+k];
-					sumzeta[k] += zeta[i*K+k];
-					for (j = 0; j < M; j++){
-						sumzetaBT[k*M+j] += zeta[i*K+k]*stat[j];
-						sumzetaT[k*M+j] += zeta[i*K+k]*stat[j];
-					}
-				}
-			}
-			//amplify the subbatch stats to the total dataset size
-			for(k = 0; k < K; k++){
-				sumzetaB[k] *= (double)N/(double)NBatchb;
-				for(j = 0; j < M; j++){
-					sumzetaBT[k*M+j] *=(double)N/(double)NBatchb;
-				} 
-			}
-			//compute the noisy subbatch global parameters
-			updateWeightDist(tmpa, tmpb, psisum, sumzetaB, alpha, K);
-			for (k=0; k< K; k++){
-				updateParamDist(&(tmpeta[k*M]), &(tmpnu[k]), eta0, nu0, sumzetaB[k], &(sumzetaBT[k*M]), M);
-			}
-			//add the noisy step to the full global parameters with learning rate rho
-			//also compute helper variables dlogh & psisum
-			step++;
-			double rho = exp(-0.5*log(step+10.0));
-			double psibk = 0.0;
-			for (k=0; k< K; k++){
-				a[k] = rho*tmpa[k] + (1.0-rho)*a[k]; 
-				b[k] = rho*tmpb[k] + (1.0-rho)*b[k]; 
-				nu[k] = rho*tmpnu[k] + (1.0-rho)*nu[k]; 
-				for(j=0; j < M; j++){
-					eta[k*M+j] = rho*tmpeta[k*M+j] + (1.0-rho)*eta[k*M+j];
-				}
-				getLogH(&(logh[k]), &(dlogh_deta[M*k]), &(dlogh_dnu[k]), &(eta[M*k]), nu[k], D, true);
-				double psiak = gsl_sf_psi(a[k]) - gsl_sf_psi(a[k]+b[k]);
-      				psisum[k] = psiak + psibk;
-      				psibk += gsl_sf_psi(b[k]) - gsl_sf_psi(a[k]+b[k]);
-			}
-		}
-		/*Compute the variational objective*/
-		double obj= varBayesCost(zeta, sumzeta, sumzetaT, a, b, eta, eta0, nu, nu0, logh, logh0, dlogh_deta, dlogh_dnu, alpha, N, M, K);
-		diff = fabs( (obj-prevobj)/obj);
-		prevobj = obj;
-
-		clock_gettime(CLOCK_MONOTONIC, &tf);
-		if (*out_nTrace == 0){
-			times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
-		} else {
-			times[*out_nTrace] = times[*out_nTrace - 1] + (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
-		}
-		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
-		(*out_nTrace)++;
-		clock_gettime(CLOCK_MONOTONIC, &ts);
-    //printf("obj %f\t step %d",obj,step);
-	}
-
-	//Remove empty clusters
-	removeEmptyClustersX(zeta, sumzeta, sumzetaT, eta, nu, logh, dlogh_deta, dlogh_dnu, nu0, a, b, &K, N, M, K, false);
-	double finalobj= varBayesCost(zeta, sumzeta, sumzetaT, a, b, eta, eta0, nu, nu0, logh, logh0, dlogh_deta, dlogh_dnu, alpha, N, M, K);
-	*out_K = K;
-
-	/*Free non-output memory*/
-	free(dlogh_deta); free(dlogh_dnu); free(logh); free(stat);
-	free(sumzetaB); free(sumzetaBT);
-	free(tmpa); free(tmpb); free(tmpnu); free(tmpeta);
-  	free(psisum);
-
-	return finalobj;
-}
+//double soVBDP_noAllocSumZetaOld(double* zeta, double* sumzeta, double* sumzetaT,
+//    double* eta, double* nu, double* a, double* b, unsigned int* out_K,
+//		double* times, double* testlls, uint32_t* out_nTrace,
+//		const double* const T, 
+//		const double* const Ttest, 
+//		const double alpha, 
+//		const double* const eta0, 
+//		const double nu0,
+//		void (*getLogH)(double*, double* const, double* const, const double * const, const double, const uint32_t, bool),
+//		void (*getStat)(double*, const double* const, const uint32_t),
+//		double* (*getLogPostPred)(const double* const, const double* const, const double* const, const uint32_t, const uint32_t, const uint32_t),
+//		const uint32_t N, const uint32_t Nt, 
+//		const uint32_t M,
+//		const uint32_t D,
+//		uint32_t K, uint32_t NBatch, uint32_t id)
+//{
+//
+//	// get NBatch/finalNBatch
+//	uint32_t B = ceil((double)N/(double)NBatch);
+//	uint32_t finalNBatch = N % NBatch;
+//	if (finalNBatch == 0){
+//		finalNBatch = NBatch;
+//	}
+//
+//
+//	double* dlogh_deta = (double*) malloc(sizeof(double)*K*M); /*Stores d(logh)/d(eta) for each cluster*/
+//	double* dlogh_dnu = (double*) malloc(sizeof(double)*K);/*Stores d(logh)/d(nu) for each cluster*/
+//	double* logh = (double*) malloc(sizeof(double)*K);/*Stores logh for each cluster*/
+//	double logh0 = 0.0;
+//	double* stat = (double*) malloc(sizeof(double)*M);
+//	double* psisum = (double*) malloc(sizeof(double)*K);
+//
+//	double* sumzetaB = (double*) malloc(sizeof(double)*K);
+//	double* sumzetaBT = (double*) malloc(sizeof(double)*K*M);
+//	double* tmpa = (double*) malloc(sizeof(double)*K);
+//	double* tmpb = (double*) malloc(sizeof(double)*K);
+//	double* tmpnu = (double*) malloc(sizeof(double)*K);
+//	double* tmpeta = (double*) malloc(sizeof(double)*K*M);
+//
+//	int i, j, k, bb;
+//
+//	/*Initialize zeta randomly for K clusters*/
+//	initializeZeta(zeta, sumzeta, sumzetaT, T, getStat, N, M, D, K);
+//
+//	/*Get the prior logh*/
+//	getLogH(&logh0, NULL, NULL, eta0, nu0, D, false);
+//
+//	//initialize global parameters
+//	updateWeightDist(a, b, psisum, sumzeta, alpha, K);
+//	
+//	/*Update the exponential family parameter distributions*/
+//	/*Compute the values of logh, derivatives*/
+//	for (k=0; k< K; k++){
+//		updateParamDist(&(eta[k*M]), &(nu[k]), eta0, nu0, sumzeta[k], &(sumzetaT[k*M]), M);
+//		getLogH(&(logh[k]), &(dlogh_deta[M*k]), &(dlogh_dnu[k]), &(eta[M*k]), nu[k], D, true);
+//	}
+//
+//	*out_nTrace = 0;
+//	struct timespec ts, tf;
+//	clock_gettime(CLOCK_MONOTONIC, &ts);
+//
+//	/*Proceed to the VB iteration*/
+//	double prevobj = INFINITY;
+//	double tol = 1e-8;
+//	double diff = 1.0;
+//	uint32_t step = 0;
+//	while(diff > tol){
+//		//initialize the full global stats to 0 before iterating over 
+//		//subbatches and accumulating zeta
+//		for(k=0; k < K; k++){
+//			sumzeta[k] = 0.0;
+//			for(j=0; j < M; j++){
+//				sumzetaT[k*M+j] = 0.0;
+//			}
+//		}
+//		//iterate over subbatches
+//		for(bb = 0; bb < B; bb++){
+//			//first initialize subbatch stats to 0
+//			for(k = 0; k < K; k++){
+//				sumzetaB[k] = 0.0;
+//				for(j = 0; j < M; j++){
+//					sumzetaBT[k*M+j] = 0.0;
+//				}
+//			}
+//			//compute the subbatch label distribution using the current global parameters
+//			uint32_t NBatchb = (bb == B-1 ? finalNBatch : NBatch); 
+//			for (i=bb*NBatch; i < bb*NBatch+NBatchb; i++){
+//				/*Compute the statistic for datapoint*/
+//				getStat(stat, &(T[i*D]), D);
+//				/*Get the new label distribution*/
+//				updateLabelDist(&(zeta[i*K]), stat, dlogh_deta, dlogh_dnu, psisum, M,  K);
+//				/*Update the batch sumzetaB*/
+//				for(k = 0; k < K; k++){
+//					sumzetaB[k] += zeta[i*K+k];
+//					sumzeta[k] += zeta[i*K+k];
+//					for (j = 0; j < M; j++){
+//						sumzetaBT[k*M+j] += zeta[i*K+k]*stat[j];
+//						sumzetaT[k*M+j] += zeta[i*K+k]*stat[j];
+//					}
+//				}
+//			}
+//			//amplify the subbatch stats to the total dataset size
+//			for(k = 0; k < K; k++){
+//				sumzetaB[k] *= (double)N/(double)NBatchb;
+//				for(j = 0; j < M; j++){
+//					sumzetaBT[k*M+j] *=(double)N/(double)NBatchb;
+//				} 
+//			}
+//			//compute the noisy subbatch global parameters
+//			updateWeightDist(tmpa, tmpb, psisum, sumzetaB, alpha, K);
+//			for (k=0; k< K; k++){
+//				updateParamDist(&(tmpeta[k*M]), &(tmpnu[k]), eta0, nu0, sumzetaB[k], &(sumzetaBT[k*M]), M);
+//			}
+//			//add the noisy step to the full global parameters with learning rate rho
+//			//also compute helper variables dlogh & psisum
+//			step++;
+//			double rho = exp(-0.5*log(step+10.0));
+//			double psibk = 0.0;
+//			for (k=0; k< K; k++){
+//				a[k] = rho*tmpa[k] + (1.0-rho)*a[k]; 
+//				b[k] = rho*tmpb[k] + (1.0-rho)*b[k]; 
+//				nu[k] = rho*tmpnu[k] + (1.0-rho)*nu[k]; 
+//				for(j=0; j < M; j++){
+//					eta[k*M+j] = rho*tmpeta[k*M+j] + (1.0-rho)*eta[k*M+j];
+//				}
+//				getLogH(&(logh[k]), &(dlogh_deta[M*k]), &(dlogh_dnu[k]), &(eta[M*k]), nu[k], D, true);
+//				double psiak = gsl_sf_psi(a[k]) - gsl_sf_psi(a[k]+b[k]);
+//      				psisum[k] = psiak + psibk;
+//      				psibk += gsl_sf_psi(b[k]) - gsl_sf_psi(a[k]+b[k]);
+//			}
+//		}
+//		/*Compute the variational objective*/
+//		double obj= varBayesCost(zeta, sumzeta, sumzetaT, a, b, eta, eta0, nu, nu0, logh, logh0, dlogh_deta, dlogh_dnu, alpha, N, M, K);
+//		diff = fabs( (obj-prevobj)/obj);
+//		prevobj = obj;
+//
+//		clock_gettime(CLOCK_MONOTONIC, &tf);
+//		if (*out_nTrace == 0){
+//			times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+//		} else {
+//			times[*out_nTrace] = times[*out_nTrace - 1] + (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+//		}
+//		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
+//		(*out_nTrace)++;
+//		clock_gettime(CLOCK_MONOTONIC, &ts);
+//    //printf("obj %f\t step %d",obj,step);
+//	}
+//
+//	//Remove empty clusters
+//	removeEmptyClustersX(zeta, sumzeta, sumzetaT, eta, nu, logh, dlogh_deta, dlogh_dnu, nu0, a, b, &K, N, M, K, false);
+//	double finalobj= varBayesCost(zeta, sumzeta, sumzetaT, a, b, eta, eta0, nu, nu0, logh, logh0, dlogh_deta, dlogh_dnu, alpha, N, M, K);
+//	*out_K = K;
+//
+//	/*Free non-output memory*/
+//	free(dlogh_deta); free(dlogh_dnu); free(logh); free(stat);
+//	free(sumzetaB); free(sumzetaBT);
+//	free(tmpa); free(tmpb); free(tmpnu); free(tmpeta);
+//  	free(psisum);
+//
+//	return finalobj;
+//}
 
 double soVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
     double* eta, double* nu, double* a, double* b, unsigned int* out_K,
