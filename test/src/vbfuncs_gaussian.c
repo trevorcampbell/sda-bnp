@@ -220,49 +220,101 @@ uint32_t choleskyLDetAndInversion1D(const double * const mat, uint32_t n, double
   return retval;
 }
 
-double multivariateTLogLike(const double* const x, const double* const mu, const double* const cov, double dof, const uint32_t D){
-	double ldet = 0;
-	double* cinv = (double*) malloc(sizeof(double)*D*D);
-	if (choleskyLDetAndInversion1D(cov, D, &ldet, cinv, true) != 1){
-      	exit(0);
-	}
-	double prod = 0;
-	for (uint32_t i = 0; i < D; i++){
-		for (uint32_t j = 0; j < D; j++){
-			prod += (x[i]-mu[i])*cinv[i*D+j]*(x[j]-mu[j]);
-		}
-	}
-	free(cinv);
-	return gsl_sf_lngamma( (dof+D)/2.0 ) - gsl_sf_lngamma( dof/2.0 ) - D/2.0*log(dof) - D/2*log(M_PI) - 0.5*ldet - (dof+D)/2.0*log(1.0+1.0/dof*prod);
-}
 
-double getLogPostPredGaussian(const double* const x, const double* const etak, const double nuk, const uint32_t D){
+
+
+double* getLogPostPredGaussian(const double* const x, const double* const eta, const double* const nu, const uint32_t K, const uint32_t D, const uint32_t N){
 	//convert etak to regular parameters of NIW
 	double* psi_post = (double*) malloc(sizeof(double)*D*D);
 	double* scale = (double*) malloc(sizeof(double)*D*D);
 	double* mu_post = (double*) malloc(sizeof(double)*D);
+	double* cinv = (double*) malloc(sizeof(double)*D*D);
+	double* loglike = (double*) malloc(sizeof(double)*N*K);
 
-	for(uint32_t i = 0; i < D; i++){
-		for(uint32_t j = 0; j < D; j++){
-			psi_post[i*D+j] = etak[i*D+j] - etak[D*D+i]*etak[D*D+j]/nuk;
-		}
-		mu_post[i] = etak[D*D+i]/nuk;
-	}
-	double xi_post = etak[D*D+D]-D-2.0;
-	double k_post = nuk;
+	uint32_t M = D*D+D+1;
 
-	//get multivariate t parameters
-	double dof = xi_post - D + 1.0;
-	for(uint32_t i = 0; i < D; i++){
-		for(uint32_t j = 0; j < D; j++){
-			scale[i*D+j] = (k_post+1.0)/(k_post*dof)*psi_post[i*D+j];
+	for (uint32_t k = 0; k < K; k++){
+		for(uint32_t i = 0; i < D; i++){
+			for(uint32_t j = 0; j < D; j++){
+				psi_post[i*D+j] = eta[M*k+i*D+j] - eta[M*k+D*D+i]*eta[M*k+D*D+j]/nuk;
+			}
+			mu_post[i] = eta[M*k+D*D+i]/nu[k];
+		}
+		double xi_post = eta[M*k+D*D+D]-D-2.0;
+		double k_post = nu[k];
+
+		//get multivariate t parameters
+		double dof = xi_post - D + 1.0;
+		for(uint32_t i = 0; i < D; i++){
+			for(uint32_t j = 0; j < D; j++){
+				scale[i*D+j] = (k_post+1.0)/(k_post*dof)*psi_post[i*D+j];
+			}
+		}
+
+		double ldet = 0;
+		if (choleskyLDetAndInversion1D(scale, D, &ldet, cinv, true) != 1){
+			printf("CHOL FAILED!\n");
+    	  	exit(0);
+		}
+
+
+		for (uint32_t i = 0; i < N; i++){
+			double prod = 0;
+			for (uint32_t j = 0; j < D; j++){
+				for (uint32_t l = 0; l < D; l++){
+					prod += (x[j]-mu_post[j])*cinv[j*D+l]*(x[l]-mu_post[l]);
+				}
+			}
+			loglike[K*i + k] = gsl_sf_lngamma( (dof+D)/2.0 ) - gsl_sf_lngamma( dof/2.0 ) - D/2.0*log(dof) - D/2*log(M_PI) - 0.5*ldet - (dof+D)/2.0*log(1.0+1.0/dof*prod);
 		}
 	}
-	double mvtll = multivariateTLogLike(x, mu_post, scale, dof, D);
-	free(psi_post); free(scale); free(mu_post);
-	return mvtll;
+	free(cinv); free(psi_post); free(scale); free(mu_post);
+	return loglike;
 }
 
+//double multivariateTLogLike(const double* const x, const double* const mu, const double* const cov, double dof, const uint32_t D){
+//	double ldet = 0;
+//	double* cinv = (double*) malloc(sizeof(double)*D*D);
+//	if (choleskyLDetAndInversion1D(cov, D, &ldet, cinv, true) != 1){
+//      	exit(0);
+//	}
+//	double prod = 0;
+//	for (uint32_t i = 0; i < D; i++){
+//		for (uint32_t j = 0; j < D; j++){
+//			prod += (x[i]-mu[i])*cinv[i*D+j]*(x[j]-mu[j]);
+//		}
+//	}
+//	free(cinv);
+//	return gsl_sf_lngamma( (dof+D)/2.0 ) - gsl_sf_lngamma( dof/2.0 ) - D/2.0*log(dof) - D/2*log(M_PI) - 0.5*ldet - (dof+D)/2.0*log(1.0+1.0/dof*prod);
+//}
+//
+//
+//double getLogPostPredGaussian(const double* const x, const double* const etak, const double nuk, const uint32_t D){
+//	//convert etak to regular parameters of NIW
+//	double* psi_post = (double*) malloc(sizeof(double)*D*D);
+//	double* scale = (double*) malloc(sizeof(double)*D*D);
+//	double* mu_post = (double*) malloc(sizeof(double)*D);
+//
+//	for(uint32_t i = 0; i < D; i++){
+//		for(uint32_t j = 0; j < D; j++){
+//			psi_post[i*D+j] = etak[i*D+j] - etak[D*D+i]*etak[D*D+j]/nuk;
+//		}
+//		mu_post[i] = etak[D*D+i]/nuk;
+//	}
+//	double xi_post = etak[D*D+D]-D-2.0;
+//	double k_post = nuk;
+//
+//	//get multivariate t parameters
+//	double dof = xi_post - D + 1.0;
+//	for(uint32_t i = 0; i < D; i++){
+//		for(uint32_t j = 0; j < D; j++){
+//			scale[i*D+j] = (k_post+1.0)/(k_post*dof)*psi_post[i*D+j];
+//		}
+//	}
+//	double mvtll = multivariateTLogLike(x, mu_post, scale, dof, D);
+//	free(psi_post); free(scale); free(mu_post);
+//	return mvtll;
+//}
 
 
 /* DEBUGGING PRINTOUTS

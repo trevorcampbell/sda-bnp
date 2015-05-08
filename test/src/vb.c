@@ -14,7 +14,7 @@
 double computeTestLogLikelihood(
 		const double* const T, 
 		double* eta, double* nu, double* a, double* b, 
-		double (*getLogPostPred)(const double* const, const double* const, const double, const uint32_t),
+		double* (*getLogPostPred)(const double* const, const double* const, const double* const, const uint32_t, const uint32_t, const uint32_t),
 		const uint32_t Nt, 
 		const uint32_t D,
 		const uint32_t M,
@@ -31,7 +31,7 @@ void initializeZeta(double * const, double * const, double * const, const double
 //		const double nu0,
 //		void (*getLogH)(double*, double* const, double* const, const double * const, const double, const uint32_t, bool),
 //		void (*getStat)(double*, const double* const, const uint32_t),
-//		double (*getLogPostPred)(const double* const, const double* const, const double, const uint32_t),
+//		double* (*getLogPostPred)(const double* const, const double* const, const double* const, const uint32_t, const uint32_t, const uint32_t),
 //		const uint32_t N, 
 //		const uint32_t M,
 //		const uint32_t D,
@@ -57,7 +57,7 @@ void initializeZeta(double * const, double * const, double * const, const double
 //		const double nu0,
 //		void (*getLogH)(double*, double* const, double* const, const double * const, const double, const uint32_t, bool),
 //		void (*getStat)(double*, const double* const, const uint32_t),
-//		double (*getLogPostPred)(const double* const, const double* const, const double, const uint32_t),
+//		double* (*getLogPostPred)(const double* const, const double* const, const double* const, const uint32_t, const uint32_t, const uint32_t),
 //		const uint32_t N, 
 //		const uint32_t M,
 //		const uint32_t D,
@@ -158,7 +158,7 @@ double varDP_noAlloc(double* zeta, double* eta, double* nu, double* a, double* b
 		const double nu0,
 		void (*getLogH)(double*, double* const, double* const, const double * const, const double, const uint32_t, bool),
 		void (*getStat)(double*, const double* const, const uint32_t),
-		double (*getLogPostPred)(const double* const, const double* const, const double, const uint32_t),
+		double* (*getLogPostPred)(const double* const, const double* const, const double* const, const uint32_t, const uint32_t, const uint32_t),
 		const uint32_t N, const uint32_t Nt, 
 		const uint32_t M,
 		const uint32_t D,
@@ -186,7 +186,7 @@ double varDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 		const double nu0,
 		void (*getLogH)(double*, double* const, double* const, const double * const, const double, const uint32_t, bool),
 		void (*getStat)(double*, const double* const, const uint32_t),
-		double (*getLogPostPred)(const double* const, const double* const, const double, const uint32_t),
+		double* (*getLogPostPred)(const double* const, const double* const, const double* const, const uint32_t, const uint32_t, const uint32_t),
 		const uint32_t N, const uint32_t Nt, 
 		const uint32_t M,
 		const uint32_t D,
@@ -283,7 +283,7 @@ double varDP(double** out_zeta, double** out_eta, double** out_nu, double** out_
 		const double nu0,
 		void (*getLogH)(double*, double* const, double* const, const double * const, const double, const uint32_t, bool),
 		void (*getStat)(double*, const double* const, const uint32_t),
-		double (*getLogPostPred)(const double* const, const double* const, const double, const uint32_t),
+		double* (*getLogPostPred)(const double* const, const double* const, const double* const, const uint32_t, const uint32_t, const uint32_t),
 		const uint32_t N, const uint32_t Nt, 
 		const uint32_t M,
 		const uint32_t D,
@@ -472,7 +472,7 @@ void convertSVAtoVB(double*const, double*const, double*const, double*const , dou
 				 const double* const, const double* const, const double* const, const double* const, 
 					void (*getLogH)(double*, double* const, double* const, const double * const, const double, const uint32_t, bool),
 					void (*getStat)(double*, const double* const, const uint32_t),
-		double (*getLogPostPred)(const double* const, const double* const, const double, const uint32_t),
+		double* (*getLogPostPred)(const double* const, const double* const, const double* const, const uint32_t, const uint32_t, const uint32_t),
 							const double, const uint32_t,const uint32_t,const uint32_t, const uint32_t);
 
 double svaDP(double** out_zeta, double** out_eta, double** out_nu, double** out_a, double** out_b, uint32_t* out_K,
@@ -486,7 +486,7 @@ double svaDP(double** out_zeta, double** out_eta, double** out_nu, double** out_
 		const double nu0,
 		void (*getLogH)(double*, double* const, double* const, const double * const, const double, const uint32_t, bool),
 		void (*getStat)(double*, const double* const, const uint32_t),
-		double (*getLogPostPred)(const double* const, const double* const, const double, const uint32_t),
+		double* (*getLogPostPred)(const double* const, const double* const, const double* const, const uint32_t, const uint32_t, const uint32_t),
 		const uint32_t N, const uint32_t Nt, 
 		const uint32_t M,
 		const uint32_t D,
@@ -712,7 +712,7 @@ void convertSVAtoVB(double*const zeta, double*const sumzeta, double*const sumzet
 		const double* const nu, 
 		void (*getLogH)(double*, double* const, double* const, const double * const, const double, const uint32_t, bool),
 		void (*getStat)(double*, const double* const, const uint32_t),
-		double (*getLogPostPred)(const double* const, const double* const, const double, const uint32_t),
+		double* (*getLogPostPred)(const double* const, const double* const, const double* const, const uint32_t, const uint32_t, const uint32_t),
 		const double alpha, 
 		const uint32_t M,
 		const uint32_t D,
@@ -778,7 +778,7 @@ double moVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 		const double nu0,
 		void (*getLogH)(double*, double* const, double* const, const double * const, const double, const uint32_t, bool),
 		void (*getStat)(double*, const double* const, const uint32_t),
-		double (*getLogPostPred)(const double* const, const double* const, const double, const uint32_t),
+		double* (*getLogPostPred)(const double* const, const double* const, const double* const, const uint32_t, const uint32_t, const uint32_t),
 		const uint32_t N, const uint32_t Nt, 
 		const uint32_t M,
 		const uint32_t D,
@@ -923,7 +923,7 @@ double moVBDP_noAlloc(double* zeta, double* eta, double* nu, double* a, double* 
 		const double nu0,
 		void (*getLogH)(double*, double* const, double* const, const double * const, const double, const uint32_t, bool),
 		void (*getStat)(double*, const double* const, const uint32_t),
-		double (*getLogPostPred)(const double* const, const double* const, const double, const uint32_t),
+		double* (*getLogPostPred)(const double* const, const double* const, const double* const, const uint32_t, const uint32_t, const uint32_t),
 		const uint32_t N, const uint32_t Nt, 
 		const uint32_t M,
 		const uint32_t D,
@@ -949,7 +949,7 @@ double moVBDP(double** out_zeta, double** out_eta, double** out_nu, double** out
 		const double nu0,
 		void (*getLogH)(double*, double* const, double* const, const double * const, const double, const uint32_t, bool),
 		void (*getStat)(double*, const double* const, const uint32_t),
-		double (*getLogPostPred)(const double* const, const double* const, const double, const uint32_t),
+		double* (*getLogPostPred)(const double* const, const double* const, const double* const, const uint32_t, const uint32_t, const uint32_t),
 		const uint32_t N, const uint32_t Nt, 
 		const uint32_t M,
 		const uint32_t D,
@@ -987,7 +987,7 @@ double soVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 		const double nu0,
 		void (*getLogH)(double*, double* const, double* const, const double * const, const double, const uint32_t, bool),
 		void (*getStat)(double*, const double* const, const uint32_t),
-		double (*getLogPostPred)(const double* const, const double* const, const double, const uint32_t),
+		double* (*getLogPostPred)(const double* const, const double* const, const double* const, const uint32_t, const uint32_t, const uint32_t),
 		const uint32_t N, const uint32_t Nt, 
 		const uint32_t M,
 		const uint32_t D,
@@ -1143,7 +1143,7 @@ double soVBDP_noAlloc(double* zeta, double* eta, double* nu, double* a, double* 
 		const double nu0,
 		void (*getLogH)(double*, double* const, double* const, const double * const, const double, const uint32_t, bool),
 		void (*getStat)(double*, const double* const, const uint32_t),
-		double (*getLogPostPred)(const double* const, const double* const, const double, const uint32_t),
+		double* (*getLogPostPred)(const double* const, const double* const, const double* const, const uint32_t, const uint32_t, const uint32_t),
 		const uint32_t N, const uint32_t Nt, 
 		const uint32_t M,
 		const uint32_t D,
@@ -1170,7 +1170,7 @@ double soVBDP(double** out_zeta, double** out_eta, double** out_nu, double** out
 		const double nu0,
 		void (*getLogH)(double*, double* const, double* const, const double * const, const double, const uint32_t, bool),
 		void (*getStat)(double*, const double* const, const uint32_t),
-		double (*getLogPostPred)(const double* const, const double* const, const double, const uint32_t),
+		double* (*getLogPostPred)(const double* const, const double* const, const double* const, const uint32_t, const uint32_t, const uint32_t),
 		const uint32_t N, const uint32_t Nt, 
 		const uint32_t M,
 		const uint32_t D,
@@ -1213,7 +1213,7 @@ int cmpfunc(const void * a, const void * b){
 double computeTestLogLikelihood(
 		const double* const T, 
 		double* eta, double* nu, double* a, double* b, 
-		double (*getLogPostPred)(const double* const, const double* const, const double, const uint32_t),
+		double* (*getLogPostPred)(const double* const, const double* const, const double* const, const uint32_t, const uint32_t, const uint32_t),
 		const uint32_t Nt, 
 		const uint32_t D,
 		const uint32_t M,
@@ -1231,26 +1231,40 @@ double computeTestLogLikelihood(
 	}
 	weights[K-1] = stick;
 
-	//now loop over all test data
+	//now get the log likelihoods for all data
 	double loglike = 0.0;
-	double* loglikes = (double*) malloc(sizeof(double)*K);
+	double* loglikes = getLogPostPred(T, eta, nu, K, D, Nt);
 	for(uint32_t i = 0; i < Nt; i++){
-		//get the log likelihoods for all clusters
 		for (uint32_t k = 0; k < K; k++){
-			loglikes[k] = log(weights[k]) + getLogPostPred(&(T[i*D]), &(eta[k*M]), nu[k], D);
+			loglikes[K*i+k] += log(weights[k]);
 		}
-		//numerically stable sum
-		//first sort in increasing order
-		qsort(loglikes, K, sizeof(double), cmpfunc);
-		//then sum in increasing order
+		qsort(&(loglikes[K*i]), K, sizeof(double), cmpfunc);
 		double like = 0.0;
 		for (uint32_t k = 0; k < K; k++){
 			//subtract off the max first
-			like += exp(loglikes[k] - loglikes[K-1]);
+			like += exp(loglikes[K*i+k] - loglikes[K*i+(K-1)]);
 		}
-		//now multiply by exp(max), take the log, and add to running loglike total
-		loglike += loglikes[K-1] + log(like);
+		loglike += log(like)+loglikes[K*i+(K-1)];
 	}
+
+	//double* loglikes = (double*) malloc(sizeof(double)*K);
+	//for(uint32_t i = 0; i < Nt; i++){
+	//	//get the log likelihoods for all clusters
+	//	for (uint32_t k = 0; k < K; k++){
+	//		loglikes[k] = log(weights[k]) + getLogPostPred(&(T[i*D]), &(eta[k*M]), nu[k], D);
+	//	}
+	//	//numerically stable sum
+	//	//first sort in increasing order
+	//	qsort(loglikes, K, sizeof(double), cmpfunc);
+	//	//then sum in increasing order
+	//	double like = 0.0;
+	//	for (uint32_t k = 0; k < K; k++){
+	//		//subtract off the max first
+	//		like += exp(loglikes[k] - loglikes[K-1]);
+	//	}
+	//	//now multiply by exp(max), take the log, and add to running loglike total
+	//	loglike += loglikes[K-1] + log(like);
+	//}
 	free(weights); free(loglikes);
 	return loglike/Nt; //should return NaN if Nt == 0
 }
