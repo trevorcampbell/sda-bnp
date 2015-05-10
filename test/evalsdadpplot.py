@@ -2,7 +2,9 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-from colors import labelColorMap
+import colors
+
+clrMap = colors.colorScheme('labelMap')
 
 matplotlib.rcParams['ps.useafm'] = True
 matplotlib.rcParams['pdf.use14corefonts'] = True
@@ -87,8 +89,8 @@ plt.figure()
 axl = plt.axes()
 axr = axl.twinx()
 barwidth = .35
-axl.bar(barwidth/2.0+np.arange(final_cpu_times.shape[0]), np.mean(final_cpu_times, axis=1), barwidth, color=labelColorMap['blue'], yerr=np.std(final_cpu_times, axis=1), alpha=0.4)
-axr.errorbar(barwidth+np.arange(final_testlls.shape[0]), np.mean(final_testlls, axis=1), fmt='o', ms=10, color=labelColorMap['red'], yerr=np.std(final_testlls, axis=1), alpha=0.4)
+axl.bar(barwidth/2.0+np.arange(final_cpu_times.shape[0]), np.mean(final_cpu_times, axis=1), barwidth, color=clrMap['blue'], yerr=np.std(final_cpu_times, axis=1), alpha=0.4)
+axr.errorbar(barwidth+np.arange(final_testlls.shape[0]), np.mean(final_testlls, axis=1), fmt='o', ms=10, color=clrMap['red'], yerr=np.std(final_testlls, axis=1), alpha=0.4)
 axr.set_xticks(barwidth+np.arange(final_testlls.shape[0]))
 axr.set_xticklabels( map(str, map(int, nthr_tags)) )
 axl.set_xlabel(r'\# Threads')
