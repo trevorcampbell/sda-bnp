@@ -299,8 +299,8 @@ double varDP(double** out_zeta, double** out_eta, double** out_nu, double** out_
 	double* nu = (double*) malloc(sizeof(double)*K); /*Stores d(logh)/d(eta) for each cluster*/
 	double* a = (double*) malloc(sizeof(double)*K); /*Stores 1st beta parameters for weights*/
 	double* b = (double*) malloc(sizeof(double)*K); /*Stores 2nd beta parameters for weights*/
-	double* times = (double*) malloc(sizeof(double)*10000); /*Stores log times*/
-	double* testlls = (double*) malloc(sizeof(double)*10000); /*Stores log testloglikes*/
+	double* times = (double*) malloc(sizeof(double)*100000); /*Stores log times*/
+	double* testlls = (double*) malloc(sizeof(double)*100000); /*Stores log testloglikes*/
 
   double obj = varDP_noAlloc(zeta,eta,nu,a,b,out_K,times,testlls,out_nTrace,T,Ttest,alpha,eta0,nu0,getLogH,getStat,getLogPostPred,N,Nt,M,D,K,0);
 
@@ -898,22 +898,21 @@ double moVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 				updateParamDist(&(eta[k*M]), &(nu[k]), eta0, nu0, sumzeta[k], &(sumzetaT[k*M]), M);
 				getLogH(&(logh[k]), &(dlogh_deta[M*k]), &(dlogh_dnu[k]), &(eta[M*k]), nu[k], D, true);
 			}
-
-
-			clock_gettime(CLOCK_MONOTONIC, &tf);
-			if (*out_nTrace == 0){
-				times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
-			} else {
-				times[*out_nTrace] = times[*out_nTrace - 1] + (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
-			}
-			testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
-			(*out_nTrace)++;
-			clock_gettime(CLOCK_MONOTONIC, &ts);
 		}
 		/*Compute the variational objective*/
 		double obj= varBayesCost(zeta, sumzeta, sumzetaT, a, b, eta, eta0, nu, nu0, logh, logh0, dlogh_deta, dlogh_dnu, alpha, N, M, K);
 		diff = fabs( (obj-prevobj)/obj);
 		prevobj = obj;
+
+		clock_gettime(CLOCK_MONOTONIC, &tf);
+		if (*out_nTrace == 0){
+			times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+		} else {
+			times[*out_nTrace] = times[*out_nTrace - 1] + (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+		}
+		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
+		(*out_nTrace)++;
+		clock_gettime(CLOCK_MONOTONIC, &ts);
 	}
 
 	//Remove empty clusters
@@ -975,8 +974,8 @@ double moVBDP(double** out_zeta, double** out_eta, double** out_nu, double** out
 	double* nu = (double*) malloc(sizeof(double)*K); /*Stores d(logh)/d(eta) for each cluster*/
 	double* a = (double*) malloc(sizeof(double)*K); /*Stores 1st beta parameters for weights*/
 	double* b = (double*) malloc(sizeof(double)*K); /*Stores 2nd beta parameters for weights*/
-	double* times = (double*) malloc(sizeof(double)*10000); /*Stores log times*/
-	double* testlls = (double*) malloc(sizeof(double)*10000); /*Stores log testloglikes*/
+	double* times = (double*) malloc(sizeof(double)*100000); /*Stores log times*/
+	double* testlls = (double*) malloc(sizeof(double)*100000); /*Stores log testloglikes*/
 
 
   double obj = moVBDP_noAlloc(zeta,eta,nu,a,b,out_K,times,testlls,out_nTrace,T,Ttest,alpha,eta0,nu0,getLogH,getStat,getLogPostPred,N,Nt,M,D,K,NBatch,0);
@@ -1393,8 +1392,8 @@ double soVBDP(double** out_zeta, double** out_eta, double** out_nu, double** out
 	double* nu = (double*) malloc(sizeof(double)*K); /*Stores d(logh)/d(eta) for each cluster*/
 	double* a = (double*) malloc(sizeof(double)*K); /*Stores 1st beta parameters for weights*/
 	double* b = (double*) malloc(sizeof(double)*K); /*Stores 2nd beta parameters for weights*/
-	double* times = (double*) malloc(sizeof(double)*10000); /*Stores 2nd beta parameters for weights*/
-	double* testlls = (double*) malloc(sizeof(double)*10000); /*Stores 2nd beta parameters for weights*/
+	double* times = (double*) malloc(sizeof(double)*100000); /*Stores 2nd beta parameters for weights*/
+	double* testlls = (double*) malloc(sizeof(double)*100000); /*Stores 2nd beta parameters for weights*/
 
   double obj = soVBDP_noAlloc(zeta,eta,nu,a,b,out_K,times,testlls,out_nTrace,T,Ttest,alpha,eta0,nu0,getLogH,getStat,getLogPostPred,N,Nt,M,D,K,NBatch,0);
   

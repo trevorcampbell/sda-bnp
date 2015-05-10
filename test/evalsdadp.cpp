@@ -127,35 +127,35 @@ int main(int argc, char** argv){
 		teout.close();
 
 
-		//SDA DP Test:
-		NIWModel niw(mu0, kappa0, psi0, xi0);
-		for (uint32_t i = 0; i < Nthr.size(); i++){
-			std::cout << "Running VarDP with " << Nthr[i] << " threads..." << std::endl;
-			SDADP<NIWModel> sdadp(test_data, niw, alpha, Knew, Nthr[i]);
-			uint32_t Nctr = 0;
-			while(Nctr < N){
-				std::vector<VXd> minibatch;
-				minibatch.insert(minibatch.begin(), train_data.begin()+Nctr, train_data.begin()+Nctr+Nmini);
-				sdadp.submitMinibatch(minibatch);
-				Nctr += Nmini;
-			}
-			sdadp.waitUntilDone();
-			std::cout << "Saving output..." << std::endl;
-			std::ostringstream oss;
-			oss  << "sdadpmix-nThr_" << std::setfill('0') << std::setw(3) << Nthr[i] << "-" << std::setfill('0') << std::setw(3) << nMC;
-			sdadp.getDistribution().save(oss.str().c_str());
-			sdadp.getTrace().save(oss.str().c_str());
-		}
+		////SDA DP Test:
+		//NIWModel niw(mu0, kappa0, psi0, xi0);
+		//for (uint32_t i = 0; i < Nthr.size(); i++){
+		//	std::cout << "Running VarDP with " << Nthr[i] << " threads..." << std::endl;
+		//	SDADP<NIWModel> sdadp(test_data, niw, alpha, Knew, Nthr[i]);
+		//	uint32_t Nctr = 0;
+		//	while(Nctr < N){
+		//		std::vector<VXd> minibatch;
+		//		minibatch.insert(minibatch.begin(), train_data.begin()+Nctr, train_data.begin()+Nctr+Nmini);
+		//		sdadp.submitMinibatch(minibatch);
+		//		Nctr += Nmini;
+		//	}
+		//	sdadp.waitUntilDone();
+		//	std::cout << "Saving output..." << std::endl;
+		//	std::ostringstream oss;
+		//	oss  << "sdadpmix-nThr_" << std::setfill('0') << std::setw(3) << Nthr[i] << "-" << std::setfill('0') << std::setw(3) << nMC;
+		//	sdadp.getDistribution().save(oss.str().c_str());
+		//	sdadp.getTrace().save(oss.str().c_str());
+		//}
 
-		//BATCH DP (new) TEST:
-		std::cout << "Running Batch VarDP ..." << std::endl;
-		VarDP<NIWModel> vardp(train_data, test_data, niw, alpha, K);
-		vardp.run(true);
-		std::cout << "Saving output..." << std::endl;
-		std::ostringstream oss4;
-		oss4  << "vardpmix-" << std::setfill('0') << std::setw(3) << nMC;
-		vardp.getDistribution().save(oss4.str().c_str());
-		vardp.getTrace().save(oss4.str().c_str());
+		////BATCH DP (new) TEST:
+		//std::cout << "Running Batch VarDP ..." << std::endl;
+		//VarDP<NIWModel> vardp(train_data, test_data, niw, alpha, K);
+		//vardp.run(true);
+		//std::cout << "Saving output..." << std::endl;
+		//std::ostringstream oss4;
+		//oss4  << "vardpmix-" << std::setfill('0') << std::setw(3) << nMC;
+		//vardp.getDistribution().save(oss4.str().c_str());
+		//vardp.getTrace().save(oss4.str().c_str());
 
 
 		//Convert the parameters/data/etc to the old c code format 
