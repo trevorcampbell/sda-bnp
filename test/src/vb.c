@@ -250,11 +250,7 @@ double varDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 			}
 	}
 
-		/*Compute the variational objective*/
-		double obj= varBayesCost(zeta, sumzeta, sumzetaT, a, b, eta, eta0, nu, nu0, logh, logh0, dlogh_deta, dlogh_dnu, alpha, N, M, K);
-		diff = fabs( (obj-prevobj)/obj);
-		prevobj = obj;
-//		printf("@id %d: Obj %f\tdelta %f\n", id,obj,diff);
+		
 		
 		clock_gettime(CLOCK_MONOTONIC, &tf);
 		if (*out_nTrace == 0){
@@ -264,6 +260,11 @@ double varDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 		}
 		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
 		(*out_nTrace)++;
+		/*Compute the variational objective*/
+		double obj= varBayesCost(zeta, sumzeta, sumzetaT, a, b, eta, eta0, nu, nu0, logh, logh0, dlogh_deta, dlogh_dnu, alpha, N, M, K);
+		diff = fabs( (obj-prevobj)/obj);
+		prevobj = obj;
+//		printf("@id %d: Obj %f\tdelta %f\n", id,obj,diff);
 		clock_gettime(CLOCK_MONOTONIC, &ts);
 	}
 
@@ -899,10 +900,7 @@ double moVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 				getLogH(&(logh[k]), &(dlogh_deta[M*k]), &(dlogh_dnu[k]), &(eta[M*k]), nu[k], D, true);
 			}
 		}
-		/*Compute the variational objective*/
-		double obj= varBayesCost(zeta, sumzeta, sumzetaT, a, b, eta, eta0, nu, nu0, logh, logh0, dlogh_deta, dlogh_dnu, alpha, N, M, K);
-		diff = fabs( (obj-prevobj)/obj);
-		prevobj = obj;
+		
 
 		clock_gettime(CLOCK_MONOTONIC, &tf);
 		if (*out_nTrace == 0){
@@ -912,6 +910,10 @@ double moVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 		}
 		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
 		(*out_nTrace)++;
+		/*Compute the variational objective*/
+		double obj= varBayesCost(zeta, sumzeta, sumzetaT, a, b, eta, eta0, nu, nu0, logh, logh0, dlogh_deta, dlogh_dnu, alpha, N, M, K);
+		diff = fabs( (obj-prevobj)/obj);
+		prevobj = obj;
 		clock_gettime(CLOCK_MONOTONIC, &ts);
 	}
 
@@ -1312,10 +1314,7 @@ double soVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
       			psibk += gsl_sf_psi(b[k]) - gsl_sf_psi(a[k]+b[k]);
 		}
 
-		/*Compute the variational objective*/
-		double obj= varBayesCost(zeta, sumzeta, sumzetaT, a, b, eta, eta0, nu, nu0, logh, logh0, dlogh_deta, dlogh_dnu, alpha, N, M, K);
-		diff = fabs( (obj-prevobj)/obj);
-		prevobj = obj;
+		
 
 		clock_gettime(CLOCK_MONOTONIC, &tf);
 		if (*out_nTrace == 0){
@@ -1325,6 +1324,10 @@ double soVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 		}
 		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
 		(*out_nTrace)++;
+		/*Compute the variational objective*/
+		double obj= varBayesCost(zeta, sumzeta, sumzetaT, a, b, eta, eta0, nu, nu0, logh, logh0, dlogh_deta, dlogh_dnu, alpha, N, M, K);
+		diff = fabs( (obj-prevobj)/obj);
+		prevobj = obj;
 		clock_gettime(CLOCK_MONOTONIC, &ts);
     //printf("obj %f\t step %d",obj,step);
 	}
