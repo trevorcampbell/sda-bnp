@@ -3,15 +3,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import colors
-
+import seaborn as sns
 clrMap = colors.colorScheme('labelMap')
 
-matplotlib.rcParams['ps.useafm'] = True
-matplotlib.rcParams['pdf.use14corefonts'] = True
-matplotlib.rcParams['text.usetex'] = True
-font = {'family' : 'normal',
-        'size' : 24}
-matplotlib.rc('font', **font)
+sns.set(font_scale=1.5)
+snsm = sns.color_palette('muted')
+
+#matplotlib.rcParams['ps.useafm'] = True
+#matplotlib.rcParams['pdf.use14corefonts'] = True
+#matplotlib.rcParams['text.usetex'] = True
+#font = {'family' : 'normal',
+#        'size' : 24}
+#matplotlib.rc('font', **font)
 
 
 
@@ -89,43 +92,42 @@ plt.figure()
 axl = plt.axes()
 axr = axl.twinx()
 barwidth = .35
-axl.bar(barwidth/2.0+np.arange(final_cpu_times.shape[0]), np.mean(final_cpu_times, axis=1), barwidth, color=clrMap['blue'], yerr=np.std(final_cpu_times, axis=1), alpha=0.4)
-axr.errorbar(barwidth+np.arange(final_testlls.shape[0]), np.mean(final_testlls, axis=1), fmt='o', ms=10, color=clrMap['red'], yerr=np.std(final_testlls, axis=1), alpha=0.4)
-axr.set_xticks(barwidth+np.arange(final_testlls.shape[0]))
+plt.sca(axl)
+bp1 = axl.bar(-barwidth/2.0+np.arange(final_cpu_times.shape[0]), np.mean(final_cpu_times, axis=1), barwidth, color=snsm[0], lw=1.5, ec=(0.3, 0.3, 0.3), error_kw=dict(ecolor=(0.3, 0.3, 0.3), lw=1.5, capsize=5, capthick=2), yerr=np.std(final_cpu_times, axis=1))
+#axr.errorbar(barwidth+np.arange(final_testlls.shape[0]), np.mean(final_testlls, axis=1), fmt='o', ms=10, color='r', yerr=np.std(final_testlls, axis=1))
+#sns.boxplot(list(final_cpu_times), positions=np.arange(final_cpu_times.shape[0]), color='skyblue')
+#bp1, = plt.bar(0, 0, 0, color='skyblue')
+plt.sca(axr)
+sns.boxplot(list(final_testlls), positions=np.arange(final_testlls.shape[0]), color=snsm[1], widths=.4)
+bp2, = plt.bar(0, 0, 0, color=snsm[1], lw=1.5, ec=(0.3, 0.3, 0.3))
+#axr.set_xticks(barwidth+np.arange(final_testlls.shape[0]))
+axr.set_xticks(np.arange(final_testlls.shape[0]))
 axr.set_xticklabels( map(str, map(int, nthr_tags)) )
 axl.set_xlabel(r'\# Threads')
 axl.set_ylabel(r'CPU Time (s)')
 axr.set_ylabel(r'Test Log Likelihood')
-axr.set_ylim((-10, -4))
+axr.set_ylim((-12, -4))
 axl.set_ylim((0, 1))
-plt.savefig(outdir+'/cput-testll-bars.pdf')
+axr.set_yticks(np.linspace(axr.get_yticks()[0], axr.get_yticks()[-1], len(axl.get_yticks())))
+axr.grid(None)
+axr.set_yticklabels(axr.get_yticks().tolist()) #these two commands for some reason help formatting the y axis tick labels...
+axl.set_yticklabels(axl.get_yticks().tolist())
+plt.legend([bp1, bp2], ['CPU Time', 'Test Log Likelihood'])
+plt.savefig(outdir+'/cput-testll-boxes.pdf')
 
-
-
-
-#Plot 3: Number of clusters (one line for each nThr) & number of matchings solved vs # merged minibatch posteriors
-plt.figure()
-plt.bar(np.arange(final_nclus.shape[0]), np.mean(final_nclus, axis=1), barwidth, color='b', yerr=np.std(final_nclus, axis=1), alpha=0.4)
-plt.bar(barwidth+np.arange(final_nmatch.shape[0]), np.mean(final_nmatch, axis=1), barwidth, color='r', yerr=np.std(final_nmatch, axis=1), alpha=0.4)
-plt.xlabel(r'\# Threads')
-plt.ylabel(r'Count')
-ax = plt.axes()
-ax.set_xticks(barwidth+np.arange(final_nclus.shape[0]))
-ax.set_xticklabels( map(str, map(int, nthr_tags)) )
-plt.legend([r'\# Clusters', r'\# Matchings'])
-plt.savefig(outdir+'/nclusmatch-bars.pdf')
-
-#Plot 3a: Merge times
+#Plot 2: Merge times
 plt.figure()
 fmtf = final_merge_times.flatten()
-plt.hist(fmtf, bins=np.logspace(np.log10(np.amin(fmtf)), np.log10(np.amax(fmtf)), 40), facecolor='b', alpha=0.4)
-plt.xlabel(r'Merge Time (s)')
+#plt.hist(fmtf, bins=np.logspace(np.log10(np.amin(fmtf)), np.log10(np.amax(fmtf)), 30), facecolor='skyblue')
+#plt.xscale('log')
+plt.hist(fmtf*1.0e6, bins=np.linspace(np.amin(fmtf)*1.0e6, np.amax(fmtf)*1.0e6, 30), facecolor=snsm[0], ec=(0.3, 0.3, 0.3), lw=1.5)
+plt.axes().set_yticklabels(map(int, plt.axes().get_yticks().tolist())) #these two commands for some reason help formatting the axis tick labels...
+plt.axes().set_xticklabels(map(int, plt.axes().get_xticks().tolist()))
+plt.xlabel(r'Merge Time ($\times 10^{-6}$s)')
 plt.ylabel(r'Count')
-plt.xscale('log')
 plt.savefig(outdir+'/merget-hist.pdf')
 
-
-#Plot 4: Trace of number of clusters/matchings vs number of merged minibatch posteriors for the max # threads
+#Plot 3: Trace of number of clusters/matchings vs number of merged minibatch posteriors for the max # threads
 nclus_traces = []
 nmatch_traces = []
 ntag = nthr_tags[-1]
@@ -141,20 +143,38 @@ ctrace_std = np.std(np.array(nclus_traces), axis=0)
 mtrace_mean = np.mean(np.array(nmatch_traces), axis=0)
 mtrace_std = np.std(np.array(nmatch_traces), axis=0)
 
-p1, = plt.plot( 1+np.arange(ctrace_mean.shape[0]), ctrace_mean, c='b', lw=2)
-plt.plot( 1+np.arange(ctrace_mean.shape[0]), ctrace_mean+ctrace_std, 'b--', lw=2)
-plt.plot( 1+np.arange(ctrace_mean.shape[0]), ctrace_mean-ctrace_std, 'b--', lw=2)
-plt.fill_between( 1+np.arange(ctrace_mean.shape[0]), ctrace_mean-ctrace_std, ctrace_mean + ctrace_std, facecolor='b', alpha=0.3)
+p1, = plt.plot( 1+np.arange(ctrace_mean.shape[0]), ctrace_mean, c=snsm[0], lw=2)
+plt.plot( 1+np.arange(ctrace_mean.shape[0]), ctrace_mean+ctrace_std, c=snsm[0], ls='--', lw=2)
+plt.plot( 1+np.arange(ctrace_mean.shape[0]), ctrace_mean-ctrace_std, c=snsm[0], ls='--', lw=2)
+plt.fill_between( 1+np.arange(ctrace_mean.shape[0]), ctrace_mean-ctrace_std, ctrace_mean + ctrace_std, facecolor=snsm[0], alpha=0.3)
 
-p2, =plt.plot( 1+np.arange(mtrace_mean.shape[0]), mtrace_mean, c='r', lw=2)
-plt.plot( 1+np.arange(mtrace_mean.shape[0]), mtrace_mean+mtrace_std, 'r--', lw=2)
-plt.plot( 1+np.arange(mtrace_mean.shape[0]), mtrace_mean-mtrace_std, 'r--', lw=2)
-plt.fill_between( 1+np.arange(mtrace_mean.shape[0]), mtrace_mean-mtrace_std, mtrace_mean + mtrace_std, facecolor='r', alpha=0.3)
-
+p2, =plt.plot( 1+np.arange(mtrace_mean.shape[0]), mtrace_mean, c=snsm[1], lw=2)
+plt.plot( 1+np.arange(mtrace_mean.shape[0]), mtrace_mean+mtrace_std, c=snsm[1], ls='--', lw=2)
+plt.plot( 1+np.arange(mtrace_mean.shape[0]), mtrace_mean-mtrace_std, c=snsm[1], ls='--', lw=2)
+plt.fill_between( 1+np.arange(mtrace_mean.shape[0]), mtrace_mean-mtrace_std, mtrace_mean + mtrace_std, facecolor=snsm[1], alpha=0.3)
+plt.ylim([0, 100])
+plt.axes().set_yticklabels(map(int, plt.axes().get_yticks().tolist())) #these two commands for some reason help formatting the axis tick labels...)
+plt.axes().set_xticklabels(map(int, plt.axes().get_xticks().tolist()))
 plt.legend([p1, p2], [r'\# Clusters', r'\# Matchings'])
 plt.xlabel(r'\# Minibatches Merged')
 plt.ylabel(r'Count')
 plt.savefig(outdir+'/nclusmatch-lines.pdf')
+
+
+
+
+#Plot 3: Number of clusters (one line for each nThr) & number of matchings solved vs # merged minibatch posteriors
+plt.figure()
+plt.bar(np.arange(final_nclus.shape[0]), np.mean(final_nclus, axis=1), barwidth, color='b', yerr=np.std(final_nclus, axis=1))
+plt.bar(barwidth+np.arange(final_nmatch.shape[0]), np.mean(final_nmatch, axis=1), barwidth, color='r', yerr=np.std(final_nmatch, axis=1))
+plt.xlabel(r'\# Threads')
+plt.ylabel(r'Count')
+ax = plt.axes()
+ax.set_xticks(barwidth+np.arange(final_nclus.shape[0]))
+ax.set_xticklabels( map(str, map(int, nthr_tags)) )
+plt.legend([r'\# Clusters', r'\# Matchings'])
+plt.savefig(outdir+'/nclusmatch-bars.pdf')
+
 
 
 ####Plot 5: Global/minibatch likelihood traces for a single MCMC run
