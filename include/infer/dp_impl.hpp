@@ -126,7 +126,7 @@ void VarDP<Model>::init(){
 	std::vector<double> maxMinDists;
 	std::vector<uint32_t> idces = kmeanspp(train_stats, [this](VXd& x, VXd& y){ return model.naturalParameterDistSquared(x, y); }, K, eta0, K0, rng, maxMinDists);
 	uint32_t kthresh = K;
-	double cutoff = 0.95;
+	double cutoff = 0.99;
 	if (maxMinDists.size() > 2){
 		double mmdf = maxMinDists.front();
 		double mmdb = maxMinDists.back();
