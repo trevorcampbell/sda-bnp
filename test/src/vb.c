@@ -899,22 +899,23 @@ double moVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 				updateParamDist(&(eta[k*M]), &(nu[k]), eta0, nu0, sumzeta[k], &(sumzetaT[k*M]), M);
 				getLogH(&(logh[k]), &(dlogh_deta[M*k]), &(dlogh_dnu[k]), &(eta[M*k]), nu[k], D, true);
 			}
-		}
-		
 
-		clock_gettime(CLOCK_MONOTONIC, &tf);
-		if (*out_nTrace == 0){
-			times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
-		} else {
-			times[*out_nTrace] = times[*out_nTrace - 1] + (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+			clock_gettime(CLOCK_MONOTONIC, &tf);
+			if (*out_nTrace == 0){
+				times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+			} else {
+				times[*out_nTrace] = times[*out_nTrace - 1] + (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+			}
+			testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
+			(*out_nTrace)++;
+			/*Compute the variational objective*/
+			if (bb == B-1){
+				double obj= varBayesCost(zeta, sumzeta, sumzetaT, a, b, eta, eta0, nu, nu0, logh, logh0, dlogh_deta, dlogh_dnu, alpha, N, M, K);
+				diff = fabs( (obj-prevobj)/obj);
+				prevobj = obj;
+			}
+			clock_gettime(CLOCK_MONOTONIC, &ts);
 		}
-		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
-		(*out_nTrace)++;
-		/*Compute the variational objective*/
-		double obj= varBayesCost(zeta, sumzeta, sumzetaT, a, b, eta, eta0, nu, nu0, logh, logh0, dlogh_deta, dlogh_dnu, alpha, N, M, K);
-		diff = fabs( (obj-prevobj)/obj);
-		prevobj = obj;
-		clock_gettime(CLOCK_MONOTONIC, &ts);
 	}
 
 	//Remove empty clusters
