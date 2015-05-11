@@ -132,7 +132,7 @@ void VarDP<Model>::init(){
 		double mmdb = maxMinDists.back();
 		double mmcutoff = mmdf-cutoff*(mmdf-mmdb);
 		kthresh = 0;
-		while(maxMinDists[kthresh] > mmcutoff && kk < maxMinDists.size()){ kthresh++; }
+		while(kthresh < maxMinDists.size() && maxMinDists[kthresh] > mmcutoff){ kthresh++; }
 	}
 	for (uint32_t k = 0; k < K; k++){
 		//Update the parameters 
