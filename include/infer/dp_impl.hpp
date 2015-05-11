@@ -119,19 +119,36 @@ void VarDP<Model>::init(){
 	//use kmeans++ to break symmetry in the intiialization
 	//outputs K-K0 indices for new cluster initialization
 	//tries to make them different from the first K0 cluster centers as well
-	std::vector<uint32_t> idces = kmeanspp(train_stats, [this](VXd& x, VXd& y){ return model.naturalParameterDistSquared(x, y); }, K, eta0, K0, rng);
+	//also outputs maxMinDists -- this is a decreasing sequence of numbers representing 
+	//the maximum "distance to closest cluster"
+	//as this value settles, more and more spurious clusters are added
+	//this code uses a 95% value cutoff
+	std::vector<double> maxMinDists;
+	std::vector<uint32_t> idces = kmeanspp(train_stats, [this](VXd& x, VXd& y){ return model.naturalParameterDistSquared(x, y); }, K, eta0, K0, rng, maxMinDists);
+	uint32_t kthresh = K;
+	double cutoff = 0.95;
+	if (maxMinDists.size() > 2){
+		double mmdf = maxMinDists.front();
+		double mmdb = maxMinDists.back();
+		double mmcutoff = mmdf-cutoff*(mmdf-mmdb);
+		kthresh = 0;
+		while(maxMinDists[kk] > mmcutoff && kk < maxMinDists.size()){ kthresh++; }
+	}
 	for (uint32_t k = 0; k < K; k++){
 		//Update the parameters 
-		if (k < K0){
+		if (k < K0){ //if this is one of the fixed prior clusters
 			for (uint32_t j = 0; j < M; j++){
 	    		eta(k, j) = eta0(k, j); //+train_stats(idces[k], j);
 	    	}
 			nu(k) = nu0(k); // + 1.0;
-		} else {
+		} else if (k < kthresh) { //otherwise if this is a reasonable sampled cluster, use kmpp
 			for (uint32_t j = 0; j < M; j++){
 	    		eta(k, j) = model.getEta0()(j)+train_stats(idces[k-K0], j);
 	    	}
 			nu(k) = model.getNu0() + 1.0;
+		} else { //if this is probably a spurious cluster, just use the prior
+			eta.row(k) = model.getEta0().transpose();
+			nu(k) = model.getNu0();
 		}
 	}
 
