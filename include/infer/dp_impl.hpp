@@ -122,7 +122,7 @@ void VarDP<Model>::init(){
 	//also outputs maxMinDists -- this is a decreasing sequence of numbers representing 
 	//the maximum "distance to closest cluster"
 	//as this value settles, more and more spurious clusters are added
-	//this code uses a 95% value cutoff
+	//this code uses a 99% value cutoff
 	std::vector<double> maxMinDists;
 	std::vector<uint32_t> idces = kmeanspp(train_stats, [this](VXd& x, VXd& y){ return model.naturalParameterDistSquared(x, y); }, K, eta0, K0, rng, maxMinDists);
 	uint32_t kthresh = K;

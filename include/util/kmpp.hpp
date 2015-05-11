@@ -25,7 +25,7 @@ std::vector<uint32_t> kmeanspp(MXd x, Func Dsq, uint32_t K, MXd c0, uint32_t K0,
 		std::uniform_int_distribution<> uniint(0, x.rows()-1);
 		res.push_back(uniint(rng));
 		//update the min dists
-		double maxMinDist = std::numeric_limits<double>::infinity();
+		double maxMinDist = -std::numeric_limits<double>::infinity();
 		for (uint32_t j = 0; j < x.rows(); j++){
 			VXd x1 = x.row(j).transpose();
 			VXd x2 = x.row(res.back()).transpose();
@@ -38,7 +38,7 @@ std::vector<uint32_t> kmeanspp(MXd x, Func Dsq, uint32_t K, MXd c0, uint32_t K0,
 		//Otherwise K0 != 0 -- just compute the distances to all the K0 old centers first
 		for (uint32_t i = 0; i < K0; i++){
 			VXd x2 = c0.row(i).transpose();
-			double maxMinDist = std::numeric_limits<double>::infinity();
+			double maxMinDist = -std::numeric_limits<double>::infinity();
 			for (uint32_t j = 0; j < x.rows(); j++){
 				VXd x1 = x.row(j).transpose();
 				double newdist = Dsq(x1, x2);
@@ -52,7 +52,7 @@ std::vector<uint32_t> kmeanspp(MXd x, Func Dsq, uint32_t K, MXd c0, uint32_t K0,
 	for (uint32_t i =K0; i < K; i++){
 		std::discrete_distribution<> disc(mindists.begin(), mindists.end());
 		res.push_back(disc(rng));
-		double maxMinDist = std::numeric_limits<double>::infinity();
+		double maxMinDist = -std::numeric_limits<double>::infinity();
 		for (uint32_t j = 0; j < x.rows(); j++){
 			VXd x1 = x.row(j).transpose();
 			VXd x2 = x.row(res.back()).transpose();
