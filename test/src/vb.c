@@ -692,6 +692,8 @@ double svaDP(double** out_zeta, double** out_eta, double** out_nu, double** out_
 	double finalobj= varBayesCost(zeta, sumzeta, sumzetaT, a, b, eta, eta0, nu, nu0, logh, logh0, dlogh_deta, dlogh_dnu, alpha, N, M, Ktmp);
 	*out_K = Ktmp;
 
+	//printf("SVA: time: %f nClus: %u testll: %f\n", times[*out_nTrace-1], Ktmp, computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K));
+
 	/*Free non-output memory*/
 	free(w); free(r); free(stat); free(etatmp); 
 	free(sumzeta); free(sumzetaT);
