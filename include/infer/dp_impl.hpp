@@ -68,7 +68,7 @@ VarDP<Model>::VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& 
 }
 
 template<class Model>
-void VarDP<Model>::run(bool computeTestLL, double tol){
+void VarDP<Model>::run(bool computeTestLL, double tol, uint32_t nItr){
 	//clear any previously stored results
 	trace.clear();
 
@@ -85,16 +85,22 @@ void VarDP<Model>::run(bool computeTestLL, double tol){
 	init();
 
 	//loop on variational updates
-	while(diff > tol){
+	uint32_t itr = 0;
+	//if nItr > 0, use iteration count
+	//otherwise, use convergence in variational objective
+	while( (nItr > 0 ? (itr < nItr) : (diff > tol) ) ){
+		itr++;
 		updateWeightDist();
 		updateParamDist();
 		updateLabelDist();
 
-		prevobj = obj;
-		//compute the objective
-		obj = computeObjective();
-		//compute the obj diff
-		diff = fabs((obj - prevobj)/obj);
+		if (nItr == 0){ //only compute the objective if nItr was unspecified
+			prevobj = obj;
+			//compute the objective
+			obj = computeObjective();
+			//compute the obj diff
+			diff = fabs((obj - prevobj)/obj);
+		}
 
 		//store the current time
 		trace.times.push_back(cpuTime.stop());

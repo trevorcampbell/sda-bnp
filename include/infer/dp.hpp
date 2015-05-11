@@ -32,7 +32,7 @@ class VarDP{
 		};
 		VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Model& model, double alpha, uint32_t K);
 		VarDP(const std::vector<VXd>& train_data, const std::vector<VXd>& test_data, const Distribution& prior, const Model& model, double alpha, uint32_t K);
-		void run(bool computeTestLL, double tol = 1e-6);
+		void run(bool computeTestLL, double tol = 1e-6, uint32_t nItr = 0);
 		Distribution getDistribution();
 		Trace getTrace();
 
