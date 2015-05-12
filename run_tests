@@ -119,9 +119,9 @@ then
 	./evalsdadp
 	rm evalsdadp
 	mkdir sdaresults
-	cp test/evalsdadpplot.py sdaresults
+	cp test/plotevalsdadp.py sdaresults
 	mv *.log sdaresults
-	echo "Done SDA DP Evaluation! Go to ./sdaresults and run python evalsdadpplot.py to visualize the results."
+	echo "Done SDA DP Evaluation! Go to ./sdaresults and run python plotevalsdadp.py to visualize the results."
 else
     echo "Error experienced during compilation, test was not run."
 fi
