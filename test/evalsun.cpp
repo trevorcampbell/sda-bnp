@@ -27,7 +27,7 @@ std::vector<VXd> readVectorRows(const char* filename){
 		std::string line;
 		std::getline(infile, line);
 		std::stringstream stream(line);
-		std::vector<VXd> vvec;
+		std::vector<double> vvec;
 		while(!stream.eof()){
 			double dd;
 			stream >> dd;
@@ -38,6 +38,7 @@ std::vector<VXd> readVectorRows(const char* filename){
 		}
 		if (vecSize != vvec.size()){
 			std::cout << "ERROR LOADING FILE " << filename << ": columns are not uniform length" << std::endl;
+			exit(0);
 		}
 		VXd vec = VXd::Zero(vecSize);
 		for (uint32_t j = 0; j < vecSize; j++){
@@ -52,12 +53,16 @@ std::vector<VXd> readVectorRows(const char* filename){
 
 int main(int argc, char** argv){
 	//load the train/test data
-	std::vector<VXd> train_data = readVectorRows("sunTrain20.log");
-	std::vector<VXd> test_data = readVectorRows("sunTest20.log");
+	std::vector<VXd> train_data = readVectorRows("sunTrain20.txt");
+	std::vector<VXd> test_data = readVectorRows("sunTest20.txt");
 	std::cout << "Loaded " << train_data.size() << " training vecs and " << test_data.size() << " test vecs." << std::endl;
 
 	//constants
+	uint32_t D = train_data[0].size();
+	uint32_t N = train_data.size();
+	uint32_t Nt = test_data.size();
 	uint32_t Knew = 40;
+	uint32_t K = 40;
 	uint32_t Nmini = 100;
 	double alpha = 1.0;
 	std::vector<uint32_t> Nthr;
