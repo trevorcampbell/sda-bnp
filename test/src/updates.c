@@ -128,7 +128,7 @@ void computeRho(double* const r,
 	//printf("r: ");
 	for(k=0; k < K+1; k++){
 		r[k] /= rsum;
-		//printf("%f ", r[k]);
+	//	printf("%f ", r[k]);
 	}
 	//printf("\n");
 	return;

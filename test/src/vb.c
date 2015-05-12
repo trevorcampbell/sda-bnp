@@ -574,7 +574,7 @@ double svaDP(double** out_zeta, double** out_eta, double** out_nu, double** out_
 			for(j=0;j< M; j++){
 				eta[(K-1)*M+j] = eta0[j];
 			}
-		} else {
+		} else { //since r was normalized with K+1 before, renormalize with K
 			double rsum = 0.0;
 			for(k=0; k < K; k++){
 				rsum += r[k];
@@ -631,6 +631,11 @@ double svaDP(double** out_zeta, double** out_eta, double** out_nu, double** out_
 					eta[k*M+j] += eta[kk*M+j] - eta0[j];
 				}
 				for(m=kk+1; m < K; m++){
+					nu[m-1] = nu[m];
+					w[m-1] = w[m];
+					for(j=0; j < M; j++){
+						eta[(m-1)*M+j] = eta[m*M+j];
+					}
 					for(j=0; j < K; j++){
 						rdiffsum[j][m-1] = rdiffsum[j][m];
 						ndiffsum[j][m-1] = ndiffsum[j][m];
@@ -680,7 +685,8 @@ double svaDP(double** out_zeta, double** out_eta, double** out_nu, double** out_
 		//compute test log likelihood
 		convertSVAtoVB(zeta, sumzeta, sumzetaT, a, b, logh, dlogh_deta, dlogh_dnu, T, w, eta, nu, getLogH, getStat,getLogPostPred, alpha, M, D, N, K);
 		//Remove empty clusters
-		removeEmptyClustersX(zeta, sumzeta, sumzetaT, eta, nu, logh, dlogh_deta, dlogh_dnu, nu0, a, b, &Ktmp, N, M, K, false);
+		//removeEmptyClustersX(zeta, sumzeta, sumzetaT, eta, nu, logh, dlogh_deta, dlogh_dnu, nu0, a, b, &Ktmp, N, M, K, false);
+		//testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, Ktmp);
 		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
 		(*out_nTrace)++;
 		clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -691,8 +697,7 @@ double svaDP(double** out_zeta, double** out_eta, double** out_nu, double** out_
 	removeEmptyClustersX(zeta, sumzeta, sumzetaT, eta, nu, logh, dlogh_deta, dlogh_dnu, nu0, a, b, &Ktmp, N, M, K, false);
 	double finalobj= varBayesCost(zeta, sumzeta, sumzetaT, a, b, eta, eta0, nu, nu0, logh, logh0, dlogh_deta, dlogh_dnu, alpha, N, M, Ktmp);
 	*out_K = Ktmp;
-
-	//printf("SVA: time: %f nClus: %u testll: %f\n", times[*out_nTrace-1], Ktmp, computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K));
+	printf("SVA: time: %f nClus: %u testll: %f\n", times[*out_nTrace-1], Ktmp, testlls[*out_nTrace-1]);
 
 	/*Free non-output memory*/
 	free(w); free(r); free(stat); free(etatmp); 

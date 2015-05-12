@@ -30,9 +30,9 @@ int main(int argc, char** argv){
 	double alpha = 1.0;
 	uint32_t monteCarloTrials = 3;
 	std::vector<uint32_t> Nthr;
-	Nthr.push_back(1);
-	Nthr.push_back(2);
-	Nthr.push_back(4);
+	//Nthr.push_back(1);
+	//Nthr.push_back(2);
+	//Nthr.push_back(4);
 	Nthr.push_back(8);
 	//Nthr.push_back(16);
 	//Nthr.push_back(32);
@@ -147,15 +147,15 @@ int main(int argc, char** argv){
 			sdadp.getTrace().save(oss.str().c_str());
 		}
 
-		//BATCH DP (new) TEST:
-		std::cout << "Running Batch VarDP ..." << std::endl;
-		VarDP<NIWModel> vardp(train_data, test_data, niw, alpha, K);
-		vardp.run(true);
-		std::cout << "Saving output..." << std::endl;
-		std::ostringstream oss4;
-		oss4  << "vardpmix-" << std::setfill('0') << std::setw(3) << nMC;
-		vardp.getDistribution().save(oss4.str().c_str());
-		vardp.getTrace().save(oss4.str().c_str());
+		////BATCH DP (new) TEST:
+		//std::cout << "Running Batch VarDP ..." << std::endl;
+		//VarDP<NIWModel> vardp(train_data, test_data, niw, alpha, K);
+		//vardp.run(true);
+		//std::cout << "Saving output..." << std::endl;
+		//std::ostringstream oss4;
+		//oss4  << "vardpmix-" << std::setfill('0') << std::setw(3) << nMC;
+		//vardp.getDistribution().save(oss4.str().c_str());
+		//vardp.getTrace().save(oss4.str().c_str());
 
 
 		//Convert the parameters/data/etc to the old c code format 
@@ -182,55 +182,55 @@ int main(int argc, char** argv){
 		uint32_t Kf, Ntll;
 		double *zeta, *eta, *nu, *a, *b, *times, *testlls;
 
-		//BATCH DP (old) TEST
-		std::cout << "Running Old Batch VarDP ..." << std::endl;
-		varDP(&zeta, &eta, &nu, &a, &b, &Kf, &times, &testlls, &Ntll,
-		    x.data(), xt.data(), alpha, eta0.data(), nu0, &getLogHGaussian,
-		    &getStatGaussian, &getLogPostPredGaussian, N, Nt, M, D, K); 
-		//output results
-		std::ostringstream oss5;
-		oss5 << "vardpmixold-" << std::setfill('0') << std::setw(3) << nMC << "-trace.log";
-		std::ofstream fout1(oss5.str().c_str());
-		for (uint32_t i = 0; i < Ntll; i++){
-			fout1 << times[i] << " " << testlls[i] << std::endl;
-		}
-		fout1.close();
-		free(eta); free(nu); free(a); free(b); free(zeta); free(times); free(testlls);
+		////BATCH DP (old) TEST
+		//std::cout << "Running Old Batch VarDP ..." << std::endl;
+		//varDP(&zeta, &eta, &nu, &a, &b, &Kf, &times, &testlls, &Ntll,
+		//    x.data(), xt.data(), alpha, eta0.data(), nu0, &getLogHGaussian,
+		//    &getStatGaussian, &getLogPostPredGaussian, N, Nt, M, D, K); 
+		////output results
+		//std::ostringstream oss5;
+		//oss5 << "vardpmixold-" << std::setfill('0') << std::setw(3) << nMC << "-trace.log";
+		//std::ofstream fout1(oss5.str().c_str());
+		//for (uint32_t i = 0; i < Ntll; i++){
+		//	fout1 << times[i] << " " << testlls[i] << std::endl;
+		//}
+		//fout1.close();
+		//free(eta); free(nu); free(a); free(b); free(zeta); free(times); free(testlls);
 
-		//SVI DP TEST
-		std::cout << "Running SVI ..." << std::endl;
-    	soVBDP(&zeta, &eta, &nu, &a, &b, &Kf,  &times, &testlls, &Ntll,
-    	    x.data(), xt.data(), alpha, eta0.data(), nu0, &getLogHGaussian,
-    	    &getStatGaussian,&getLogPostPredGaussian, N, Nt, M, D, K, Nmini); 
-		//output results
-		std::ostringstream oss6;
-		oss6 << "svidpmix-" << std::setfill('0') << std::setw(3) << nMC << "-trace.log";
-		std::ofstream fout2(oss6.str().c_str());
-		for (uint32_t i = 0; i < Ntll; i++){
-			fout2 << times[i] << " " << testlls[i] << std::endl;
-		}
-		fout2.close();
-		free(eta); free(nu); free(a); free(b); free(zeta); free(times); free(testlls);
+		////SVI DP TEST
+		//std::cout << "Running SVI ..." << std::endl;
+    	//soVBDP(&zeta, &eta, &nu, &a, &b, &Kf,  &times, &testlls, &Ntll,
+    	//    x.data(), xt.data(), alpha, eta0.data(), nu0, &getLogHGaussian,
+    	//    &getStatGaussian,&getLogPostPredGaussian, N, Nt, M, D, K, Nmini); 
+		////output results
+		//std::ostringstream oss6;
+		//oss6 << "svidpmix-" << std::setfill('0') << std::setw(3) << nMC << "-trace.log";
+		//std::ofstream fout2(oss6.str().c_str());
+		//for (uint32_t i = 0; i < Ntll; i++){
+		//	fout2 << times[i] << " " << testlls[i] << std::endl;
+		//}
+		//fout2.close();
+		//free(eta); free(nu); free(a); free(b); free(zeta); free(times); free(testlls);
 
-		//moVB DP TEST
-		std::cout << "Running moVB ..." << std::endl;
-    	moVBDP(&zeta, &eta, &nu, &a, &b, &Kf, &times, &testlls, &Ntll,
-    	    x.data(), xt.data(), alpha, eta0.data(), nu0, &getLogHGaussian,
-    	    &getStatGaussian,&getLogPostPredGaussian, N, Nt, M, D, K, Nmini); 
-		//output results
-		std::ostringstream oss7;
-		oss7 << "movbdpmix-" << std::setfill('0') << std::setw(3) << nMC << "-trace.log";
-		std::ofstream fout3(oss7.str().c_str());
-		for (uint32_t i = 0; i < Ntll; i++){
-			fout3 << times[i] << " " << testlls[i] << std::endl;
-		}
-		fout3.close();
-		free(eta); free(nu); free(a); free(b); free(zeta); free(times); free(testlls);
+		////moVB DP TEST
+		//std::cout << "Running moVB ..." << std::endl;
+    	//moVBDP(&zeta, &eta, &nu, &a, &b, &Kf, &times, &testlls, &Ntll,
+    	//    x.data(), xt.data(), alpha, eta0.data(), nu0, &getLogHGaussian,
+    	//    &getStatGaussian,&getLogPostPredGaussian, N, Nt, M, D, K, Nmini); 
+		////output results
+		//std::ostringstream oss7;
+		//oss7 << "movbdpmix-" << std::setfill('0') << std::setw(3) << nMC << "-trace.log";
+		//std::ofstream fout3(oss7.str().c_str());
+		//for (uint32_t i = 0; i < Ntll; i++){
+		//	fout3 << times[i] << " " << testlls[i] << std::endl;
+		//}
+		//fout3.close();
+		//free(eta); free(nu); free(a); free(b); free(zeta); free(times); free(testlls);
 
 		//SVA DP TEST
 		std::cout << "Running SVA ..." << std::endl;
 		svaDP(&zeta, &eta, &nu, &a, &b, &Kf, &times, &testlls, &Ntll,
-		    x.data(), xt.data(), alpha, 5.0e-3, 5.0e-3, eta0.data(), nu0, &getLogHGaussian,
+		    x.data(), xt.data(), alpha, 1.0e-3, 1.0e-3, eta0.data(), nu0, &getLogHGaussian,
 		    &getStatGaussian, &getLogPostPredGaussian, N, Nt, M, D, K); 
 		//output results
 		std::ostringstream oss8;
