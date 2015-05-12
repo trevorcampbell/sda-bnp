@@ -697,7 +697,7 @@ double svaDP(double** out_zeta, double** out_eta, double** out_nu, double** out_
 	removeEmptyClustersX(zeta, sumzeta, sumzetaT, eta, nu, logh, dlogh_deta, dlogh_dnu, nu0, a, b, &Ktmp, N, M, K, false);
 	double finalobj= varBayesCost(zeta, sumzeta, sumzetaT, a, b, eta, eta0, nu, nu0, logh, logh0, dlogh_deta, dlogh_dnu, alpha, N, M, Ktmp);
 	*out_K = Ktmp;
-	printf("SVA: time: %f nClus: %u testll: %f\n", times[*out_nTrace-1], Ktmp, testlls[*out_nTrace-1]);
+	//printf("SVA: time: %f nClus: %u testll: %f\n", times[*out_nTrace-1], Ktmp, testlls[*out_nTrace-1]);
 
 	/*Free non-output memory*/
 	free(w); free(r); free(stat); free(etatmp); 

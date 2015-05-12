@@ -223,7 +223,8 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		mtrace.mergetimes.push_back(mergetime);
 		mtrace.times.push_back(t0);
 		//mtrace.testlls.push_back(testll);
-		mtrace.clusters.push_back(dist.eta.rows());
+		//mtrace.clusters.push_back(dist.eta.rows());
+		mtrace.clusters.push_back(dist.K);
 		if (mtrace.matchings.size() == 0){
 			mtrace.matchings.push_back(0); // the first merge never needs to do a matching since all components are new
 		} else {
