@@ -28,14 +28,15 @@ int main(int argc, char** argv){
 	uint32_t Nt = 1000;
 	uint32_t D = 2;
 	double alpha = 1.0;
-	uint32_t monteCarloTrials = 3;
+	uint32_t monteCarloTrials = 10;
 	std::vector<uint32_t> Nthr;
-	//Nthr.push_back(1);
-	//Nthr.push_back(2);
-	//Nthr.push_back(4);
+	Nthr.push_back(1);
+	Nthr.push_back(2);
+	Nthr.push_back(4);
 	Nthr.push_back(8);
-	//Nthr.push_back(16);
-	//Nthr.push_back(32);
+	Nthr.push_back(16);
+	Nthr.push_back(24);
+	Nthr.push_back(32);
 	VXd mu0 = VXd::Zero(D);
 	MXd psi0 = MXd::Identity(D, D);
 	double kappa0 = 1e-6;
@@ -228,19 +229,19 @@ int main(int argc, char** argv){
 		//free(eta); free(nu); free(a); free(b); free(zeta); free(times); free(testlls);
 
 		//SVA DP TEST
-		std::cout << "Running SVA ..." << std::endl;
-		svaDP(&zeta, &eta, &nu, &a, &b, &Kf, &times, &testlls, &Ntll,
-		    x.data(), xt.data(), alpha, 1.0e-3, 1.0e-3, eta0.data(), nu0, &getLogHGaussian,
-		    &getStatGaussian, &getLogPostPredGaussian, N, Nt, M, D, K); 
-		//output results
-		std::ostringstream oss8;
-		oss8 << "svadpmix-" << std::setfill('0') << std::setw(3) << nMC << "-trace.log";
-		std::ofstream fout4(oss8.str().c_str());
-		for (uint32_t i = 0; i < Ntll; i++){
-			fout4 << times[i] << " " << testlls[i] << std::endl;
-		}
-		fout4.close();
-		free(eta); free(nu); free(a); free(b); free(zeta); free(times); free(testlls);
+		//std::cout << "Running SVA ..." << std::endl;
+		//svaDP(&zeta, &eta, &nu, &a, &b, &Kf, &times, &testlls, &Ntll,
+		//    x.data(), xt.data(), alpha, 1.0e-3, 1.0e-3, eta0.data(), nu0, &getLogHGaussian,
+		//    &getStatGaussian, &getLogPostPredGaussian, N, Nt, M, D, K); 
+		////output results
+		//std::ostringstream oss8;
+		//oss8 << "svadpmix-" << std::setfill('0') << std::setw(3) << nMC << "-trace.log";
+		//std::ofstream fout4(oss8.str().c_str());
+		//for (uint32_t i = 0; i < Ntll; i++){
+		//	fout4 << times[i] << " " << testlls[i] << std::endl;
+		//}
+		//fout4.close();
+		//free(eta); free(nu); free(a); free(b); free(zeta); free(times); free(testlls);
 	}
 	return 0;
 }
