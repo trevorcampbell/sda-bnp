@@ -52,8 +52,8 @@ std::vector<VXd> readVectorRows(const char* filename){
 
 int main(int argc, char** argv){
 	//load the train/test data
-	std::vector<VXd> train_data = readVectorRows("sunTrainData-20D.csv");
-	std::vector<VXd> test_data = readVectorRows("sunTestData-20D.csv");
+	std::vector<VXd> train_data = readVectorRows("sunTrain20.log");
+	std::vector<VXd> test_data = readVectorRows("sunTest20.log");
 	std::cout << "Loaded " << train_data.size() << " training vecs and " << test_data.size() << " test vecs." << std::endl;
 
 	//constants
