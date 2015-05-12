@@ -126,18 +126,34 @@ else
     echo "Error experienced during compilation, test was not run."
 fi
 
-#TEST 9: MNIST/SUN Evaluation
-echo "Compiling mnist/sun eval..."
-g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/src/vb.c test/src/updates.c test/src/costfcn.c test/src/vbfuncs_gaussian.c test/evalmnistsun.cpp -lboost_system -lpthread -lgsl -lblas -lrt -o evalmnistsun
-if [ -e "evalmnistsun" ]
+#TEST 9: MNIST Evaluation
+echo "Compiling mnist eval..."
+g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/src/vb.c test/src/updates.c test/src/costfcn.c test/src/vbfuncs_gaussian.c test/evalmnist.cpp -lboost_system -lpthread -lgsl -lblas -lrt -o evalmnist
+if [ -e "evalmnist" ]
 then
     echo "Done compiling, running test..."
-	./evalmnistsun
-	rm evalmnistsun
-	mkdir mnistsunresults
-	cp test/evalMNIST.py test/evalSUN.py mnistsunresults
-	mv *.log mnistsunresults
-	echo "Done MNIST/SUN Evaluation! Go to ./mnistsunresults and run python evalMNIST.py/evalSUN.py to visualize the results."
+	./evalmnist
+	rm evalmnist
+	mkdir mnistresults
+	cp test/evalMNIST.py mnistresults
+	mv *.log mnistresults
+	echo "Done MNIST Evaluation! Go to ./mnistresults and run python evalMNIST.py to visualize the results."
+else
+    echo "Error experienced during compilation, test was not run."
+fi
+
+#TEST 9: SUN Evaluation
+echo "Compiling sun eval..."
+g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/src/vb.c test/src/updates.c test/src/costfcn.c test/src/vbfuncs_gaussian.c test/evalsun.cpp -lboost_system -lpthread -lgsl -lblas -lrt -o evalsun
+if [ -e "evalsun" ]
+then
+    echo "Done compiling, running test..."
+	./evalsun
+	rm evalsun
+	mkdir sunresults
+	cp test/evalSUN.py sunresults
+	mv *.log sunresults
+	echo "Done SUN Evaluation! Go to ./sunresults and run python evalSUN.py to visualize the results."
 else
     echo "Error experienced during compilation, test was not run."
 fi
