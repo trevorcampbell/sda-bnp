@@ -28,7 +28,7 @@ int main(int argc, char** argv){
 	uint32_t Nt = 1000;
 	uint32_t D = 2;
 	double alpha = 1.0;
-	uint32_t monteCarloTrials = 10;
+	uint32_t monteCarloTrials = 100;
 	std::vector<uint32_t> Nthr;
 	Nthr.push_back(1);
 	Nthr.push_back(2);
@@ -121,32 +121,32 @@ int main(int argc, char** argv){
 			}
 			uint32_t k = disc(rng);
 			test_data.push_back(mus[k] + sigsqrts[k]*x);
-			teout << train_data.back().transpose() << std::endl;
+			teout << test_data.back().transpose() << std::endl;
 			//std::cout << test_data.back().transpose() << std::endl;
 		}
 		trout.close();
 		teout.close();
 
 
-		//SDA DP Test:
-		NIWModel niw(mu0, kappa0, psi0, xi0);
-		for (uint32_t i = 0; i < Nthr.size(); i++){
-			std::cout << "Running VarDP with " << Nthr[i] << " threads..." << std::endl;
-			SDADP<NIWModel> sdadp(test_data, niw, alpha, Knew, Nthr[i]);
-			uint32_t Nctr = 0;
-			while(Nctr < N){
-				std::vector<VXd> minibatch;
-				minibatch.insert(minibatch.begin(), train_data.begin()+Nctr, train_data.begin()+Nctr+Nmini);
-				sdadp.submitMinibatch(minibatch);
-				Nctr += Nmini;
-			}
-			sdadp.waitUntilDone();
-			std::cout << "Saving output..." << std::endl;
-			std::ostringstream oss;
-			oss  << "sdadpmix-nThr_" << std::setfill('0') << std::setw(3) << Nthr[i] << "-" << std::setfill('0') << std::setw(3) << nMC;
-			sdadp.getDistribution().save(oss.str().c_str());
-			sdadp.getTrace().save(oss.str().c_str());
-		}
+		////SDA DP Test:
+		//NIWModel niw(mu0, kappa0, psi0, xi0);
+		//for (uint32_t i = 0; i < Nthr.size(); i++){
+		//	std::cout << "Running VarDP with " << Nthr[i] << " threads..." << std::endl;
+		//	SDADP<NIWModel> sdadp(test_data, niw, alpha, Knew, Nthr[i]);
+		//	uint32_t Nctr = 0;
+		//	while(Nctr < N){
+		//		std::vector<VXd> minibatch;
+		//		minibatch.insert(minibatch.begin(), train_data.begin()+Nctr, train_data.begin()+Nctr+Nmini);
+		//		sdadp.submitMinibatch(minibatch);
+		//		Nctr += Nmini;
+		//	}
+		//	sdadp.waitUntilDone();
+		//	std::cout << "Saving output..." << std::endl;
+		//	std::ostringstream oss;
+		//	oss  << "sdadpmix-nThr_" << std::setfill('0') << std::setw(3) << Nthr[i] << "-" << std::setfill('0') << std::setw(3) << nMC;
+		//	sdadp.getDistribution().save(oss.str().c_str());
+		//	sdadp.getTrace().save(oss.str().c_str());
+		//}
 
 		////BATCH DP (new) TEST:
 		//std::cout << "Running Batch VarDP ..." << std::endl;
@@ -159,29 +159,29 @@ int main(int argc, char** argv){
 		//vardp.getTrace().save(oss4.str().c_str());
 
 
-		//Convert the parameters/data/etc to the old c code format 
-		MXd x(D, N), xt(D, Nt);
-		for (uint32_t i = 0; i < N; i++){
-			x.col(i) = train_data[i];
-		}
-		for (uint32_t i = 0; i < Nt; i++){
-			xt.col(i) = test_data[i];
-		}
-		//get the prior in the required format
-		uint32_t M = D*D+D+1;
-		VXd eta0 = VXd::Zero(M);
-		for (uint32_t i = 0; i < D; i++){
-			for (uint32_t j = 0; j < D; j++){
-				eta0(i*D+j) = psi0(i, j) + kappa0*mu0(i)*mu0(j);
-			}
-		}
-		for (uint32_t i = 0; i < D; i++){
-			eta0(D*D+i) = kappa0*mu0(i);
-		}
-		eta0(D*D+D) = xi0+D+2;
-		double nu0 = kappa0;
-		uint32_t Kf, Ntll;
-		double *zeta, *eta, *nu, *a, *b, *times, *testlls;
+		////Convert the parameters/data/etc to the old c code format 
+		//MXd x(D, N), xt(D, Nt);
+		//for (uint32_t i = 0; i < N; i++){
+		//	x.col(i) = train_data[i];
+		//}
+		//for (uint32_t i = 0; i < Nt; i++){
+		//	xt.col(i) = test_data[i];
+		//}
+		////get the prior in the required format
+		//uint32_t M = D*D+D+1;
+		//VXd eta0 = VXd::Zero(M);
+		//for (uint32_t i = 0; i < D; i++){
+		//	for (uint32_t j = 0; j < D; j++){
+		//		eta0(i*D+j) = psi0(i, j) + kappa0*mu0(i)*mu0(j);
+		//	}
+		//}
+		//for (uint32_t i = 0; i < D; i++){
+		//	eta0(D*D+i) = kappa0*mu0(i);
+		//}
+		//eta0(D*D+D) = xi0+D+2;
+		//double nu0 = kappa0;
+		//uint32_t Kf, Ntll;
+		//double *zeta, *eta, *nu, *a, *b, *times, *testlls;
 
 		////BATCH DP (old) TEST
 		//std::cout << "Running Old Batch VarDP ..." << std::endl;

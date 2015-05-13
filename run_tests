@@ -111,37 +111,37 @@
 #fi
 
 #TEST 8: SDA DP Evaluation
-#echo "Compiling sda dp eval..."
-#g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/src/vb.c test/src/updates.c test/src/costfcn.c test/src/vbfuncs_gaussian.c test/evalsdadp.cpp -lboost_system -lpthread -lgsl -lblas -lrt -o evalsdadp
-#if [ -e "evalsdadp" ]
-#then
-#    echo "Done compiling, running test..."
-#	./evalsdadp
-#	rm evalsdadp
-#	mkdir sdaresults
-#	cp test/plotevalsdadp.py sdaresults
-#	mv *.log sdaresults
-#	echo "Done SDA DP Evaluation! Go to ./sdaresults and run python plotevalsdadp.py to visualize the results."
-#else
-#    echo "Error experienced during compilation, test was not run."
-#fi
-
-#TEST 9: MNIST Evaluation
-echo "Compiling mnist eval..."
-g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/src/vb.c test/src/updates.c test/src/costfcn.c test/src/vbfuncs_gaussian.c test/evalmnist.cpp -lboost_system -lpthread -lgsl -lblas -lrt -o evalmnist
-if [ -e "evalmnist" ]
+echo "Compiling sda dp eval..."
+g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/src/vb.c test/src/updates.c test/src/costfcn.c test/src/vbfuncs_gaussian.c test/evalsdadp.cpp -lboost_system -lpthread -lgsl -lblas -lrt -o evalsdadp
+if [ -e "evalsdadp" ]
 then
     echo "Done compiling, running test..."
-	./evalmnist
-	rm evalmnist
-	mkdir mnistresults
-	cp test/plotMNIST.py mnistresults
-	mv *.log mnistresults
-	cp mnistTrain20.txt mnistTest20.txt mnistresults
-	echo "Done MNIST Evaluation! Go to ./mnistresults and run python evalMNIST.py to visualize the results."
+	./evalsdadp
+	rm evalsdadp
+	mkdir sdaresults
+	cp test/plotevalsdadp.py sdaresults
+	mv *.log sdaresults
+	echo "Done SDA DP Evaluation! Go to ./sdaresults and run python plotevalsdadp.py to visualize the results."
 else
     echo "Error experienced during compilation, test was not run."
 fi
+
+##TEST 9: MNIST Evaluation
+#echo "Compiling mnist eval..."
+#g++ -std=c++11 -O3 -I/usr/local/include/eigen3 -I/usr/local/include test/src/vb.c test/src/updates.c test/src/costfcn.c test/src/vbfuncs_gaussian.c test/evalmnist.cpp -lboost_system -lpthread -lgsl -lblas -lrt -o evalmnist
+#if [ -e "evalmnist" ]
+#then
+#    echo "Done compiling, running test..."
+#	./evalmnist
+#	rm evalmnist
+#	mkdir mnistresults
+#	cp test/plotMNIST.py mnistresults
+#	mv *.log mnistresults
+#	cp mnistTrain20.txt mnistTest20.txt mnistresults
+#	echo "Done MNIST Evaluation! Go to ./mnistresults and run python evalMNIST.py to visualize the results."
+#else
+#    echo "Error experienced during compilation, test was not run."
+#fi
 
 ##TEST 10: SUN Evaluation
 #echo "Compiling sun eval..."
