@@ -135,7 +135,7 @@ then
 	./evalmnist
 	rm evalmnist
 	mkdir mnistresults
-	cp test/evalMNIST.py mnistresults
+	cp test/plotMNIST.py mnistresults
 	mv *.log mnistresults
 	cp mnistTrain20.txt mnistTest20.txt mnistresults
 	echo "Done MNIST Evaluation! Go to ./mnistresults and run python evalMNIST.py to visualize the results."
@@ -152,7 +152,7 @@ fi
 #	./evalsun
 #	rm evalsun
 #	mkdir sunresults
-#	cp test/evalSUN.py sunresults
+#	cp test/plotSUN.py sunresults
 #	mv *.log sunresults
 #   cp sunTrain20.txt sunTest20.txt sunresults
 #	echo "Done SUN Evaluation! Go to ./sunresults and run python evalSUN.py to visualize the results."

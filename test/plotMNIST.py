@@ -4,10 +4,12 @@ import os
 import os.path
 import cv2
 import matplotlib.pyplot as plt
+from matplotlib import rc
 import seaborn as sns
 
 sns.set(font_scale=1.5)
 snsm = sns.color_palette('muted')
+rc('text', usetex=False)
 
 def MtoD(M):
     return int((-1+np.sqrt(-3+4*M))/2)
@@ -30,31 +32,34 @@ def gaussianLogPdf(x,mu,invS,logDet):
   return -0.5*(mu.size*np.log(2*np.pi) +logDet \
          +(x-mu).dot(invS.dot(x-mu)))
 
-tracefiles = sorted([fname for fname in os.listdir() if fname[-9:]=='trace.log' ])
-etafiles = sorted([fname for fname in os.listdir() if fname[-7:]=='eta.log' ])
-abfiles = sorted([fname for fname in os.listdir() if fname[-6:]=='ab.log' ])
-nufiles = sorted([fname for fname in os.listdir() if fname[-6:]=='nu.log' ])
+tracefiles = sorted([fname for fname in os.listdir('.') if fname[-9:]=='trace.log' ])
+etafiles = sorted([fname for fname in os.listdir('.') if fname[-7:]=='eta.log' ])
+abfiles = sorted([fname for fname in os.listdir('.') if fname[-6:]=='ab.log' ])
+nufiles = sorted([fname for fname in os.listdir('.') if fname[-6:]=='nu.log' ])
 train_data = np.loadtxt('mnistTrain20.txt')
-imgFileNames = ['mnistimgs/'+str(i)+'.png' for i in range(train_data.shape[0])]
+imgFileNames = ['./mnistimgs/' + str(i)+'.png' for i in range(train_data.shape[0])]
 imgOutRoot = 'mnistclasses'
 
 nClusToShow = 15
 nImgPerClus = 15
-imgW = 32
-imgH = 32
+imgW = 28
+imgH = 28
 
 ##TODO -- possibly filter out small clusters before plotting
 
-lglbls = []
-plt.figure()
-for i in range(len(tracefiles)):
-    tr = np.genfromtxt(tracefiles[i])
-    times = tr[:, 0]
-    testlls = tr[:, 1]
-    plt.plot(times, testlls, c=snsm[i], lw=2)
-    lglbls.append(tracefiles[i][:-10])
-plt.legend(lglbls)
-plt.xscale('log')
+#lglbls = []
+#plt.figure()
+#for i in range(len(tracefiles)):
+#    tr = np.genfromtxt(tracefiles[i])
+#    times = tr[:, 0]
+#    testlls = tr[:, 1]
+#    plt.plot(times, testlls, c=snsm[i%len(snsm)], lw=2)
+#    lglbls.append(tracefiles[i][:-10])
+#plt.legend(lglbls)
+#plt.xscale('log')
+#
+#plt.show()
+#quit()
 
 for i in range(len(etafiles)):
     outname = etafiles[i][:-8]
@@ -91,6 +96,7 @@ for i in range(len(etafiles)):
         for j in range(train_data.shape[0]):
             logPdf[j] = np.log(pi[k])+gaussianLogPdf(train_data[j,:],mus[k],invSs[k],logDets[k])
         ind[:, k] = np.argsort(logPdf)[::-1]
+    ind = ind.astype(int)
 
     # using those indices load the respective images and plot them intoa a single image
     #ks = np.arange(K)[nus>100]
@@ -98,18 +104,18 @@ for i in range(len(etafiles)):
     #ks = np.argsort(pi)[-30:-1]
     #ks = np.argsort(nus)[-30:-1]
     for k0 in range(0, K, nClusToShow):
-        ks = np.arange(k0, np.min(k0+nClusToShow, K))
+        ks = np.arange(k0, min(k0+nClusToShow, K))
         Is = np.zeros((nImgPerClus*imgH, ks.shape[0]*imgW))
         for j,k in enumerate(ks):
             for t in range(nImgPerClus):
-                #print k, ind[t,k]
+                print k, ind[t,k]
                 I = cv2.imread(imgFileNames[ind[t,k]], 0)
-                #print imgFileNames[ind[t,k]], I.shape
+                print imgFileNames[ind[t,k]], I.shape
                 if not I is None and I.shape[0] >0 and I.shape[1] > 0:
                     Is[t*imgH:(t+1)*imgH,j*imgW:(j+1)*imgW] = cv2.resize(I,(imgW,imgH))
         cv2.imwrite(imgOutRoot+'/mnist_'+outname+'{}.jpg'.format(k0),Is)
-        cv2.imshow('image',Is)
-        cv2.waitKey(0)
-    cv2.destroyAllWindows()
+        #cv2.imshow('image',Is)
+        #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
 
 
