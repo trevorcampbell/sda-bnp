@@ -130,13 +130,12 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		return;
 	}
 
-
 	//lock the mutex, get the distribution, unlock
 	typename VarDP<Model>::Distribution dist0;
 	{
 		std::lock_guard<std::mutex> lock(distmut);
-		//ljn = jobNum++;
-		//std::cout << "Starting job " << ljn << std::endl;
+	//	ljn = jobNum++;
+	//	std::cout << "Starting job " << ljn << std::endl;
 		dist0 = dist;
 	} //release the lock
 
@@ -147,6 +146,7 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 
 
 	//do minibatch inference
+	//std::cout << "Inference " << ljn << std::endl;
 	typename VarDP<Model>::Distribution dist1;
 	double starttime = timer.get();
 	if(dist0.K == 0){ //if there is no prior to work off of
@@ -158,6 +158,7 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		vdp.run(false);
 	 	dist1 = vdp.getDistribution();
 	}
+	//std::cout << "Done Inference " << ljn << std::endl;
 	//oss << "dist1-" << ljn;
 	//dist1.save(oss.str().c_str());
 	//oss.str(""); oss.clear();
@@ -165,6 +166,7 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 
 
 	//remove empty clusters
+	//std::cout << "Remove empties " << ljn << std::endl;
 	for (uint32_t k = dist0.K; k < dist1.K; k++){
 		if (dist1.sumz(k) < 1.0 && k < dist1.K-1){
 			dist1.sumz.segment(k, dist1.K-(k+1)) = (dist1.sumz.segment(k+1, dist1.K-(k+1))).eval(); //eval stops aliasing
@@ -195,6 +197,7 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 	if(dist1.K == 0){//if removing empty clusters destroyed all of them, just quit
 		return;
 	}
+	//std::cout << "Done Remove empties " << ljn << std::endl;
 
 	//oss << "dist1r-" << ljn;
 	//dist1.save(oss.str().c_str());
@@ -202,6 +205,7 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 
 
 	//lock mutex, store the local trace, merge the minibatch distribution, unlock
+	//std::cout << "Merging " << ljn << std::endl;
 	double mergetime;
 	typename VarDP<Model>::Distribution dist2; //dist2 is used to check if a matching was solved later
 	{
@@ -217,6 +221,7 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 		//std::cout << "Job " << ljn << std::endl;
 		dist = mergeDistributions(dist1, dist, dist0);
 		mergetime = timer.get()- t0;
+	//	std::cout << "Done Merging, saving dist " << ljn << std::endl;
 		t0 = timer.get();
 		dists.push_back(dist);
 		mtrace.starttimes.push_back(starttime);
@@ -236,6 +241,7 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 			}
 		}
 
+	//	std::cout << "Done saving dist " << ljn << std::endl;
 		//oss << "distf-" << ljn;
 		//dist.save(oss.str().c_str());
 		//oss.str(""); oss.clear();
@@ -264,6 +270,7 @@ void SDADP<Model>::varDPJob(const std::vector<VXd>& train_data){
 	//	}
 	//} //release the lock
 
+	//std::cout << "DONE " << ljn << std::endl;
 	//done!
 	return;
 }
