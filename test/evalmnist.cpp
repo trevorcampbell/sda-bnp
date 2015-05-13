@@ -23,7 +23,7 @@ std::vector<VXd> readVectorRows(const char* filename){
 	infile.open(filename);
 	uint32_t vecSize = 0;
 	std::vector<VXd> res;
-	while(! infile.eof()){
+	while(!infile.eof()){
 		std::string line;
 		std::getline(infile, line);
 		std::stringstream stream(line);
@@ -36,10 +36,8 @@ std::vector<VXd> readVectorRows(const char* filename){
 		if (vecSize == 0){
 			vecSize = vvec.size();
 		}
-		std::cout << "vecSize: " << vecSize << " vvec.size() " << vvec.size() << std::endl;
 		if (vecSize != vvec.size()){
-			std::cout << "ERROR LOADING FILE " << filename << ": columns are not uniform length" << std::endl;
-			exit(0);
+			break;
 		}
 		VXd vec = VXd::Zero(vecSize);
 		for (uint32_t j = 0; j < vecSize; j++){
