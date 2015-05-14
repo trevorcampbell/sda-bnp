@@ -118,7 +118,7 @@ double NIWModel::getLogH0(){
 }
 
 void NIWModel::getLogH(MXd eta, VXd nu, VXd& logh, MXd& dlogh_deta, VXd& dlogh_dnu){
-	
+
 	uint32_t K = eta.rows();
 	logh = dlogh_dnu = VXd::Zero(K);
 	dlogh_deta = MXd::Zero(K, D*D+D+1);
