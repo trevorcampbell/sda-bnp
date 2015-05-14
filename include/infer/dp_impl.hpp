@@ -84,6 +84,7 @@ void VarDP<Model>::run(bool computeTestLL, double tol, uint32_t nItr){
 	//initialize the variables
 	init();
 
+
 	//loop on variational updates
 	uint32_t itr = 0;
 	//if nItr > 0, use iteration count
@@ -114,6 +115,10 @@ void VarDP<Model>::run(bool computeTestLL, double tol, uint32_t nItr){
 		//restart the clock
 		cpuTime.start(); 
 	}
+
+
+	std::cout << "ONE RUN TOOK: " << cpuTime.get() << " secs" << std::endl;
+
 	//done!
 	return;
 }
@@ -128,28 +133,48 @@ void VarDP<Model>::init(){
 
 	//fill in K-K0 etas with stats directly from data
 	std::uniform_int_distribution<> uniint(0, N-1);
+	if (K0 > 0){
+		eta.block(0, 0, K0, M) = eta0;
+		nu.head(K0) = nu0;
+	}
 	for (uint32_t k = K0; k < K; k++){
 		eta.row(k) = train_stats.row(uniint(rng));
 		nu(k) = 1.0;
 	}
 
 	/*compute dist between cluster stats and data stats and use exp(-dist^2) as similarity*/
-	for(uint32_t i = 0; i < N; i++){
-		double rwsum = 0;
-    	double minDistSq = std::numeric_limits<double>::infinity();
-		for(uint32_t k=0; k< K; k++){
-			double distsq = (train_stats.row(i) - eta.row(k)/nu(k)).squaredNorm();
-			zeta(i, k) = distsq;
-      		minDistSq = minDistSq > distsq ? distsq : minDistSq;
-		}
-		for(uint32_t k=0; k < K; k++){
-			zeta(i, k) = exp(-(zeta(i, k) -minDistSq));
-			rwsum += zeta(i, k);
-		}
-		zeta.row(i) /= rwsum;
-		sumzeta += zeta.row(i).transpose();
-		sumzetaT += zeta.row(i).transpose()*train_stats.row(i);
+	for (uint32_t k = 0; k < K; k++){
+		zeta.col(k) = (train_stats.rowwise() - eta.row(k)/nu(k)).rowwise().squaredNorm();
 	}
+	zeta.colwise() -= zeta.rowwise().minCoeff().eval();
+	zeta = (-zeta.array()).exp().eval();
+	for (uint32_t i = 0; i < N; i++){
+		zeta.row(i) /= zeta.row(i).sum();
+	}
+	sumzeta = zeta.colwise().sum().transpose();
+	sumzetaT = zeta.transpose()*train_stats;
+
+
+	//random init using iteration
+	//for(uint32_t i = 0; i < N; i++){
+	//	double rwsum = 0;
+    //	double minDistSq = std::numeric_limits<double>::infinity();
+	//	for(uint32_t k=0; k< K; k++){
+	//		double distsq = (train_stats.row(i) - eta.row(k)/nu(k)).squaredNorm();
+	//		zeta(i, k) = distsq;
+    //  		minDistSq = minDistSq > distsq ? distsq : minDistSq;
+	//	}
+	//	for(uint32_t k=0; k < K; k++){
+	//		zeta(i, k) = exp(-(zeta(i, k) -minDistSq));
+	//		rwsum += zeta(i, k);
+	//	}
+	//	zeta.row(i) /= rwsum;
+	//	sumzeta += zeta.row(i).transpose();
+	//	sumzetaT += zeta.row(i).transpose()*train_stats.row(i);
+	//}
+	
+
+
 
 	////use kmeans++ to break symmetry in the intiialization
 	////outputs K-K0 indices for new cluster initialization
@@ -245,57 +270,91 @@ void VarDP<Model>::updateWeightDist(){
 
 template<class Model>
 void VarDP<Model>::updateParamDist(){
+
+
+
+
 	//Update the parameters
-	for (uint32_t k = 0; k < K; k++){
-		if (k < K0){
-	    	for (uint32_t j = 0; j < M; j++){
-	    		eta(k, j) = eta0(k, j)+sumzetaT(k, j);
-	    	}
-	    	nu(k) = nu0(k) + sumzeta(k);
-		} else {
-			for (uint32_t j = 0; j < M; j++){
-	    		eta(k, j) = model.getEta0()(j)+sumzetaT(k, j);
-	    	}
-	    	nu(k) = model.getNu0() + sumzeta(k);
-		}
+	eta = sumzetaT;
+	nu = sumzeta;
+	if (K0 > 0){
+		eta.block(0, 0, K0, M) += eta0;
+		eta.block(K0, 0, K-K0, M).rowwise() += model.getEta0().transpose();
+		nu.head(K0) += nu0;
+		nu.tail(K-K0).array() += model.getNu0();
+	} else {
+		eta.rowwise() += model.getEta0().transpose();
+		nu.array() += model.getNu0();
 	}
+
+
+	//for (uint32_t k = 0; k < K; k++){
+	//	if (k < K0){
+	//    	for (uint32_t j = 0; j < M; j++){
+	//    		eta(k, j) = eta0(k, j)+sumzetaT(k, j);
+	//    	}
+	//    	nu(k) = nu0(k) + sumzeta(k);
+	//	} else {
+	//		for (uint32_t j = 0; j < M; j++){
+	//    		eta(k, j) = model.getEta0()(j)+sumzetaT(k, j);
+	//    	}
+	//    	nu(k) = model.getNu0() + sumzeta(k);
+	//	}
+	//}
+
 	//update logh/etc
 	model.getLogH(eta, nu, logh, dlogh_deta, dlogh_dnu);
+
+
 	return;
 }
 
 template<class Model>
 void VarDP<Model>::updateLabelDist(){
+
+
+
 	//update the label distribution
-	sumzeta = VXd::Zero(K);
-	sumzetaT = MXd::Zero(K, M);
+	zeta.rowwise() = psisum.transpose() - dlogh_dnu.transpose();
+	zeta -= train_stats*dlogh_deta.transpose();
+	zeta.colwise() -= zeta.rowwise().maxCoeff().eval();
+	zeta = zeta.array().exp().eval();
 	for (uint32_t i = 0; i < N; i++){
-		//compute the log of the weights, storing the maximum so far
-		double logpmax = -std::numeric_limits<double>::infinity();
-		for (uint32_t k = 0; k < K; k++){
-			zeta(i, k) = psisum(k) - dlogh_dnu(k);
-			for (uint32_t j = 0; j < M; j++){
-				zeta(i, k) -= train_stats(i, j)*dlogh_deta(k, j);
-			}
-			logpmax = (zeta(i, k) > logpmax ? zeta(i, k) : logpmax);
-		}
-		//make numerically stable by subtracting max, take exp, sum them up
-		double psum = 0.0;
-		for (uint32_t k = 0; k < K; k++){
-			zeta(i, k) -= logpmax;
-			zeta(i, k) = exp(zeta(i, k));
-			psum += zeta(i, k);
-		}
-		//normalize
-		for (uint32_t k = 0; k < K; k++){
-			zeta(i, k) /= psum;
-		}
-		//update the sumzeta stats
-		sumzeta += zeta.row(i).transpose();
-		for(uint32_t k = 0; k < K; k++){
-			sumzetaT.row(k) += zeta(i, k)*train_stats.row(i);
-		}
+		zeta.row(i) /= zeta.row(i).sum();
 	}
+	sumzeta = zeta.colwise().sum().transpose();
+	sumzetaT = zeta.transpose()*train_stats;
+
+	//sumzeta = VXd::Zero(K);
+	//sumzetaT = MXd::Zero(K, M);
+	//for (uint32_t i = 0; i < N; i++){
+	//	//compute the log of the weights, storing the maximum so far
+	//	double logpmax = -std::numeric_limits<double>::infinity();
+	//	for (uint32_t k = 0; k < K; k++){
+	//		zeta(i, k) = psisum(k) - dlogh_dnu(k);
+	//		for (uint32_t j = 0; j < M; j++){
+	//			zeta(i, k) -= train_stats(i, j)*dlogh_deta(k, j);
+	//		}
+	//		logpmax = (zeta(i, k) > logpmax ? zeta(i, k) : logpmax);
+	//	}
+	//	//make numerically stable by subtracting max, take exp, sum them up
+	//	double psum = 0.0;
+	//	for (uint32_t k = 0; k < K; k++){
+	//		zeta(i, k) -= logpmax;
+	//		zeta(i, k) = exp(zeta(i, k));
+	//		psum += zeta(i, k);
+	//	}
+	//	//normalize
+	//	for (uint32_t k = 0; k < K; k++){
+	//		zeta(i, k) /= psum;
+	//	}
+	//	//update the sumzeta stats
+	//	sumzeta += zeta.row(i).transpose();
+	//	for(uint32_t k = 0; k < K; k++){
+	//		sumzetaT.row(k) += zeta(i, k)*train_stats.row(i);
+	//	}
+	//}
+
 	return;
 }
 
@@ -326,10 +385,10 @@ template<class Model>
 double VarDP<Model>::computeObjective(){
 
 	//get the label entropy
-	MXd mzero = MXd::Zero(zeta.rows(), zeta.cols());
-	MXd zlogz = zeta.array()*zeta.array().log();
-	double labelEntropy = ((zeta.array() > 1.0e-16).select(zlogz, mzero)).sum();
-	
+	MXd mzerotmp = MXd::Zero(zeta.rows(), zeta.cols());
+	MXd zlogztmp = zeta.array()*zeta.array().log();
+	double labelEntropy = ((zeta.array() > 1.0e-16).select(zlogztmp, mzerotmp)).sum();
+
 	//get the variational beta entropy
 	double betaEntropy = 0.0;
 	for (uint32_t k = 0; k < K; k++){
@@ -337,49 +396,35 @@ double VarDP<Model>::computeObjective(){
 	}
 
 	//get the variational exponential family entropy
-	double expEntropy = 0.0;
-	for (uint32_t k = 0; k < K; k++){
-		expEntropy += logh(k) - nu(k)*dlogh_dnu(k);
-		for (uint32_t j = 0; j < M; j++){
-			expEntropy -= eta(k, j)*dlogh_deta(k, j);
-		}
-	}
+	double expEntropy = logh.sum() -nu.transpose()*dlogh_dnu - (eta.array()*dlogh_deta.array()).sum();
 
 	//get the likelihood cross entropy
-	double likelihoodXEntropy = 0.0;
-	for (uint32_t k = 0; k < K; k++){
-		likelihoodXEntropy -= sumzeta(k)*dlogh_dnu(k);
-		for (uint32_t j = 0; j < M; j++){
-			likelihoodXEntropy -= sumzetaT(k, j)*dlogh_deta(k, j);
-		}
-	}
+	double likelihoodXEntropy = -sumzeta.transpose()*dlogh_dnu - (sumzetaT.array()*dlogh_deta.array()).sum();
 
 	//get the prior exponential cross entropy
     double priorExpXEntropy = 0; 
-	for (uint32_t k = 0; k < K; k++){
-		if (k < K0){
-			priorExpXEntropy += logh0(k) - nu0(k)*dlogh_dnu(k);
-			for (uint32_t j=0; j < M; j++){
-	    		priorExpXEntropy -= eta0(k, j)*dlogh_deta(k, j);
-	    	}
-		} else{
-			priorExpXEntropy +=  model.getLogH0() - model.getNu0()*dlogh_dnu(k);
-			for (uint32_t j=0; j < M; j++){
-	    		priorExpXEntropy -= model.getEta0()(j)*dlogh_deta(k, j);
-	    	}
+    if (K0 > 0){
+    	priorExpXEntropy += model.getLogH0()*(K-K0) + logh0.sum() - nu0.transpose()*dlogh_dnu.head(K0) - model.getNu0()*dlogh_dnu.tail(K-K0).sum();
+    	priorExpXEntropy -= (dlogh_deta.block(0, 0, K0, M).array()*eta0.array()).sum();
+    	for (uint32_t k = K0; k < K; k++){
+    		priorExpXEntropy -= dlogh_deta.row(k)*model.getEta0();
 		}
-	    
+	} else {
+		priorExpXEntropy += model.getLogH0()*K - model.getNu0()*dlogh_dnu.sum();
+		for (uint32_t k = 0; k < K; k++){
+			priorExpXEntropy -= dlogh_deta.row(k)*model.getEta0();
+		}
 	}
 
 	//get the prior label cross entropy
 	double priorLabelXEntropy = 0.0;
-	double psibk = 0.0;
+	double psibktmp = 0.0;
 	for (uint32_t k = 0; k < K; k++){
 		double psiak = digamma(a(k)) - digamma(a(k)+b(k));
-		priorLabelXEntropy += sumzeta(k)*(psiak + psibk);
-		psibk += digamma(b(k)) - digamma(a(k)+b(k));
+		priorLabelXEntropy += sumzeta(k)*(psiak + psibktmp);
+		psibktmp += digamma(b(k)) - digamma(a(k)+b(k));
 	}
-	
+
 	//get the prior beta cross entropy
 	double priorBetaXEntropy = 0; 
 	for (uint32_t k = 0; k < K; k++){
@@ -389,6 +434,70 @@ double VarDP<Model>::computeObjective(){
 			priorBetaXEntropy += (alpha-1.0)*(digamma(b(k)) - digamma(a(k)+b(k))) - boost_lbeta(1.0, alpha);
 		}
 	}
+
+	////get the label entropy
+	//MXd mzero = MXd::Zero(zeta.rows(), zeta.cols());
+	//MXd zlogz = zeta.array()*zeta.array().log();
+	//double labelEntropy = ((zeta.array() > 1.0e-16).select(zlogz, mzero)).sum();
+	//
+	////get the variational beta entropy
+	//double betaEntropy = 0.0;
+	//for (uint32_t k = 0; k < K; k++){
+    //    betaEntropy += -boost_lbeta(a(k), b(k)) + (a(k)-1.0)*digamma(a(k)) +(b(k)-1.0)*digamma(b(k))-(a(k)+b(k)-2.0)*digamma(a(k)+b(k));
+	//}
+
+	////get the variational exponential family entropy
+	//double expEntropy = 0.0;
+	//for (uint32_t k = 0; k < K; k++){
+	//	expEntropy += logh(k) - nu(k)*dlogh_dnu(k);
+	//	for (uint32_t j = 0; j < M; j++){
+	//		expEntropy -= eta(k, j)*dlogh_deta(k, j);
+	//	}
+	//}
+
+	////get the likelihood cross entropy
+	//double likelihoodXEntropy = 0.0;
+	//for (uint32_t k = 0; k < K; k++){
+	//	likelihoodXEntropy -= sumzeta(k)*dlogh_dnu(k);
+	//	for (uint32_t j = 0; j < M; j++){
+	//		likelihoodXEntropy -= sumzetaT(k, j)*dlogh_deta(k, j);
+	//	}
+	//}
+
+	////get the prior exponential cross entropy
+    //double priorExpXEntropy = 0; 
+	//for (uint32_t k = 0; k < K; k++){
+	//	if (k < K0){
+	//		priorExpXEntropy += logh0(k) - nu0(k)*dlogh_dnu(k);
+	//		for (uint32_t j=0; j < M; j++){
+	//    		priorExpXEntropy -= eta0(k, j)*dlogh_deta(k, j);
+	//    	}
+	//	} else{
+	//		priorExpXEntropy +=  model.getLogH0() - model.getNu0()*dlogh_dnu(k);
+	//		for (uint32_t j=0; j < M; j++){
+	//    		priorExpXEntropy -= model.getEta0()(j)*dlogh_deta(k, j);
+	//    	}
+	//	}
+	//}
+
+	////get the prior label cross entropy
+	//double priorLabelXEntropy = 0.0;
+	//double psibk = 0.0;
+	//for (uint32_t k = 0; k < K; k++){
+	//	double psiak = digamma(a(k)) - digamma(a(k)+b(k));
+	//	priorLabelXEntropy += sumzeta(k)*(psiak + psibk);
+	//	psibk += digamma(b(k)) - digamma(a(k)+b(k));
+	//}
+
+	////get the prior beta cross entropy
+	//double priorBetaXEntropy = 0; 
+	//for (uint32_t k = 0; k < K; k++){
+	//	if (k < K0){
+	//		priorBetaXEntropy += (a0(k)-1.0)*(digamma(a(k)) - digamma(a(k)+b(k))) + (b0(k)-1.0)*(digamma(b(k)) - digamma(a(k)+b(k))) - boost_lbeta(a0(k), b0(k));
+	//	} else {
+	//		priorBetaXEntropy += (alpha-1.0)*(digamma(b(k)) - digamma(a(k)+b(k))) - boost_lbeta(1.0, alpha);
+	//	}
+	//}
 
 	return labelEntropy 
 		 + betaEntropy 
