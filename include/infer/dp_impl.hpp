@@ -84,7 +84,6 @@ void VarDP<Model>::run(bool computeTestLL, double tol, uint32_t nItr){
 	//initialize the variables
 	init();
 
-
 	//loop on variational updates
 	uint32_t itr = 0;
 	//if nItr > 0, use iteration count
@@ -115,10 +114,6 @@ void VarDP<Model>::run(bool computeTestLL, double tol, uint32_t nItr){
 		//restart the clock
 		cpuTime.start(); 
 	}
-
-
-	std::cout << "ONE RUN TOOK: " << cpuTime.get() << " secs" << std::endl;
-
 	//done!
 	return;
 }
