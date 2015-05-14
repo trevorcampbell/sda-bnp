@@ -21,35 +21,38 @@ typedef Eigen::VectorXd VXd;
 
 int main(int argc, char** argv){
 	//constants
-	uint32_t K = 40;
-	uint32_t Knew = 40;
+	uint32_t K = 100;
+	uint32_t Knew = 100;
 	uint32_t N = 10000;
 	uint32_t Nmini = 100;
 	uint32_t Nt = 1000;
 	uint32_t D = 2;
-	double alpha = 1.0;
-	uint32_t monteCarloTrials = 100;
+	double alpha = 5.5;
+	uint32_t monteCarloTrials = 5;
 	std::vector<uint32_t> Nthr;
 	Nthr.push_back(1);
 	Nthr.push_back(2);
 	Nthr.push_back(4);
 	Nthr.push_back(8);
-	Nthr.push_back(16);
-	Nthr.push_back(24);
-	Nthr.push_back(32);
+//	Nthr.push_back(16);
+//	Nthr.push_back(24);
+//	Nthr.push_back(32);
 	VXd mu0 = VXd::Zero(D);
 	MXd psi0 = MXd::Identity(D, D);
-	double kappa0 = 1e-6;
+	MXd psi0L = Eigen::LLT<MXd>(psi0).matrixL();
+	double kappa0 = 1e-3;
 	double xi0 = D+2;
 
 	double minMu = -100.0, maxMu = 100.0;
-	double sigMagnitude = 2.0;
+	double sigMax = 4.0;
+	double sigMin = 0.01;
 	double pi0 = 0.0;
 
 	std::mt19937 rng;
 	std::random_device rd;
 	rng.seed(rd());
 	std::uniform_real_distribution<> unir;
+	std::normal_distribution<> nrm;
 
 
 	for(uint32_t nMC = 0; nMC < monteCarloTrials; nMC++){
@@ -62,16 +65,22 @@ int main(int argc, char** argv){
 		double sumpis = 0.0;
 		std::cout << "Creating generative model..." << std::endl;
 		for (uint32_t k = 0; k < K; k++){
-			mus.push_back(VXd::Zero(D));
-			sigs.push_back(MXd::Zero(D, D));
+			//sample mu, sig from normal inverse wishart
+			MXd A(D, D);
 			for(uint32_t d = 0; d < D; d++){
-				mus.back()(d) = (maxMu-minMu)*unir(rng) + minMu;
-				for(uint32_t f = 0; f < D; f++){
-					sigs.back()(d, f) = sigMagnitude*unir(rng);
+				std::chi_squared_distribution<> chir(xi0-d);
+				A(d, d) = sqrt(chir(rng));
+				for (uint32_t f = 0; f < d; f++){
+					A(d, f) = nrm(rng);
 				}
 			}
-			sigs.back() = (sigs.back().transpose()*sigs.back()).eval();//eval to stop aliasing
+			sigs.push_back(Eigen::LLT<MXd, Eigen::Upper>(psi0L*A*A.transpose()*psi0L.transpose()).solve(MXd::Identity(D, D)));
 			sigsqrts.push_back(Eigen::LLT<MXd, Eigen::Upper>(sigs.back()).matrixL());
+			VXd x = VXd::Zero(D);
+			for (uint32_t j = 0; j < D; j++){
+				x(j) = nrm(rng);
+			}
+			mus.push_back(mu0 + 1.0/sqrt(kappa0)*sigsqrts.back()*x);
 			pis.push_back(pi0+unir(rng));
 			sumpis += pis.back();
 			//std::cout << "Mu: " << mus.back().transpose() << std::endl << "Sig: " << sigs.back() << std::endl << "Wt: " << pis.back() << std::endl;
@@ -96,7 +105,6 @@ int main(int argc, char** argv){
 
 		//sample from the model
 		std::vector<VXd> train_data, test_data;
-		std::normal_distribution<> nrm;
 		std::discrete_distribution<> disc(pis.begin(), pis.end());
 		std::ostringstream oss2, oss3;
 		oss2  << "train-" << std::setfill('0') << std::setw(3) << nMC << ".log";
@@ -148,15 +156,15 @@ int main(int argc, char** argv){
 			sdadp.getTrace().save(oss.str().c_str());
 		}
 
-		////BATCH DP (new) TEST:
-		//std::cout << "Running Batch VarDP ..." << std::endl;
-		//VarDP<NIWModel> vardp(train_data, test_data, niw, alpha, K);
-		//vardp.run(true);
-		//std::cout << "Saving output..." << std::endl;
-		//std::ostringstream oss4;
-		//oss4  << "vardpmix-" << std::setfill('0') << std::setw(3) << nMC;
-		//vardp.getDistribution().save(oss4.str().c_str());
-		//vardp.getTrace().save(oss4.str().c_str());
+		//BATCH DP (new) TEST:
+		std::cout << "Running Batch VarDP ..." << std::endl;
+		VarDP<NIWModel> vardp(train_data, test_data, niw, alpha, K);
+		vardp.run(true);
+		std::cout << "Saving output..." << std::endl;
+		std::ostringstream oss4;
+		oss4  << "vardpmix-" << std::setfill('0') << std::setw(3) << nMC;
+		vardp.getDistribution().save(oss4.str().c_str());
+		vardp.getTrace().save(oss4.str().c_str());
 
 
 		//Convert the parameters/data/etc to the old c code format 
