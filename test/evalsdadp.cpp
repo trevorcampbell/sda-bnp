@@ -147,7 +147,8 @@ int main(int argc, char** argv){
 			uint32_t Nctr = 0;
 			while(Nctr < N){
 				std::vector<VXd> minibatch;
-				minibatch.insert(minibatch.begin(), train_data.begin()+Nctr, train_data.begin()+Nctr+Nmini);
+				uint32_t Nmax = Nctr + Nmini < N ? Nctr + Nmini : N;
+				minibatch.insert(minibatch.begin(), train_data.begin()+Nctr, train_data.begin()+Nmax);
 				sdadp.submitMinibatch(minibatch);
 				Nctr += Nmini;
 			}
