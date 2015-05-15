@@ -21,22 +21,25 @@ typedef Eigen::VectorXd VXd;
 
 int main(int argc, char** argv){
 	//constants
-	uint32_t K = 100;
-	uint32_t Knew = 100;
-	uint32_t N = 10000;
-	uint32_t Nmini = 100;
-	uint32_t Nt = 1000;
+	uint32_t KTrue = 100;
+	uint32_t K = 200;
+	uint32_t Knew = 50;
+	uint32_t N = 100000;
+	uint32_t Nmini = 50;
+	uint32_t Nt = 10000;
 	uint32_t D = 2;
 	double alpha = 5.5;
-	uint32_t monteCarloTrials = 5;
+	uint32_t monteCarloTrials = 100;
 	std::vector<uint32_t> Nthr;
 	Nthr.push_back(1);
 	Nthr.push_back(2);
 	Nthr.push_back(4);
 	Nthr.push_back(8);
-//	Nthr.push_back(16);
-//	Nthr.push_back(24);
-//	Nthr.push_back(32);
+	Nthr.push_back(16);
+	Nthr.push_back(24);
+	Nthr.push_back(32);
+	Nthr.push_back(40);
+	Nthr.push_back(48);
 	VXd mu0 = VXd::Zero(D);
 	MXd psi0 = MXd::Identity(D, D);
 	MXd psi0L = Eigen::LLT<MXd>(psi0).matrixL();
@@ -64,7 +67,7 @@ int main(int argc, char** argv){
 		std::vector<double> pis;
 		double sumpis = 0.0;
 		std::cout << "Creating generative model..." << std::endl;
-		for (uint32_t k = 0; k < K; k++){
+		for (uint32_t k = 0; k < KTrue; k++){
 			//sample mu, sig from normal inverse wishart
 			MXd A(D, D);
 			for(uint32_t d = 0; d < D; d++){
@@ -85,7 +88,7 @@ int main(int argc, char** argv){
 			sumpis += pis.back();
 			//std::cout << "Mu: " << mus.back().transpose() << std::endl << "Sig: " << sigs.back() << std::endl << "Wt: " << pis.back() << std::endl;
 		}
-		for (uint32_t k = 0; k < K; k++){
+		for (uint32_t k = 0; k < KTrue; k++){
 			pis[k] /= sumpis;
 		}
 
@@ -93,7 +96,7 @@ int main(int argc, char** argv){
 		std::ostringstream oss1;
 		oss1 << "model-" << std::setw(3) << std::setfill('0')<< nMC << ".log";
 		std::ofstream mout(oss1.str().c_str());
-		for (uint32_t k = 0; k < K; k++){
+		for (uint32_t k = 0; k < KTrue; k++){
 			mout << mus[k].transpose() << " ";
 			for (uint32_t j = 0; j < D; j++){
 				mout << sigs[k].row(j) << " ";
