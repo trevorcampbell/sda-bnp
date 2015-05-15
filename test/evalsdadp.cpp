@@ -23,7 +23,7 @@ int main(int argc, char** argv){
 	//constants
 	uint32_t KTrue = 100;
 	uint32_t K = 200;
-	uint32_t Knew = 100;
+	uint32_t Knew = 50;
 	uint32_t N = 100000;
 	uint32_t Nmini = 50;
 	uint32_t Nt = 10000;
@@ -31,15 +31,15 @@ int main(int argc, char** argv){
 	double alpha = 5.5;
 	uint32_t monteCarloTrials = 100;
 	std::vector<uint32_t> Nthr;
-	//Nthr.push_back(1);
-	//Nthr.push_back(2);
-	//Nthr.push_back(4);
+	Nthr.push_back(1);
+	Nthr.push_back(2);
+	Nthr.push_back(4);
 	Nthr.push_back(8);
-	//Nthr.push_back(16);
-	//Nthr.push_back(24);
-	//Nthr.push_back(32);
-	//Nthr.push_back(40);
-	//Nthr.push_back(48);
+	Nthr.push_back(16);
+	Nthr.push_back(24);
+	Nthr.push_back(32);
+	Nthr.push_back(40);
+	Nthr.push_back(48);
 	VXd mu0 = VXd::Zero(D);
 	MXd psi0 = MXd::Identity(D, D);
 	MXd psi0L = Eigen::LLT<MXd>(psi0).matrixL();
@@ -139,26 +139,26 @@ int main(int argc, char** argv){
 		teout.close();
 
 
-		//SDA DP Test:
-		NIWModel niw(mu0, kappa0, psi0, xi0);
-		for (uint32_t i = 0; i < Nthr.size(); i++){
-			std::cout << "Running VarDP with " << Nthr[i] << " threads..." << std::endl;
-			SDADP<NIWModel> sdadp(test_data, niw, alpha, Knew, Nthr[i]);
-			uint32_t Nctr = 0;
-			while(Nctr < N){
-				std::vector<VXd> minibatch;
-				uint32_t Nmax = Nctr + Nmini < N ? Nctr + Nmini : N;
-				minibatch.insert(minibatch.begin(), train_data.begin()+Nctr, train_data.begin()+Nmax);
-				sdadp.submitMinibatch(minibatch);
-				Nctr += Nmini;
-			}
-			sdadp.waitUntilDone();
-			std::cout << "Saving output..." << std::endl;
-			std::ostringstream oss;
-			oss  << "sdadpmix-nThr_" << std::setfill('0') << std::setw(3) << Nthr[i] << "-" << std::setfill('0') << std::setw(3) << nMC;
-			sdadp.getDistribution().save(oss.str().c_str());
-			sdadp.getTrace().save(oss.str().c_str());
-		}
+		////SDA DP Test:
+		//NIWModel niw(mu0, kappa0, psi0, xi0);
+		//for (uint32_t i = 0; i < Nthr.size(); i++){
+		//	std::cout << "Running VarDP with " << Nthr[i] << " threads..." << std::endl;
+		//	SDADP<NIWModel> sdadp(test_data, niw, alpha, Knew, Nthr[i]);
+		//	uint32_t Nctr = 0;
+		//	while(Nctr < N){
+		//		std::vector<VXd> minibatch;
+		//		uint32_t Nmax = Nctr + Nmini < N ? Nctr + Nmini : N;
+		//		minibatch.insert(minibatch.begin(), train_data.begin()+Nctr, train_data.begin()+Nmax);
+		//		sdadp.submitMinibatch(minibatch);
+		//		Nctr += Nmini;
+		//	}
+		//	sdadp.waitUntilDone();
+		//	std::cout << "Saving output..." << std::endl;
+		//	std::ostringstream oss;
+		//	oss  << "sdadpmix-nThr_" << std::setfill('0') << std::setw(3) << Nthr[i] << "-" << std::setfill('0') << std::setw(3) << nMC;
+		//	sdadp.getDistribution().save(oss.str().c_str());
+		//	sdadp.getTrace().save(oss.str().c_str());
+		//}
 
 		////BATCH DP (new) TEST:
 		//std::cout << "Running Batch VarDP ..." << std::endl;

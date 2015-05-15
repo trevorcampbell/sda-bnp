@@ -123,34 +123,79 @@ void VarDP<Model>::run(bool computeTestLL, double tol, uint32_t nItr){
 template<class Model>
 void VarDP<Model>::init(){
 
-	sumzeta = VXd::Zero(K);
-	sumzetaT = MXd::Zero(K, M);
 
-	//fill in K-K0 etas with stats directly from data
-	std::uniform_int_distribution<> uniint(0, N-1);
-	if (K0 > 0){
-		eta.block(0, 0, K0, M) = eta0;
-		nu.head(K0) = nu0;
-	}
-	for (uint32_t k = K0; k < K; k++){
-		eta.row(k) = train_stats.row(uniint(rng));
-		nu(k) = 1.0;
-	}
-
-	/*compute dist between cluster stats and data stats and use exp(-dist^2) as similarity*/
+	//use kmeans++ to break symmetry in the intiialization
+	//outputs K-K0 indices for new cluster initialization
+	//tries to make them different from the first K0 cluster centers as well
+	std::vector<double> maxMinDists;
+	std::vector<uint32_t> idces = kmeanspp(train_stats, [this](VXd& x, VXd& y){ return model.naturalParameterDistSquared(x, y); }, K, eta0, K0, rng, maxMinDists);
 	for (uint32_t k = 0; k < K; k++){
-		zeta.col(k) = (train_stats.rowwise() - eta.row(k)/nu(k)).rowwise().squaredNorm();
+		//Update the parameters 
+		if (k < K0){ //if this is one of the fixed prior clusters
+			for (uint32_t j = 0; j < M; j++){
+	    		eta(k, j) = eta0(k, j); //+train_stats(idces[k], j);
+	    	}
+			nu(k) = nu0(k); // + 1.0;
+		} else { //otherwise if this is a reasonable sampled cluster, use kmpp
+			for (uint32_t j = 0; j < M; j++){
+	    		eta(k, j) = model.getEta0()(j)+train_stats(idces[k-K0], j);
+	    	}
+			nu(k) = model.getNu0() + 1.0;
+		}
 	}
-	zeta.colwise() -= zeta.rowwise().minCoeff().eval();
-	zeta = (-zeta.array()).exp().eval();
-	for (uint32_t i = 0; i < N; i++){
-		zeta.row(i) /= zeta.row(i).sum();
+
+	//initialize a/b to the prior
+	double psibk = 0.0;
+	for (uint32_t k = 0; k < K; k++){
+		//update weights
+		if (k < K0){
+			a(k) = a0(k);
+			b(k) = b0(k);
+		} else {
+			a(k) = 1.0;
+			b(k) = alpha;
+		}
+    	double psiak = digamma(a(k)) - digamma(a(k)+b(k));
+    	psisum(k) = psiak + psibk;
+    	psibk += digamma(b(k)) - digamma(a(k)+b(k));
 	}
-	sumzeta = zeta.colwise().sum().transpose();
-	sumzetaT = zeta.transpose()*train_stats;
+
+	//update logh/etc
+	model.getLogH(eta, nu, logh, dlogh_deta, dlogh_dnu);
+
+	updateLabelDist(); //finally make sure labels are updated
 
 
-	//random init using iteration
+
+	//RANDOM INITIALIZATION (DUMB BUT WORKS REASONABLY WELL)
+	//sumzeta = VXd::Zero(K);
+	//sumzetaT = MXd::Zero(K, M);
+
+	////fill in K-K0 etas with stats directly from data
+	//std::uniform_int_distribution<> uniint(0, N-1);
+	//if (K0 > 0){
+	//	eta.block(0, 0, K0, M) = eta0;
+	//	nu.head(K0) = nu0;
+	//}
+	//for (uint32_t k = K0; k < K; k++){
+	//	eta.row(k) = train_stats.row(uniint(rng));
+	//	nu(k) = 1.0;
+	//}
+
+	///*compute dist between cluster stats and data stats and use exp(-dist^2) as similarity*/
+	//for (uint32_t k = 0; k < K; k++){
+	//	zeta.col(k) = (train_stats.rowwise() - eta.row(k)/nu(k)).rowwise().squaredNorm();
+	//}
+	//zeta.colwise() -= zeta.rowwise().minCoeff().eval();
+	//zeta = (-zeta.array()).exp().eval();
+	//for (uint32_t i = 0; i < N; i++){
+	//	zeta.row(i) /= zeta.row(i).sum();
+	//}
+	//sumzeta = zeta.colwise().sum().transpose();
+	//sumzetaT = zeta.transpose()*train_stats;
+
+
+	//RANDOM INIT (SAME AS ABOVE, LESS EFFICIENT)
 	//for(uint32_t i = 0; i < N; i++){
 	//	double rwsum = 0;
     //	double minDistSq = std::numeric_limits<double>::infinity();
@@ -171,64 +216,7 @@ void VarDP<Model>::init(){
 
 
 
-	////use kmeans++ to break symmetry in the intiialization
-	////outputs K-K0 indices for new cluster initialization
-	////tries to make them different from the first K0 cluster centers as well
-	////also outputs maxMinDists -- this is a decreasing sequence of numbers representing 
-	////the maximum "distance to closest cluster"
-	////as this value settles, more and more spurious clusters are added
-	////this code uses a 99% value cutoff
-	//std::vector<double> maxMinDists;
-	//std::vector<uint32_t> idces = kmeanspp(train_stats, [this](VXd& x, VXd& y){ return model.naturalParameterDistSquared(x, y); }, K, eta0, K0, rng, maxMinDists);
-	//uint32_t kthresh = K;
-	//double cutoff = 0.99;
-	//if (maxMinDists.size() > 2){
-	//	double mmdf = maxMinDists.front();
-	//	double mmdb = maxMinDists.back();
-	//	double mmcutoff = mmdf-cutoff*(mmdf-mmdb);
-	//	kthresh = 0;
-	//	while(kthresh < maxMinDists.size() && maxMinDists[kthresh] > mmcutoff){ kthresh++; }
-	//}
-	//for (uint32_t k = 0; k < K; k++){
-	//	//Update the parameters 
-	//	if (k < K0){ //if this is one of the fixed prior clusters
-	//		for (uint32_t j = 0; j < M; j++){
-	//    		eta(k, j) = eta0(k, j); //+train_stats(idces[k], j);
-	//    	}
-	//		nu(k) = nu0(k); // + 1.0;
-	//	} else if (k < kthresh) { //otherwise if this is a reasonable sampled cluster, use kmpp
-	//		for (uint32_t j = 0; j < M; j++){
-	//    		eta(k, j) = model.getEta0()(j)+train_stats(idces[k-K0], j);
-	//    	}
-	//		nu(k) = model.getNu0() + 1.0;
-	//	} else { //if this is probably a spurious cluster, just use the prior
-	//		eta.row(k) = model.getEta0().transpose();
-	//		nu(k) = model.getNu0();
-	//	}
-	//}
-
-	////initialize a/b to the prior
-	//double psibk = 0.0;
-	//for (uint32_t k = 0; k < K; k++){
-	//	//update weights
-	//	if (k < K0){
-	//		a(k) = a0(k);
-	//		b(k) = b0(k);
-	//	} else {
-	//		a(k) = 1.0;
-	//		b(k) = alpha;
-	//	}
-    //	double psiak = digamma(a(k)) - digamma(a(k)+b(k));
-    //	psisum(k) = psiak + psibk;
-    //	psibk += digamma(b(k)) - digamma(a(k)+b(k));
-	//}
-
-	////update logh/etc
-	//model.getLogH(eta, nu, logh, dlogh_deta, dlogh_dnu);
-
-	//updateLabelDist(); //finally make sure labels are updated
-
-
+	
 	//std::cout << "INIT" << std::endl;
 	//std::cout << "Eta: " << std::endl << eta << std::endl;
 	//std::cout << "nu: " << std::endl << nu.transpose() << std::endl;
