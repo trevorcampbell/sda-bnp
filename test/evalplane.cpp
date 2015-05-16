@@ -37,8 +37,7 @@ std::vector<VXd> readVectorRows(const char* filename){
 			vecSize = vvec.size();
 		}
 		if (vecSize != vvec.size()){
-			std::cout << "ERROR LOADING FILE " << filename << ": columns are not uniform length" << std::endl;
-			exit(0);
+			break;
 		}
 		VXd vec = VXd::Zero(vecSize);
 		for (uint32_t j = 0; j < vecSize; j++){
@@ -67,13 +66,7 @@ int main(int argc, char** argv){
 	uint32_t NminiSVI = 100;
 	double alpha = 10.0;
 	std::vector<uint32_t> Nthr;
-	Nthr.push_back(1);
-	Nthr.push_back(2);
-	Nthr.push_back(4);
 	Nthr.push_back(8);
-	Nthr.push_back(16);
-	Nthr.push_back(32);
-	Nthr.push_back(48);
 	VXd mu0 = VXd::Zero(D);
 	MXd psi0 = MXd::Identity(D, D);
 	double kappa0 = 1e-3;
@@ -106,7 +99,7 @@ int main(int argc, char** argv){
 	vardp.run(true);
 	std::cout << "Saving output..." << std::endl;
 	std::ostringstream oss4;
-	oss4  << "vardpmix-adsb-trace.log";
+	oss4  << "vardpmix-adsb";
 	vardp.getTrace().save(oss4.str().c_str());
 
 

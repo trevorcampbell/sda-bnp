@@ -215,8 +215,6 @@ void VarDP<Model>::init(){
 	
 
 
-
-	
 	//std::cout << "INIT" << std::endl;
 	//std::cout << "Eta: " << std::endl << eta << std::endl;
 	//std::cout << "nu: " << std::endl << nu.transpose() << std::endl;
