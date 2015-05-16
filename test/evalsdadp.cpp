@@ -31,7 +31,7 @@ int main(int argc, char** argv){
 	uint32_t Nt = 10000;
 	uint32_t D = 2;
 	double alpha = 5.5;
-	uint32_t monteCarloTrials = 100;
+	uint32_t monteCarloTrials = 30;
 	std::vector<uint32_t> Nthr;
 	Nthr.push_back(1);
 	Nthr.push_back(2);

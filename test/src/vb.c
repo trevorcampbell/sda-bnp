@@ -675,20 +675,22 @@ double svaDP(double** out_zeta, double** out_eta, double** out_nu, double** out_
 			csz = K;
 		}
 
-		clock_gettime(CLOCK_MONOTONIC, &tf);
-		if (*out_nTrace == 0){
-			times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
-		} else {
-			times[*out_nTrace] = times[*out_nTrace - 1] + (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+		if (i < 100 || (i < 1000 && i % 100 == 0) || i % 1000 == 0){
+			clock_gettime(CLOCK_MONOTONIC, &tf);
+			if (*out_nTrace == 0){
+				times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+			} else {
+				times[*out_nTrace] = times[*out_nTrace - 1] + (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+			}
+			//compute test log likelihood
+			convertSVAtoVB(zeta, sumzeta, sumzetaT, a, b, logh, dlogh_deta, dlogh_dnu, T, w, eta, nu, getLogH, getStat,getLogPostPred, alpha, M, D, N, K);
+			//Remove empty clusters
+			//removeEmptyClustersX(zeta, sumzeta, sumzetaT, eta, nu, logh, dlogh_deta, dlogh_dnu, nu0, a, b, &Ktmp, N, M, K, false);
+			//testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, Ktmp);
+			testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
+			(*out_nTrace)++;
+			clock_gettime(CLOCK_MONOTONIC, &ts);
 		}
-		//compute test log likelihood
-		convertSVAtoVB(zeta, sumzeta, sumzetaT, a, b, logh, dlogh_deta, dlogh_dnu, T, w, eta, nu, getLogH, getStat,getLogPostPred, alpha, M, D, N, K);
-		//Remove empty clusters
-		//removeEmptyClustersX(zeta, sumzeta, sumzetaT, eta, nu, logh, dlogh_deta, dlogh_dnu, nu0, a, b, &Ktmp, N, M, K, false);
-		//testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, Ktmp);
-		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
-		(*out_nTrace)++;
-		clock_gettime(CLOCK_MONOTONIC, &ts);
 	}
 
 	convertSVAtoVB(zeta, sumzeta, sumzetaT, a, b, logh, dlogh_deta, dlogh_dnu, T, w, eta, nu, getLogH, getStat,getLogPostPred, alpha, M, D, N, K);
@@ -866,6 +868,7 @@ double moVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 	double prevobj = INFINITY;
 	double tol = 1e-8;
 	double diff = 1.0;
+	uint32_t itr = 0;
 	while(diff > tol){
 		for(bb = 0; bb < B; bb++){
 			//first remove the subbatch stats from the global statistics and initialize subbatch stats to 0
@@ -913,15 +916,18 @@ double moVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 				prevobj = obj;
 			}
 
-			clock_gettime(CLOCK_MONOTONIC, &tf);
-			if (*out_nTrace == 0){
-				times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
-			} else {
-				times[*out_nTrace] = times[*out_nTrace - 1] + (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+			if (itr < 2*B || (itr < 10*B && itr % 10 == 0) || itr % 100 == 0){
+				clock_gettime(CLOCK_MONOTONIC, &tf);
+				if (*out_nTrace == 0){
+					times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+				} else {
+					times[*out_nTrace] = times[*out_nTrace - 1] + (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+				}
+				testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
+				(*out_nTrace)++;
+				clock_gettime(CLOCK_MONOTONIC, &ts);
 			}
-			testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
-			(*out_nTrace)++;
-			clock_gettime(CLOCK_MONOTONIC, &ts);
+			itr++;
 		}
 	}
 
@@ -1327,15 +1333,17 @@ double soVBDP_noAllocSumZeta(double* zeta, double* sumzeta, double* sumzetaT,
 		diff = fabs( (obj-prevobj)/obj);
 		prevobj = obj;
 
-		clock_gettime(CLOCK_MONOTONIC, &tf);
-		if (*out_nTrace == 0){
-			times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
-		} else {
-			times[*out_nTrace] = times[*out_nTrace - 1] + (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+		if (step < 10 || (step < 100 && step % 10 == 0) || step % 100 == 0){
+			clock_gettime(CLOCK_MONOTONIC, &tf);
+			if (*out_nTrace == 0){
+				times[*out_nTrace] = (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+			} else {
+				times[*out_nTrace] = times[*out_nTrace - 1] + (tf.tv_sec-ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec)/1.0e9;
+			}
+			testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
+			(*out_nTrace)++;
+			clock_gettime(CLOCK_MONOTONIC, &ts);
 		}
-		testlls[*out_nTrace] = computeTestLogLikelihood(Ttest, eta, nu, a, b, getLogPostPred, Nt, D, M, K);
-		(*out_nTrace)++;
-		clock_gettime(CLOCK_MONOTONIC, &ts);
     //printf("obj %f\t step %d",obj,step);
 	}
 
