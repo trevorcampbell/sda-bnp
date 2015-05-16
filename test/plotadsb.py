@@ -1,7 +1,64 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import seaborn as sns
+
+sns.set(font_scale=1.5)
+snsm = sns.color_palette('muted')
+
+nthr_tags = []
+for f in os.listdir('.'):
+    if f[:19] == 'sdadpmix-adsb-nThr_' and f[-7:] == '-ab.log':
+        nthr_tags.append(f[19:-7])
+nthr_tags = sorted(list(set(nthr_tags)))
+
+#plot the testll traces first
+lghdls = []
+lglbls = []
+
+plt.figure()
+lglbls = []
+lghdls = []
+#Plot 6: Test log likelihood vs time with mean/std
+for i in range(len(nthr_tags)):
+    ntag = nthr_tags[i]
+    tr = np.genfromtxt('sdadpmix-adsb-nThr_'+ntag+'-trace.log')
+    lghdl, = plt.plot(tr[:, 0], tr[:, 1], c=snsm[0], lw=2, alpha=float(i+1)/float(len(nthr_tags)))
+    lghdls.append(lghdl)
+    lglbls.append('SDA-DP-'+ntag)
+
+tr = np.genfromtxt('vardpmix-adsb-trace.log')
+lghdl, = plt.plot(tr[:, 0], tr[:, 1], c=snsm[1], lw=2)
+lghdls.append(lghdl)
+lglbls.append('New Batch')
+
+
+tr = np.genfromtxt('vardpmixold-adsb-trace.log')
+lghdl, = plt.plot(tr[:, 0], tr[:, 1], c=snsm[2], lw=2)
+lghdls.append(lghdl)
+lglbls.append('Old Batch')
+
+tr = np.genfromtxt('svadpmix-adsb-trace.log')
+lghdl, = plt.plot(tr[:, 0], tr[:, 1], c=snsm[3], lw=2)
+lghdls.append(lghdl)
+lglbls.append('SVA')
+
+tr = np.genfromtxt('svidpmix-adsb-trace.log')
+lghdl, = plt.plot(tr[:, 0], tr[:, 1], c=snsm[4], lw=2)
+lghdls.append(lghdl)
+lglbls.append('SVI')
+
+tr = np.genfromtxt('movbdpmix-adsb-trace.log')
+lghdl, = plt.plot(tr[:, 0], tr[:, 1], c=snsm[5], lw=2)
+lghdls.append(lghdl)
+lglbls.append('moVB')
+
+plt.xscale('log')
+plt.legend(lghdls, lglbls)
+plt.show()
+quit()
+
 
 #load linear data
 data = np.loadtxt('spatial_flows_linear4.log')
