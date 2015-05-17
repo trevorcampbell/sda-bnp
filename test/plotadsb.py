@@ -37,25 +37,25 @@ lghdls.append(lghdl)
 lglbls.append('New Batch')
 
 
-#tr = np.genfromtxt('vardpmixold-adsb-trace.log')
-#lghdl, = plt.plot(tr[:, 0], tr[:, 1], c=snsm[2], lw=2)
-#lghdls.append(lghdl)
-#lglbls.append('Old Batch')
-#
-#tr = np.genfromtxt('svadpmix-adsb-trace.log')
-#lghdl, = plt.plot(tr[:, 0], tr[:, 1], c=snsm[3], lw=2)
-#lghdls.append(lghdl)
-#lglbls.append('SVA')
-#
-#tr = np.genfromtxt('svidpmix-adsb-trace.log')
-#lghdl, = plt.plot(tr[:, 0], tr[:, 1], c=snsm[4], lw=2)
-#lghdls.append(lghdl)
-#lglbls.append('SVI')
-#
-#tr = np.genfromtxt('movbdpmix-adsb-trace.log')
-#lghdl, = plt.plot(tr[:, 0], tr[:, 1], c=snsm[5], lw=2)
-#lghdls.append(lghdl)
-#lglbls.append('moVB')
+tr = np.genfromtxt('vardpmixold-adsb-trace.log')
+lghdl, = plt.plot(tr[:, 0], tr[:, 1], c=snsm[2], lw=2)
+lghdls.append(lghdl)
+lglbls.append('Old Batch')
+
+tr = np.genfromtxt('svadpmix-adsb-trace.log')
+lghdl, = plt.plot(tr[:, 0], tr[:, 1], c=snsm[3], lw=2)
+lghdls.append(lghdl)
+lglbls.append('SVA')
+
+tr = np.genfromtxt('svidpmix-adsb-trace.log')
+lghdl, = plt.plot(tr[:, 0], tr[:, 1], c=snsm[4], lw=2)
+lghdls.append(lghdl)
+lglbls.append('SVI')
+
+tr = np.genfromtxt('movbdpmix-adsb-trace.log')
+lghdl, = plt.plot(tr[:, 0], tr[:, 1], c=snsm[5], lw=2)
+lghdls.append(lghdl)
+lglbls.append('moVB')
 
 plt.xscale('log')
 plt.legend(lghdls, lglbls)
@@ -69,9 +69,14 @@ trace_lat = np.loadtxt('spline_lats.log')
 trace_lon = np.loadtxt('spline_lons.log')
 
 #load eta, nu, ab
-eta = np.loadtxt('vardpmix-adsb-eta.log')
-nu = np.loadtxt('vardpmix-adsb-nu.log')
-ab = np.loadtxt('vardpmix-adsb-ab.log')
+#eta = np.loadtxt('vardpmix-adsb-eta.log')
+#nu = np.loadtxt('vardpmix-adsb-nu.log')
+#ab = np.loadtxt('vardpmix-adsb-ab.log')
+
+eta = np.loadtxt('sdadpmix-adsb-nThr_008-eta.log')
+nu = np.loadtxt('sdadpmix-adsb-nThr_008-nu.log')
+ab = np.loadtxt('sdadpmix-adsb-nThr_008-ab.log')
+
 
 #load US boundaries
 bdries = np.loadtxt('boundary_segments.log')
