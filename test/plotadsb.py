@@ -14,6 +14,7 @@ for f in os.listdir('.'):
     if f[:19] == 'sdadpmix-adsb-nThr_' and f[-7:] == '-ab.log':
         nthr_tags.append(f[19:-7])
 nthr_tags = sorted(list(set(nthr_tags)))
+nthr_tags = [nthr_tags[4]]
 
 #plot the testll traces first
 lghdls = []
@@ -29,18 +30,18 @@ for i in range(len(nthr_tags)):
     lghdl, = plt.plot(tr[:, 0], tr[:, 1], c=snsm[0], lw=2, alpha=float(
         i + 1) / float(len(nthr_tags)))
     lghdls.append(lghdl)
-    lglbls.append('SDA-DP-' + ntag)
+    lglbls.append('SDA-DP')
 
-tr = np.genfromtxt('vardpmix-adsb-trace.log')
-lghdl, = plt.plot(tr[:, 0], tr[:, 2], c=snsm[1], lw=2)
-lghdls.append(lghdl)
-lglbls.append('New Batch')
+#tr = np.genfromtxt('vardpmix-adsb-trace.log')
+#lghdl, = plt.plot(tr[:, 0], tr[:, 2], c=snsm[1], lw=2)
+#lghdls.append(lghdl)
+#lglbls.append('New Batch')
 
 
 tr = np.genfromtxt('vardpmixold-adsb-trace.log')
 lghdl, = plt.plot(tr[:, 0], tr[:, 1], c=snsm[2], lw=2)
 lghdls.append(lghdl)
-lglbls.append('Old Batch')
+lglbls.append('Batch')
 
 tr = np.genfromtxt('svadpmix-adsb-trace.log')
 lghdl, = plt.plot(tr[:, 0], tr[:, 1], c=snsm[3], lw=2)
@@ -58,7 +59,13 @@ lghdls.append(lghdl)
 lglbls.append('moVB')
 
 plt.xscale('log')
-plt.legend(lghdls, lglbls)
+plt.legend(lghdls, lglbls, loc=2)
+plt.xlim([1e-2, 1])
+plt.ylim([-5, -.5])
+plt.xlabel('Time (s)')
+plt.ylabel('Test Log Likelihood')
+plt.axes().set_yticklabels(map(float, plt.axes().get_yticks().tolist())) #these two commands for some reason help formatting the axis tick labels...
+plt.axes().set_xticklabels(map(float, plt.axes().get_xticks().tolist()))
 
 
 #load linear data
@@ -73,9 +80,9 @@ trace_lon = np.loadtxt('spline_lons.log')
 #nu = np.loadtxt('vardpmix-adsb-nu.log')
 #ab = np.loadtxt('vardpmix-adsb-ab.log')
 
-eta = np.loadtxt('sdadpmix-adsb-nThr_008-eta.log')
-nu = np.loadtxt('sdadpmix-adsb-nThr_008-nu.log')
-ab = np.loadtxt('sdadpmix-adsb-nThr_008-ab.log')
+eta = np.loadtxt('sdadpmix-adsb-nThr_016-eta.log')
+nu = np.loadtxt('sdadpmix-adsb-nThr_016-nu.log')
+ab = np.loadtxt('sdadpmix-adsb-nThr_016-ab.log')
 
 
 #load US boundaries
@@ -83,7 +90,7 @@ bdries = np.loadtxt('boundary_segments.log')
 
 K = eta.shape[0]
 K2plot = 10
-NpK = 100
+NpK = 25
 N = data.shape[0]
 D = data.shape[1]
 logpbs = np.zeros((data.shape[0], eta.shape[0]))
@@ -129,12 +136,29 @@ plt.figure()
 barlist = plt.bar(np.arange(len(bigKs)), cts[bigKs])
 for i in range(len(bigKs)):
     barlist[i].set_color(snsm[i])
+plt.ylabel('Count')
+plt.xlabel('Cluster')
+plt.axes().set_xticks(0.4+np.arange(len(bigKs)))
+plt.axes().set_xticklabels(map(int, plt.axes().get_xticks().tolist()))
+plt.axes().set_yticklabels(map(int, plt.axes().get_yticks().tolist())) #these two commands for some reason help formatting the axis tick labels...
 
 
 
 #create the 3d plot
 plt.figure()
 ax = plt.subplot(111, projection='3d')
+ax._axis3don=False
+#ax.view_init(37, -94)
+##generate sphere
+#spherelats = [ [np.pi/180.0*(-90 + 180.0*lat/59.0) for lat in range(60)] for i in range(120)]
+#spherelons = [ [np.pi/180.0*(-180 + 360.0*lon/119.0) for lon in range(120)] for i in range(60)]
+##transpose spherelons
+#spherelons = [ [row[i] for row in spherelons] for i in range(120)]
+#spherex = [ [.90*np.cos(spherelats[i][j])*np.cos(spherelons[i][j]) for j in range(60)] for i in range(120)]
+#spherey = [ [.90*np.cos(spherelats[i][j])*np.sin(spherelons[i][j]) for j in range(60)] for i in range(120)]
+#spherez = [ [.90*np.sin(spherelats[i][j]) for j in range(60)] for i in range(120)]
+#ax.plot_surface(spherex, spherey, spherez, rstride=2, cstride=2, color='w', shade=0)
+
 
 #plot the united states
 for i in range(bdries.shape[0]):
