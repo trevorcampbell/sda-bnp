@@ -29,7 +29,7 @@ for i in range(len(nthr_tags)):
     lglbls.append('SDA-DP-'+ntag)
 
 tr = np.genfromtxt('vardpmix-adsb-trace.log')
-lghdl, = plt.plot(tr[:, 0], tr[:, 1], c=snsm[1], lw=2)
+lghdl, = plt.plot(tr[:, 0], tr[:, 2], c=snsm[1], lw=2)
 lghdls.append(lghdl)
 lglbls.append('New Batch')
 
