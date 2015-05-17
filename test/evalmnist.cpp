@@ -108,7 +108,7 @@ int main(int argc, char** argv){
 	vardp.run(true);
 	std::cout << "Saving output..." << std::endl;
 	std::ostringstream oss4;
-	oss4  << "vardpmix-" << std::setfill('0') << std::setw(3) << nMC;
+	oss4  << "vardpmix-mnist";
 	vardp.getDistribution().save(oss4.str().c_str());
 	vardp.getTrace().save(oss4.str().c_str());
 
