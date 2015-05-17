@@ -77,7 +77,7 @@ ab = np.loadtxt('vardpmix-adsb-ab.log')
 bdries = np.loadtxt('boundary_segments.log')
 
 K = eta.shape[0]
-K2plot = K
+K2plot = 10
 NpK = 100
 N = data.shape[0]
 D = data.shape[1]
@@ -116,12 +116,15 @@ bigKs = np.argsort(cts)[::-1][:K2plot]
 mask = cts[bigKs] > 0
 bigKs = bigKs[mask]
 
-plt.figure()
-plt.bar(np.arange(len(bigKs)), cts[bigKs])
-
 #color palette for 3d plot
 sns.set(font_scale=1.5)
-snsm = sns.color_palette('husl', K2plot)
+snsm = sns.color_palette('husl', len(bigKs))
+
+plt.figure()
+barlist = plt.bar(np.arange(len(bigKs)), cts[bigKs])
+for i in range(len(bigKs)):
+    barlist[i].set_color(snsm[i])
+
 
 
 #create the 3d plot
