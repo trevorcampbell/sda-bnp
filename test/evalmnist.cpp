@@ -60,9 +60,11 @@ int main(int argc, char** argv){
 	uint32_t D = train_data[0].size();
 	uint32_t N = train_data.size();
 	uint32_t Nt = test_data.size();
-	uint32_t Knew = 40;
-	uint32_t K = 40;
-	uint32_t Nmini = 1000;
+	uint32_t Knew = 50;
+	uint32_t K = 200;
+	uint32_t Nmini = 50;
+	uint32_t NminiSVI = 100;
+	uint32_t NminiMOVB= 100;
 	double alpha = 1.0;
 	std::vector<uint32_t> Nthr;
 	Nthr.push_back(1);
@@ -76,7 +78,7 @@ int main(int argc, char** argv){
 	Nthr.push_back(48);
 	VXd mu0 = VXd::Zero(D);
 	MXd psi0 = MXd::Identity(D, D);
-	double kappa0 = 1e-6;
+	double kappa0 = 1e-3;
 	double xi0 = D+2;
 
 	//SDA DP Test:
@@ -87,7 +89,8 @@ int main(int argc, char** argv){
 		uint32_t Nctr = 0;
 		while(Nctr < N){
 			std::vector<VXd> minibatch;
-			minibatch.insert(minibatch.begin(), train_data.begin()+Nctr, train_data.begin()+Nctr+Nmini);
+			uint32_t Nmax = Nctr + Nmini < N ? Nctr + Nmini : N;
+			minibatch.insert(minibatch.begin(), train_data.begin()+Nctr, train_data.begin()+Nmax);
 			sdadp.submitMinibatch(minibatch);
 			Nctr += Nmini;
 		}
@@ -98,6 +101,18 @@ int main(int argc, char** argv){
 		sdadp.getDistribution().save(oss.str().c_str());
 		sdadp.getTrace().save(oss.str().c_str());
 	}
+
+	//BATCH DP (new) TEST:
+	std::cout << "Running Batch VarDP ..." << std::endl;
+	VarDP<NIWModel> vardp(train_data, test_data, niw, alpha, K);
+	vardp.run(true);
+	std::cout << "Saving output..." << std::endl;
+	std::ostringstream oss4;
+	oss4  << "vardpmix-" << std::setfill('0') << std::setw(3) << nMC;
+	vardp.getDistribution().save(oss4.str().c_str());
+	vardp.getTrace().save(oss4.str().c_str());
+
+
 
 	//Convert the parameters/data/etc to the old c code format 
 	MXd x(D, N), xt(D, Nt);
@@ -142,7 +157,7 @@ int main(int argc, char** argv){
 	std::cout << "Running SVI ..." << std::endl;
     soVBDP(&zeta, &eta, &nu, &a, &b, &Kf,  &times, &testlls, &Ntll,
         x.data(), xt.data(), alpha, eta0.data(), nu0, &getLogHGaussian,
-        &getStatGaussian,&getLogPostPredGaussian, N, Nt, M, D, K, Nmini); 
+        &getStatGaussian,&getLogPostPredGaussian, N, Nt, M, D, K, NminiSVI); 
 	//output results
 	std::ostringstream oss6;
 	oss6 << "svidpmix-mnist-trace.log";
@@ -157,7 +172,7 @@ int main(int argc, char** argv){
 	std::cout << "Running moVB ..." << std::endl;
     moVBDP(&zeta, &eta, &nu, &a, &b, &Kf, &times, &testlls, &Ntll,
         x.data(), xt.data(), alpha, eta0.data(), nu0, &getLogHGaussian,
-        &getStatGaussian,&getLogPostPredGaussian, N, Nt, M, D, K, Nmini); 
+        &getStatGaussian,&getLogPostPredGaussian, N, Nt, M, D, K, NminiMOVB); 
 	//output results
 	std::ostringstream oss7;
 	oss7 << "movbdpmix-mnist-trace.log";
@@ -171,7 +186,7 @@ int main(int argc, char** argv){
 	//SVA DP TEST
 	std::cout << "Running SVA ..." << std::endl;
 	svaDP(&zeta, &eta, &nu, &a, &b, &Kf, &times, &testlls, &Ntll,
-	    x.data(), xt.data(), alpha, 1.0e-3, 1.0e-3, eta0.data(), nu0, &getLogHGaussian,
+	    x.data(), xt.data(), alpha, 1.0e-1, 1.0e-3, eta0.data(), nu0, &getLogHGaussian,
 	    &getStatGaussian, &getLogPostPredGaussian, N, Nt, M, D, K); 
 	//output results
 	std::ostringstream oss8;
