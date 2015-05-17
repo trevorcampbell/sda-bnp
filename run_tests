@@ -171,7 +171,8 @@ then
 	mkdir adsbresults
 	cp test/plotadsb.py adsbresults
 	mv *.log adsbresults
-	cp adsbresults/lf3_train.log adsbresults/lf3_test.log ./
+	mv adsbresults/lf3_train.log adsbresults/lf3_test.log ./
+	cp adsbresults/linear_flows_3.log adsbresults/spline_lats.log adsbresults/spline_lons.log adsbresults/boundary_segments.log ./
 	echo "Done adsb Evaluation! Go to ./adsbresults and run python plotadsb.py to visualize the results."
 else
     echo "Error experienced during compilation, test was not run."

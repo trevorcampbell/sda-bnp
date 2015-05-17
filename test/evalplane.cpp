@@ -61,15 +61,18 @@ int main(int argc, char** argv){
 	uint32_t N = train_data.size();
 	uint32_t Nt = test_data.size();
 	uint32_t Knew = 50;
-	uint32_t K = 100;
+	uint32_t K = 500;
 	uint32_t Nmini = 50;
 	uint32_t NminiSVI = 100;
-	double alpha = 10.0;
+	double alpha = 1.0;
 	std::vector<uint32_t> Nthr;
 	Nthr.push_back(8);
 	VXd mu0 = VXd::Zero(D);
 	MXd psi0 = MXd::Identity(D, D);
-	double kappa0 = 1e-3;
+	psi0(0, 0) = .1;
+	psi0(1, 1) = .1;
+	psi0(2, 2) = 40;
+	double kappa0 = 1e-2;
 	double xi0 = D+2;
 
 	//SDA DP Test:
@@ -101,6 +104,17 @@ int main(int argc, char** argv){
 	std::ostringstream oss4;
 	oss4  << "vardpmix-adsb";
 	vardp.getTrace().save(oss4.str().c_str());
+	vardp.getDistribution().save(oss4.str().c_str());
+
+		VXd sz = vardp.getDistribution().sumz;
+		uint32_t nek = 0;
+		for (uint32_t k = 0; k < sz.size(); k++){
+			if (sz(k) > 5){
+				nek++;
+			}
+		}
+		std::cout << "nonempty: " << nek << std::endl;
+		exit(0);
 
 
 
