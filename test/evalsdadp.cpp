@@ -28,7 +28,7 @@ int main(int argc, char** argv){
 	uint32_t Nmini = 50;
 	uint32_t NminiSVI = 100;
 	uint32_t NminiMOVB = 100;
-	uint32_t Nt = 10000;
+	uint32_t Nt = 1000;
 	uint32_t D = 2;
 	double alpha = 5.5;
 	uint32_t monteCarloTrials = 30;
